@@ -34,3 +34,16 @@ export const EMBEDDING_CONFIG = {
   retryBackoffMs: 500,
   batchSize: 32
 }
+
+export const ENRICH_CONFIG = {
+  summaryMaxChars: 1000,
+  markdownMaxChars: 4000,
+  keywordMax: 12,
+  extractMaxChars: 20000,
+  fetchMaxBytes: 2 * 1024 * 1024,
+  cacheTtlMs: 30 * 24 * 3600 * 1000,
+  summariser: 'ollama',
+  model: 'qwen2.5:3b',
+  promptVersion: 'summary-v1',
+  checkpointEvery: 100
+}

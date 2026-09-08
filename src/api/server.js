@@ -4,6 +4,7 @@ import { join as pathJoin, isAbsolute } from 'path'
 import logger from 'loglevel'
 import { RETRIEVAL_CONFIG } from '../../config/preferences.js'
 import { NAMESPACES } from '../rdf/NamespaceManager.js'
+import { iri } from '../store/SPARQLHelper.js'
 
 /**
  * DIM public read API. Adapted from plugin-universe src/api/server.js,
@@ -60,8 +61,24 @@ function esc (s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+function bookmarkSlug (bookmarkIri) {
+  const prefix = `${NAMESPACES.dim}bookmark/`
+  return String(bookmarkIri ?? '').startsWith(prefix)
+    ? String(bookmarkIri).slice(prefix.length)
+    : null
+}
+
+/** Public Turtle URL for a search-result document, e.g. /bookmark/foo-12345678.ttl */
+export function bookmarkDataUrl (doc) {
+  const slug = bookmarkSlug(doc?.iri)
+  return slug ? `/bookmark/${slug}.ttl` : null
+}
+
 function renderSearchPage ({ query, facets, results, total, corpus, elapsedMs, facetValues }) {
-  const items = results.map(r => `<li><a href="${esc(r.url)}">${esc(r.name)}</a> <small>${esc(r.domain ?? '')} · ${esc((r.bookmarkTypes || []).join(', '))} · ${typeof r.score === 'number' ? r.score.toFixed(3) : ''}</small>${r.description ? `<br><small>${esc(r.description.slice(0, 200))}</small>` : ''}</li>`).join('\n')
+  const items = results.map(r => {
+    const data = bookmarkDataUrl(r)
+    return `<li><a href="${esc(r.url)}">${esc(r.name)}</a>${data ? ` <a href="${esc(data)}">data</a>` : ''} <small>${esc(r.domain ?? '')} · ${esc((r.bookmarkTypes || []).join(', '))} · ${typeof r.score === 'number' ? r.score.toFixed(3) : ''}</small>${r.description ? `<br><small>${esc(r.description.slice(0, 200))}</small>` : ''}${r.summary ? `<br><small>${esc(r.summary.slice(0, 200))}</small>` : ''}${(r.keywords ?? []).length ? `<br><small>key terms: ${esc(r.keywords.join(', '))}</small>` : ''}</li>`
+  }).join('\n')
   const typeOpts = (facetValues.bookmarkType ?? []).slice(0, 30).map(f => `<option value="${esc(f.value)}">${esc(f.value)} (${f.count})</option>`).join('')
   return `<!doctype html><html><head><meta charset="utf-8"><title>DIM${query ? ' — ' + esc(query) : ''}</title></head><body>
 <h1>DIM — Danny's Information Manager</h1>
@@ -83,6 +100,22 @@ function bookmarkTurtle (doc) {
   for (const t of doc.bookmarkTypes ?? []) lines.push(`  dim:bookmarkType <${NAMESPACES.dim}concept/${t}> ;`)
   lines.push('  .')
   return lines.join('\n')
+}
+
+/**
+ * The saved triples for a bookmark, straight from the store via the
+ * bookmark/describe CONSTRUCT. Falls back to the hand-built minimal
+ * description when the store cannot answer (offline, empty graph).
+ */
+async function savedTurtle (search, bookmarkIri, doc) {
+  try {
+    const query = search.queries.get('bookmark/describe', { bookmark: iri(bookmarkIri) })
+    const turtle = (await search.client.construct(query)).trim()
+    if (turtle) return turtle
+  } catch (error) {
+    logger.warn('[api] describe failed, serving in-memory turtle', { bookmarkIri, error: error.message })
+  }
+  return bookmarkTurtle(doc)
 }
 
 export function createServer ({ search, config, projectRoot = process.cwd() }) {
@@ -161,7 +194,7 @@ export function createServer ({ search, config, projectRoot = process.cwd() }) {
             total: outcome.total,
             count: outcome.results.length,
             elapsedMs: Date.now() - started,
-            results: outcome.results,
+            results: outcome.results.map(r => ({ ...r, data: bookmarkDataUrl(r) })),
             signals: outcome.signals ?? null,
             licence: LICENCE
           })
@@ -189,13 +222,13 @@ export function createServer ({ search, config, projectRoot = process.cwd() }) {
           }
           const match = path.match(/^\/bookmark\/([A-Za-z0-9-]+?)(\.ttl|\.json)?$/)
           if (match) {
-            const iri = `${NAMESPACES.dim}bookmark/${match[1]}`
-            const doc = search.documents.get(iri)
-            if (!doc) return send(response, 404, { error: 'No such bookmark', iri })
+            const bookmarkIri = `${NAMESPACES.dim}bookmark/${match[1]}`
+            const doc = search.documents.get(bookmarkIri)
+            if (!doc) return send(response, 404, { error: 'No such bookmark', iri: bookmarkIri })
             if (negotiate(match[2], request.headers.accept) === 'turtle') {
-              return sendText(response, 200, bookmarkTurtle(doc), 'text/turtle; charset=utf-8')
+              return sendText(response, 200, await savedTurtle(search, bookmarkIri, doc), 'text/turtle; charset=utf-8')
             }
-            return send(response, 200, { ...doc, licence: LICENCE })
+            return send(response, 200, { ...doc, data: bookmarkDataUrl(doc), licence: LICENCE })
           }
           return send(response, 404, { error: 'No such endpoint', path })
         }

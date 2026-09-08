@@ -17,6 +17,8 @@ service topology (ports, datasets) lives in `docker-compose.yml` and `.env`.
 | `node bin/ingest.js --limit N` | Embed at most N bookmarks. For bounded runs while embedding is slow. |
 | `node bin/validate.js` | SHACL-validate every registered graph, one report per graph. `--graph <iri>` for one graph, `--verbose` for offending triples. |
 | `node bin/search.js "query"` | Hybrid search from the CLI. `--bookmarkType <slug>`, `--domain <host>`, `--facets` for facet counts. |
+| `node bin/enrich.js --limit 50` | Second-pass enrichment (docs/enricher.md): GET targets, summarise, patch `dim:summary*` in place. `--only-new` skips summarised, `--force` ignores cache, `--summariser extractive` runs offline, `--reembed` re-embeds patched rows. |
+| `bin/pipeline.sh [--limit N]` | The whole run in one go: retrieve → ingest → enrich (+re-embed) → index → validate. Re-runs resume via caches. `--live` probes URLs at ingest, `--summariser ollama` for LLM summaries, `--no-reembed` / `--skip-validate` to trim stages. |
 | `node bin/serve.js` | API + search UI (default `:4110`, override with `PORT`). Loads documents + index once at startup. |
 
 Typical flows:
@@ -30,6 +32,9 @@ node bin/search.js "ESP32 drum machine"  # query it
 ```
 
 ## Services (Docker Compose)
+
+Full runbook: `docs/deployment.md`. The method (images, volumes,
+loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 
 | Command | What it does |
 |---|---|
@@ -52,10 +57,10 @@ node bin/search.js "ESP32 drum machine"  # query it
 | Endpoint | Returns |
 |---|---|
 | `GET /?q=…&bookmarkType=…&domain=…` | Search page (HTML). |
-| `GET /search?q=…&bookmarkType=…&domain=…&limit=` | Hybrid results (JSON) with per-signal scores. |
+| `GET /search?q=…&bookmarkType=…&domain=…&limit=` | Hybrid results (JSON) with per-signal scores. Each result carries a `data` URL. |
 | `GET /facets` | `bookmarkType` + `domain` values and counts. |
 | `GET /bookmarks?limit=` | Browse. |
-| `GET /bookmark/<slug>[.ttl\|.json]` | One bookmark (content-negotiated). |
+| `GET /bookmark/<slug>[.ttl\|.json]` | One bookmark (content-negotiated). `.ttl` serves the saved triples from the store; search results link it as `data`. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
 | `GET /health` | Bookmark/vector counts, embedding model. |
 
@@ -69,4 +74,5 @@ node bin/search.js "ESP32 drum machine"  # query it
 
 - `data/workflowy.md` — source links (committed).
 - `data/cache/retrieval.json` — probe cache, 7-day TTL (gitignored).
+- `data/cache/enrichment.json` + `data/cache/enrichment/*.txt` — enrichment cache + raw extracted text, 30-day TTL (gitignored).
 - `data/dim.index` + `.json` — FAISS vectors + IRI sidecar (gitignored; rebuild with `--only-new`).

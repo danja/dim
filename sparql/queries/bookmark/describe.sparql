@@ -1,0 +1,5 @@
+# The saved triples of one bookmark, served as Turtle by /bookmark/<slug>.ttl.
+CONSTRUCT { ${bookmark} ?p ?o }
+WHERE {
+  GRAPH ?g { ${bookmark} ?p ?o }
+}

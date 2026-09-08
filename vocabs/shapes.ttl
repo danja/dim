@@ -44,6 +44,50 @@ dim:BookmarkShape a sh:NodeShape ;
         sh:datatype xsd:string ; sh:minLength 1 ;
         sh:pattern "^[^A-Z]*$" ;
         sh:message "Tags are lower-cased at normalisation." ;
+    ] ;
+    sh:property [
+        sh:path dim:summary ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 1000 ;
+        sh:message "dim:summary is at most one short derived abstract." ;
+    ] ;
+    sh:property [
+        sh:path dim:summaryModel ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:keyword ;
+        sh:datatype xsd:string ; sh:minLength 2 ;
+        sh:pattern "^[^A-Z]*$" ;
+        sh:message "Keywords are lower-cased at summarisation." ;
+    ] ;
+    sh:property [
+        sh:path dim:summaryMarkdown ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 4000 ;
+        sh:message "dim:summaryMarkdown is at most one short markdown document." ;
+    ] ;
+    sh:property [
+        sh:path dim:summarisedAt ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] ;
+    sh:property [
+        sh:path dim:contentHash ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:contentLength ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ; sh:minInclusive 0 ;
+    ] ;
+    sh:property [
+        sh:path dim:fetchStatus ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 100 ; sh:maxInclusive 599 ;
     ] .
 
 dim:ConceptShape a sh:NodeShape ;

@@ -37,6 +37,8 @@ export function textView (bookmark) {
     host,
     title: bookmark.title ?? null,
     description: bookmark.description ?? null,
+    summary: bookmark.summary ?? null,
+    keywords: bookmark.keywords ?? [],
     bookmarkTypes: (bookmark.bookmarkTypes ?? []).map(localName),
     tags: bookmark.tags ?? []
   }
@@ -50,6 +52,8 @@ export function composeText (bookmark) {
   if (view.host) parts.push(`on ${view.host}`)
   if (view.bookmarkTypes.length) parts.push(view.bookmarkTypes.join(', '))
   if (view.description) parts.push(view.description)
+  if (view.summary && view.summary !== view.description) parts.push(view.summary)
+  if (view.keywords.length) parts.push(view.keywords.join(', '))
   if (view.tags.length) parts.push(view.tags.join(', '))
   parts.push(view.url)
   return parts.join('. ')

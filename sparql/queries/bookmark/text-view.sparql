@@ -1,19 +1,23 @@
 # Everything retrieval and the UI need for one bookmark row per bookmark.
-SELECT ?bookmark ?g ?url ?linkText ?title ?description ?domain ?contentType ?httpStatus
+SELECT ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
        (GROUP_CONCAT(DISTINCT ?typeLabel; separator=", ") AS ?bookmarkTypes)
        (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
+       (GROUP_CONCAT(DISTINCT ?kw; separator=", ") AS ?keywords)
 WHERE {
   GRAPH ?g {
     ?bookmark a dim:Bookmark ; dim:url ?url .
     OPTIONAL { ?bookmark dim:linkText ?linkText }
     OPTIONAL { ?bookmark dcterms:title ?title }
     OPTIONAL { ?bookmark dcterms:description ?description }
+    OPTIONAL { ?bookmark dim:summary ?summary }
+    OPTIONAL { ?bookmark dim:summaryMarkdown ?summaryMarkdown }
     OPTIONAL { ?bookmark dim:domain ?domain }
     OPTIONAL { ?bookmark dim:contentType ?contentType }
     OPTIONAL { ?bookmark dim:httpStatus ?httpStatus }
     OPTIONAL { ?bookmark dim:bookmarkType ?t  BIND(REPLACE(STR(?t), "^.*/", "") AS ?typeLabel) }
     OPTIONAL { ?bookmark dim:tag ?tag }
+    OPTIONAL { ?bookmark dim:keyword ?kw }
   }
 }
-GROUP BY ?bookmark ?g ?url ?linkText ?title ?description ?domain ?contentType ?httpStatus
+GROUP BY ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
 ORDER BY ?linkText

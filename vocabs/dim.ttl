@@ -31,6 +31,25 @@ dim:context a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:s
 dim:sourceLine a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer .
 dim:tag a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string .
 
+## ── Second-pass enrichment (docs/enricher.md) ────────────────────────────
+## Summaries are derived, not quoted: short plain-text abstracts of the
+## target produced by fetch → extract → summarise. Raw extracted text lives
+## in data/cache/enrichment/, never in triples.
+dim:summary a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Second-pass summary of the target, at most 1000 chars." .
+dim:keyword a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Second-pass key term for the target, lower-cased. Repeatable; from the LLM reply or frequency extraction." .
+dim:summaryMarkdown a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Second-pass summary as a short markdown document, at most 4000 chars. Composed locally in a fixed shape." .
+dim:summaryModel a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Summariser id that produced dim:summary, e.g. ollama/qwen2.5:3b-v1 or extractive-v1." .
+dim:summarisedAt a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:dateTime .
+dim:contentHash a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "sha256 (hex, 16 chars) of the extracted text the summary was built from." .
+dim:contentLength a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer .
+dim:fetchStatus a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer ;
+    rdfs:comment "HTTP status of the enrichment fetch; a refusal (401/403/404/410/429/451) is recorded, not retried." .
+
 ## ── Catalogue administration (mirrors plugin-universe, dim: namespace) ────
 dim:SourceGraph a owl:Class ; rdfs:label "Source Graph" .
 dim:graphKind a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:string .

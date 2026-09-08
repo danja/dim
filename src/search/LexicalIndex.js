@@ -46,6 +46,9 @@ export class LexicalIndex {
       vendor: new Set(tokenise(doc.vendor)),
       body: new Set([
         ...tokenise(doc.description),
+        ...tokenise(doc.summary),
+        ...tokenise(doc.summaryMarkdown),
+        ...(doc.keywords ?? []).flatMap(tokenise),
         ...(doc.roles ?? []).flatMap(tokenise),
         ...(doc.categories ?? []).flatMap(tokenise),
         ...(doc.tags ?? []).flatMap(tokenise),
