@@ -1,0 +1,5 @@
+# Full description of one bookmark.
+SELECT ?p ?o
+WHERE {
+  GRAPH ?g { ${bookmark} ?p ?o FILTER(!isBlank(?o)) }
+}

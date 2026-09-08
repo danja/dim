@@ -1,0 +1,8 @@
+# Every bookmark-type concept referenced by any bookmark.
+SELECT DISTINCT ?bookmarkType
+WHERE {
+  GRAPH ?g {
+    ?bookmark dim:bookmarkType ?bookmarkType .
+  }
+}
+ORDER BY ?bookmarkType

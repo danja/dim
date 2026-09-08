@@ -1,0 +1,46 @@
+@prefix dim:      <http://purl.org/stuff/dim/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix schema:  <https://schema.org/> .
+
+dim: a owl:Ontology ;
+    rdfs:label "DIM vocabulary" ;
+    rdfs:comment "Terms for Danny's Information Manager. Bookmarks use dim:Bookmark; retrieval types and topics are SKOS concepts in dim:bookmark-types." ;
+    dcterms:license <https://creativecommons.org/publicdomain/zero/1.0/> .
+
+## ── Bookmarks ─────────────────────────────────────────────────────────────
+dim:Bookmark a owl:Class ; rdfs:label "Bookmark" ;
+    rdfs:comment "One URL from the source file, with its link text and first-pass retrieval metadata." .
+
+dim:url a owl:ObjectProperty ; rdfs:domain dim:Bookmark ;
+    rdfs:comment "The canonical bookmark URL. Identity of the bookmark." .
+dim:linkText a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Link text from the source file." .
+dim:bookmarkType a owl:ObjectProperty ; rdfs:domain dim:Bookmark ; rdfs:range skos:Concept ;
+    rdfs:comment "First-pass type of the target (github-repo, arxiv-paper, ...). A concept in dim:bookmark-types." .
+dim:contentType a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string .
+dim:httpStatus a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer .
+dim:retrievedAt a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:dateTime .
+dim:domain a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string .
+dim:context a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Outline context from workflowy.md where the link appeared." .
+dim:sourceLine a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer .
+dim:tag a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string .
+
+## ── Catalogue administration (mirrors plugin-universe, dim: namespace) ────
+dim:SourceGraph a owl:Class ; rdfs:label "Source Graph" .
+dim:graphKind a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:string .
+dim:redistributable a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:boolean .
+dim:inCC0Dump a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:boolean .
+dim:precedence a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:integer .
+dim:harvestRun a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:string .
+
+## ── Embedding bookkeeping ─────────────────────────────────────────────────
+dim:embeddingModel a owl:DatatypeProperty ; rdfs:range xsd:string .
+dim:embeddingDimension a owl:DatatypeProperty ; rdfs:range xsd:integer .
+dim:embeddedAtTime a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+dim:composedTextHash a owl:DatatypeProperty ; rdfs:range xsd:string .

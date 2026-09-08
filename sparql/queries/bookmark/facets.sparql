@@ -1,0 +1,15 @@
+# Facet counts for the search UI, driven by the data.
+SELECT ?facet ?value (COUNT(DISTINCT ?bookmark) AS ?count)
+WHERE {
+  GRAPH ?g {
+    ?bookmark a dim:Bookmark .
+    {
+      ?bookmark dim:bookmarkType ?v . BIND("bookmarkType" AS ?facet)
+    } UNION {
+      ?bookmark dim:domain ?domainName . BIND("domain" AS ?facet)
+    }
+    BIND(COALESCE(?domainName, REPLACE(STR(?v), "^.*/", "")) AS ?value)
+  }
+}
+GROUP BY ?facet ?value
+ORDER BY ?facet DESC(?count) ?value

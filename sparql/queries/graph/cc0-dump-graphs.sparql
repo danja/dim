@@ -1,0 +1,9 @@
+# The graphs a CC0 dump may draw on.
+SELECT ?graph
+WHERE {
+  GRAPH ${metadataGraph} {
+    ?graph a dim:SourceGraph ;
+           dim:inCC0Dump true .
+  }
+}
+ORDER BY ?graph

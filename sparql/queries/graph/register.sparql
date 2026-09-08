@@ -1,0 +1,15 @@
+# Record a named graph's kind, licence and provenance.
+INSERT DATA {
+  GRAPH ${metadataGraph} {
+    ${graph} a dim:SourceGraph ;
+      dim:graphKind ${kind} ;
+      dcterms:identifier ${identifier} ;
+      dcterms:license ${licence} ;
+      dim:redistributable ${redistributable} ;
+      dim:inCC0Dump ${inCC0Dump} ;
+      dim:precedence ${precedence} ;
+      prov:wasDerivedFrom ${derivedFrom} ;
+      prov:generatedAtTime ${generatedAtTime} ;
+      ${optional}
+  }
+}

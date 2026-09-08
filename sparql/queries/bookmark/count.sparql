@@ -1,0 +1,2 @@
+SELECT (COUNT(DISTINCT ?bookmark) AS ?count)
+WHERE { GRAPH ?g { ?bookmark a dim:Bookmark } }

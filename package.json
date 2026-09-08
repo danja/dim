@@ -1,0 +1,34 @@
+{
+  "name": "dim",
+  "version": "0.1.0",
+  "description": "Danny's Information Manager — SPARQL + embedding knowledgebase over workflowy bookmarks",
+  "type": "module",
+  "license": "CC0-1.0",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "test": "vitest run --config vitest.core.config.js",
+    "test:store": "vitest run --config vitest.store.config.js",
+    "test:all": "vitest run",
+    "store:up": "docker compose up -d fuseki",
+    "store:down": "docker compose down",
+    "ingest": "node bin/ingest.js",
+    "retrieve": "node bin/retrieve.js",
+    "search": "node bin/search.js",
+    "serve": "node bin/serve.js",
+    "validate": "node bin/validate.js"
+  },
+  "dependencies": {
+    "@rdfjs/namespace": "^2.0.0",
+    "faiss-node": "^0.5.1",
+    "loglevel": "^1.9.1",
+    "marked": "^18.0.11",
+    "rdf-ext": "^2.5.1",
+    "rdf-parse": "^4.0.0",
+    "rdf-validate-shacl": "^0.6.5"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+# The IRIs of bookmarks matching a facet filter. A filter, never a score.
+SELECT DISTINCT ?bookmark
+WHERE {
+  GRAPH ?g {
+    ?bookmark a dim:Bookmark .
+    ${conditions}
+  }
+}

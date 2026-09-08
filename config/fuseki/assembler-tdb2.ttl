@@ -1,0 +1,21 @@
+@prefix :        <http://base/#> .
+@prefix fuseki:  <http://jena.apache.org/fuseki#> .
+@prefix ja:      <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix tdb2:    <http://jena.apache.org/2016/tdb#> .
+
+# TDB2 dataset for DIM. Adapted from plugin-universe assembler: union default
+# graph on, attached directly to tdb2:DatasetTDB2 (not a general dataset around
+# one graph, which silently loses named graphs on restart).
+:service a fuseki:Service ;
+    fuseki:name       "dim" ;
+    fuseki:endpoint   [ fuseki:operation fuseki:query ;  fuseki:name "query"  ] ;
+    fuseki:endpoint   [ fuseki:operation fuseki:update ; fuseki:name "update" ] ;
+    fuseki:endpoint   [ fuseki:operation fuseki:gsp-r ;  fuseki:name "get"    ] ;
+    fuseki:endpoint   [ fuseki:operation fuseki:gsp-rw ; fuseki:name "data"   ] ;
+    fuseki:dataset    :dataset .
+
+:dataset a tdb2:DatasetTDB2 ;
+    tdb2:location          "/fuseki-base/databases/dim" ;
+    tdb2:unionDefaultGraph true .

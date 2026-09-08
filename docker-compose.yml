@@ -1,0 +1,82 @@
+## DIM.
+##
+##   docker compose up -d                    store, embeddings and the app
+##   docker compose run --rm app node bin/ingest.js --no-fetch --skip-embeddings
+##
+## Secrets come from .env, which compose reads for substitution here and which
+## .dockerignore keeps out of the image.
+
+services:
+  fuseki:
+    image: secoresearch/fuseki:latest
+    container_name: dim-fuseki
+    ports:
+      - "127.0.0.1:${FUSEKI_PORT:-3031}:3030"
+    environment:
+      ADMIN_PASSWORD: ${SPARQL_PASSWORD:?SPARQL_PASSWORD must be set}
+      ENABLE_DATA_WRITE: "true"
+      ENABLE_UPDATE: "true"
+      ENABLE_UPLOAD: "true"
+      JVM_ARGS: -Xmx${FUSEKI_HEAP:-1g}
+    mem_limit: ${FUSEKI_MEM:-1400m}
+    memswap_limit: ${FUSEKI_MEM:-1400m}
+    volumes:
+      - fuseki-data:/fuseki-base/databases
+      - ./config/fuseki/assembler-tdb2.ttl:/fuseki-base/configuration/dim.ttl:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3030/$$/ping > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dim-ollama
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+    mem_limit: ${OLLAMA_MEM:-1600m}
+    memswap_limit: ${OLLAMA_MEM:-1600m}
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: dim-app
+    ports:
+      - "127.0.0.1:${APP_PORT:-4110}:4110"
+    environment:
+      SPARQL_URL_BASE: http://fuseki:3030
+      SPARQL_DATASET: ${SPARQL_DATASET:-dim}
+      SPARQL_USER: ${SPARQL_USER:?SPARQL_USER must be set}
+      SPARQL_PASSWORD: ${SPARQL_PASSWORD:?SPARQL_PASSWORD must be set}
+      OLLAMA_URL: http://ollama:11434
+      PORT: "4110"
+      NODE_OPTIONS: --max-old-space-size=${NODE_HEAP:-256}
+    mem_limit: ${APP_MEM:-384m}
+    memswap_limit: ${APP_MEMSWAP:-640m}
+    volumes:
+      - app-data:/app/data
+    depends_on:
+      fuseki:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  fuseki-data:
+  ollama-models:
+  app-data:

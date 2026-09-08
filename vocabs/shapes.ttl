@@ -1,0 +1,98 @@
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix dim:     <http://purl.org/stuff/dim/> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+
+dim:shapes a owl:Ontology ;
+    rdfs:label "DIM validation shapes" ;
+    dcterms:license <https://creativecommons.org/publicdomain/zero/1.0/> .
+
+dim:BookmarkShape a sh:NodeShape ;
+    sh:targetClass dim:Bookmark ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+        sh:message "A bookmark needs exactly one non-empty label." ;
+    ] ;
+    sh:property [
+        sh:path dim:url ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:pattern "^https?://" ;
+        sh:message "dim:url is the canonical URL as an IRI." ;
+    ] ;
+    sh:property [
+        sh:path dim:bookmarkType ;
+        sh:nodeKind sh:IRI ;
+        sh:pattern "^http://purl\\.org/stuff/dim/concept/" ;
+        sh:message "Bookmark types are concepts in dim:bookmark-types." ;
+    ] ;
+    sh:property [
+        sh:path dim:httpStatus ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 100 ; sh:maxInclusive 599 ;
+    ] ;
+    sh:property [
+        sh:path dim:tag ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+        sh:pattern "^[^A-Z]*$" ;
+        sh:message "Tags are lower-cased at normalisation." ;
+    ] .
+
+dim:ConceptShape a sh:NodeShape ;
+    sh:targetClass skos:Concept ;
+    sh:property [
+        sh:path skos:prefLabel ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path skos:inScheme ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+    ] .
+
+dim:SourceGraphShape a sh:NodeShape ;
+    sh:targetClass dim:SourceGraph ;
+    sh:property [
+        sh:path dcterms:license ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in (
+                "CC0-1.0" "Unlicense" "0BSD" "MIT" "ISC" "BSD-2-Clause" "BSD-3-Clause"
+                "Apache-2.0" "BSL-1.0" "Zlib" "MPL-2.0" "GPL-2.0" "GPL-3.0" "LGPL-2.1"
+                "LGPL-3.0" "AGPL-3.0" "CC-BY-4.0" "CC-BY-SA-4.0" "proprietary-linkout"
+                "personal-data" "unknown"
+        ) ;
+    ] ;
+    sh:property [
+        sh:path dim:redistributable ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+    ] ;
+    sh:property [
+        sh:path dim:inCC0Dump ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+    ] ;
+    sh:property [
+        sh:path dim:precedence ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path prov:generatedAtTime ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+    ] .
