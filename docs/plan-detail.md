@@ -47,7 +47,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | Phase | Name | Depends on | Status |
 |---|---|---|---|
 | 0 | Starter: core port + first dataset | — | `[~]` mostly done |
-| 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` (live check pending) |
+| 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` |
 | 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[ ]` |
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[ ]` |
 | 4 | Write path & cross-linking foundation | 2 | `[ ]` |
@@ -163,10 +163,10 @@ a shared core, with no behaviour change.
 ### Acceptance
 
 - [x] `npm test` passes: 10 files, 62 tests (baseline 43 + 19 new).
-- [~] `node bin/serve.js` serves the same results for 3 recorded queries —
-      **not verified live**: there is no Fuseki/Ollama in the cloud build
-      sandbox. Covered by stub-backed server tests plus SearchService
-      tests; re-check against the live store locally and log it here.
+- [x] `node bin/serve.js` serves the same results as before — confirmed
+      by hand against the live store on 2026-09-26 (branch checked out
+      locally, server restarted). Also covered by stub-backed server and
+      SearchService tests.
 - [x] No file in `src/` over ~200 lines, except `VectorIndex.js` (reason above).
 
 ### Behaviour notes
@@ -573,3 +573,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 1 | Baseline `npm test`: 6 files, 43 tests pass. | |
 | 2026-09-26 | 1 | Moved code into `src/common` + `src/gnamgnam`, imports fixed, 43/43. | c4a9cb1 |
 | 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | e93f90d |
+| 2026-09-26 | 1 | Live check: search on the restructured branch works as before. Phase 1 done. | |
