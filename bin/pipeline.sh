@@ -2,12 +2,13 @@
 # DIM full pipeline: retrieve → ingest → enrich (summaries) → index → validate.
 #
 # Usage:
-#   bin/pipeline.sh [--limit N] [--live] [--summariser ollama|extractive]
+#   bin/pipeline.sh [--limit N] [--live] [--summariser ollama|remote|extractive]
 #                   [--no-reembed] [--skip-validate]
 #
 #   --limit N      bound the enrich + index stages (grows to full across runs)
 #   --live         ingest probes each URL live (default: --no-fetch, classify only)
-#   --summariser   enrich summariser; extractive is offline/deterministic (default)
+#   --summariser   enrich summariser; extractive is offline/deterministic (default);
+#                  remote uses LLM_PROVIDERS rotation or LLM_BASE_URL (see .env.example)
 #   --no-reembed   skip re-embedding enriched rows (default re-embeds; needs Ollama)
 #   --skip-validate  skip the final SHACL pass
 #
@@ -38,8 +39,8 @@ while [ $# -gt 0 ]; do
 done
 
 case "$SUMMARISER" in
-  ollama|extractive) ;;
-  *) echo "--summariser must be ollama|extractive, got '$SUMMARISER'" >&2; exit 1 ;;
+  ollama|remote|extractive) ;;
+  *) echo "--summariser must be ollama|remote|extractive, got '$SUMMARISER'" >&2; exit 1 ;;
 esac
 
 # Optional args, split intentionally (SC2086).
