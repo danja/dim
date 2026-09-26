@@ -17,6 +17,9 @@ import LinkStore from '../src/common/links/LinkStore.js'
 import OutlineStore from '../src/trestle/OutlineStore.js'
 import TaskStore from '../src/farelo/TaskStore.js'
 import WikiStore from '../src/wiki/WikiStore.js'
+import NewsStore from '../src/news/NewsStore.js'
+import Poller from '../src/news/Poller.js'
+import { NEWS_CONFIG } from '../config/preferences.js'
 import RollLog from '../src/farelo/RollLog.js'
 
 logger.setLevel('info')
@@ -55,8 +58,10 @@ const links = new LinkStore({ client, repository })
 const outlines = new OutlineStore({ client, repository, links })
 const tasks = new TaskStore({ client, repository, links })
 const wiki = new WikiStore({ client, repository, links })
+const newsStore = new NewsStore({ client, repository, links })
+const poller = new Poller({ store: newsStore })
 const rolls = new RollLog({ client, registry })
-const facets = createFacets({ search, outlines, tasks, rolls, wiki })
+const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller } })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)
@@ -75,8 +80,34 @@ server.listen(port, () => {
   console.log('  GET /ns/<name>.ttl              the vocabularies the data refers to')
 })
 
+// Background polling: NEWS_POLL_MINUTES=15 checks every 15 minutes for due
+// feeds (each feed is still polled at most every pollIntervalMinutes), and
+// prunes old items once a day. Off unless set.
+const pollEvery = Number(process.env.NEWS_POLL_MINUTES ?? 0)
+let pollTimer = null
+if (pollEvery > 0) {
+  let lastPrune = 0
+  const tick = async () => {
+    try {
+      const totals = await poller.pollDue()
+      if (totals.polled) console.log(`[news] polled ${totals.polled}: ${totals.fresh} new items, ${totals.error + totals.refused} failed`)
+      if (Date.now() - lastPrune > 86400000) {
+        lastPrune = Date.now()
+        const pruned = await newsStore.prune({ days: NEWS_CONFIG.retentionDays })
+        if (pruned) console.log(`[news] pruned ${pruned} items older than ${NEWS_CONFIG.retentionDays} days`)
+      }
+    } catch (error) {
+      console.error('[news] poll run failed:', error.message)
+    }
+  }
+  setTimeout(tick, 10000)
+  pollTimer = setInterval(tick, pollEvery * 60000)
+  console.log(`  news: polling due feeds every ${pollEvery} min`)
+}
+
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
+    clearInterval(pollTimer)
     server.close(() => process.exit(0))
   })
 }

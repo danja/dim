@@ -1,6 +1,7 @@
 import { RETRIEVAL_CONFIG } from '../../../config/preferences.js'
 import QueryService from '../store/QueryService.js'
 import GraphRegistry from '../store/GraphRegistry.js'
+import { iri } from '../store/SPARQLHelper.js'
 import LexicalIndex, { tokenise } from './LexicalIndex.js'
 
 export { tokenise }
@@ -73,6 +74,23 @@ export class SearchService {
     ]))
     this.lexical.build(this.documents.values())
     return this.documents.size
+  }
+
+  /**
+   * (Re)load one document, e.g. a bookmark just saved from another facet,
+   * without reloading the rest. It has no vector until the next embedding
+   * run, so it is found lexically only. → the document, or null.
+   */
+  async loadDocument (subjectIri) {
+    const subject = this.adapter.subject
+    const query = this.queries.get(this.adapter.queries.textView, {})
+      .replace(/\bWHERE\s*\{/, where => `${where}\n  VALUES ?${subject} { ${iri(subjectIri)} }`)
+    const [row] = await this.client.select(query)
+    if (!row) return null
+    const doc = this.adapter.toDocument(row, this.sources.get(row.g) ?? null)
+    this.documents = new Map(this.documents).set(subjectIri, doc)
+    this.lexical.build(this.documents.values())
+    return doc
   }
 
   lexicalScore (queryTokens, doc) {

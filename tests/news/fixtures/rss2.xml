@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Synth &amp; Wood</title>
+  <link>https://example.org/</link>
+  <atom:link href="https://example.org/feed/" rel="self" type="application/rss+xml"/>
+  <item>
+    <title><![CDATA[Building a <em>VCO</em>]]></title>
+    <link>/2026/09/vco</link>
+    <guid isPermaLink="false">post-123</guid>
+    <pubDate>Tue, 22 Sep 2026 10:00:00 +0000</pubDate>
+    <dc:creator>Danny</dc:creator>
+    <category>synth</category><category>diy</category>
+    <description>&lt;p&gt;Short &amp;amp; sweet.&lt;/p&gt;</description>
+    <content:encoded><![CDATA[<p>Long <b>body</b></p><script>x()</script><p>Second para&hellip;</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>No guid, no link</title>
+    <description>Only text</description>
+  </item>
+  <item>
+    <link>https://example.org/untitled</link>
+    <guid>https://example.org/untitled</guid>
+    <description>An item with no title but a description that is quite long indeed</description>
+  </item>
+</channel>
+</rss>

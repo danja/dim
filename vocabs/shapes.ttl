@@ -262,6 +262,29 @@ dim:PageRevisionShape a sh:NodeShape ;
     sh:property [ sh:path sioc:content ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path prov:wasRevisionOf ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] .
 
+dim:FeedShape a sh:NodeShape ;
+    sh:targetClass dim:Feed ;
+    sh:property [ sh:path dim:feedUrl ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "^https?://" ; sh:message "A feed has one http(s) URL." ] ;
+    sh:property [ sh:path dcterms:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 300 ] ;
+    sh:property [ sh:path dim:siteUrl ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path dim:feedFormat ; sh:maxCount 1 ; sh:in ( "rss" "rdf" "atom" "json" ) ] ;
+    sh:property [ sh:path dim:pollStatus ; sh:maxCount 1 ; sh:in ( "new" "ok" "not-modified" "error" "refused" "gone" ) ] ;
+    sh:property [ sh:path dim:pollFailures ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path dim:lastPolled ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path dim:nextPoll ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path dim:httpStatus ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 100 ; sh:maxInclusive 999 ] ;
+    sh:property [ sh:path dim:tag ; sh:datatype xsd:string ; sh:pattern "^[^A-Z]*$" ] .
+
+dim:FeedItemShape a sh:NodeShape ;
+    sh:targetClass dim:FeedItem ;
+    sh:property [ sh:path dim:inFeed ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path dcterms:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 500 ] ;
+    sh:property [ sh:path schema:url ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "^https?://" ] ;
+    sh:property [ sh:path dim:guid ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dcterms:description ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:maxLength 4000 ] ;
+    sh:property [ sh:path dcterms:issued ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path dcterms:created ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:message "When the item was first seen." ] .
+
 dim:ConceptShape a sh:NodeShape ;
     sh:targetClass skos:Concept ;
     sh:property [

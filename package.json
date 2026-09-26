@@ -23,11 +23,13 @@
     "deadlinks": "node bin/deadlinks.js",
     "trestle-import": "node bin/trestle-import.js",
     "farelo-import": "node bin/farelo-import.js",
-    "wiki-import": "node bin/wiki-import.js"
+    "wiki-import": "node bin/wiki-import.js",
+    "news": "node bin/news.js"
   },
   "dependencies": {
     "@rdfjs/namespace": "^2.0.0",
     "faiss-node": "^0.5.1",
+    "fast-xml-parser": "^5.11.1",
     "loglevel": "^1.9.1",
     "marked": "^18.0.11",
     "rdf-ext": "^2.5.1",

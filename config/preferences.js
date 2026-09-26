@@ -61,3 +61,17 @@ export const ENRICH_CONFIG = {
   rotationMaxWaitMs: 180000,
   checkpointEvery: 100
 }
+
+/** News (docs/commands-news.md). */
+export const NEWS_CONFIG = {
+  pollIntervalMinutes: 60, // a feed is polled at most this often
+  maxBackoffMinutes: 24 * 60, // failures double the wait, up to this
+  concurrency: 4, // hosts polled at the same time; one request per host at a time
+  perHostIntervalMs: 2000,
+  requestTimeoutMs: 20000,
+  maxBytes: 5 * 1024 * 1024,
+  maxItemsPerPoll: 100, // newest first; a feed dumping its archive is capped
+  firstPollUnreadDays: 14, // on subscribing, older items start as read
+  retentionDays: 90, // prune: items first seen longer ago go, unless starred
+  userAgent: 'dim-news/0.1 (+http://localhost:4110/about/crawler)'
+}

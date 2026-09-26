@@ -1,0 +1,39 @@
+/* News: the river of items, feeds, one item. */
+
+.news-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.views { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; }
+.views a { padding: 0.5rem 0.75rem; min-height: 44px; display: inline-flex; align-items: center; border-radius: var(--radius); text-decoration: none; color: var(--muted); }
+.views a[aria-current] { color: var(--text); background: var(--surface); border: 1px solid var(--border); font-weight: 600; }
+.views .count { font-size: 0.8rem; margin-left: 0.25rem; }
+
+.news-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; margin-bottom: var(--gap); }
+.news-filter label { display: flex; flex-direction: column; font-size: 0.875rem; color: var(--muted); }
+.news-filter select { min-height: 44px; font: inherit; max-width: 16rem; }
+
+.river, .feeds { list-style: none; padding: 0; margin: 0; }
+.news-item, .feed-row { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+.news-item h2, .feed-row h2 { font-size: 1.05rem; margin: 0; overflow-wrap: anywhere; }
+.news-item .meta, .feed-row .meta { margin: 0.25rem 0; }
+.news-item .snippet { margin: 0.25rem 0; color: var(--muted); font-size: 0.925rem; overflow-wrap: anywhere; }
+.news-item.read h2 a { color: var(--muted); font-weight: normal; }
+.news-item.starred h2::before { content: "★ "; color: var(--warn); }
+
+.item-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+.item-actions form { margin: 0; }
+.item-actions button, button.secondary { color: var(--text); background: var(--surface); border: 1px solid var(--border); font-weight: normal; }
+.item-actions button[aria-pressed="true"][data-flag="starred"] { color: var(--warn); }
+button.danger.secondary { color: var(--bad); }
+.mark-all { margin: var(--gap) 0; }
+
+.item-text { overflow-wrap: anywhere; }
+
+.status { font-weight: 600; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--bad); }
+.status.muted { color: var(--muted); }
+
+a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
+
+@media (max-width: 40rem) {
+  .news-item .snippet { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+}

@@ -1,5 +1,7 @@
 import { createHash } from 'crypto'
 
+export { statusCode, cleanContentType, readCapped } from '../../../common/http/fetch.js'
+
 /**
  * Pluggable fetchers for the second-pass enricher (docs/enricher.md).
  *
@@ -24,27 +26,13 @@ export class FetchError extends Error {
  */
 export const REFUSALS = new Set([401, 403, 404, 410, 429, 451, 999])
 
-/** A recordable HTTP status: any three-digit code, standard or not. */
-export function statusCode (value) {
-  const n = Number(value)
-  return value !== null && value !== undefined && value !== '' && Number.isInteger(n) && n >= 100 && n <= 999 ? n : null
-}
 
 export class Fetcher {
   canHandle (_ctx) { return false }
   async fetch (_url, _ctx) { throw new FetchError(`${this.constructor.name} does not implement fetch()`) }
 }
 
-export function cleanContentType (headers) {
-  const raw = headers.get?.('content-type') ?? headers['content-type'] ?? null
-  return raw?.split(';')[0]?.trim() || null
-}
 
-export async function readCapped (response, maxBytes) {
-  const buffer = Buffer.from(await response.arrayBuffer())
-  const sliced = buffer.length > maxBytes ? buffer.subarray(0, maxBytes) : buffer
-  return { text: sliced.toString('utf8'), truncated: buffer.length > maxBytes }
-}
 
 export async function fetchJson (url, { userAgent, timeoutMs, headers = {} }) {
   const response = await fetch(url, {

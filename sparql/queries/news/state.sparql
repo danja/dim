@@ -1,0 +1,7 @@
+# Read and starred flags on items.
+SELECT ?item ?read ?starred
+WHERE {
+  GRAPH ${graph} {
+    { ?item dim:read ?read } UNION { ?item dim:starred ?starred }
+  }
+}

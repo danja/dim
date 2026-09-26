@@ -146,6 +146,29 @@ dim:revisionNumber a owl:DatatypeProperty ; rdfs:range xsd:integer ;
     rdfs:comment "1 for the first save, then +1. On a page: its current revision." .
 dim:currentRevision a owl:ObjectProperty ; rdfs:domain dim:WikiPage ; rdfs:range dim:PageRevision .
 
+## ── News (graph:facet/news: feeds + your state; graph:source/news: items) ──
+## Feeds are yours (what you subscribe to, and how polling went); items are
+## third-party text, kept apart so they can expire and are never
+## redistributed. Read/starred state sits on the item IRI in graph:facet/news.
+dim:Feed a owl:Class ; rdfs:label "Feed" ; rdfs:comment "An RSS, Atom or JSON Feed subscription." .
+dim:FeedItem a owl:Class ; rdfs:label "Feed item" .
+dim:feedUrl a owl:ObjectProperty ; rdfs:domain dim:Feed ; rdfs:comment "Where the feed document is fetched from." .
+dim:siteUrl a owl:ObjectProperty ; rdfs:domain dim:Feed ; rdfs:comment "The site the feed belongs to." .
+dim:feedFormat a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "rss, rdf, atom or json." .
+dim:pollStatus a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "Outcome of the last poll: new, ok, not-modified, error, refused or gone." .
+dim:lastPolled a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+dim:nextPoll a owl:DatatypeProperty ; rdfs:range xsd:dateTime ; rdfs:comment "Not polled again before this (backs off after failures)." .
+dim:pollFailures a owl:DatatypeProperty ; rdfs:range xsd:integer ; rdfs:comment "Failed polls in a row." .
+dim:lastError a owl:DatatypeProperty ; rdfs:range xsd:string .
+dim:etag a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "ETag of the last 200 answer, sent back as If-None-Match." .
+dim:lastModifiedHeader a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "Last-Modified of the last 200 answer, sent back as If-Modified-Since." .
+dim:inFeed a owl:ObjectProperty ; rdfs:domain dim:FeedItem ; rdfs:range dim:Feed .
+dim:guid a owl:DatatypeProperty ; rdfs:domain dim:FeedItem ; rdfs:comment "The item's id in its feed (guid, Atom id, or its link)." .
+dim:category a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "A category the feed gave the item." .
+dim:read a owl:DatatypeProperty ; rdfs:range xsd:boolean .
+dim:starred a owl:DatatypeProperty ; rdfs:range xsd:boolean ; rdfs:comment "Kept: starred items never expire." .
+
 ## ── Change log (graph:system/changes) ─────────────────────────────────
 ## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,
 ## prov:used (the resource), plus these.

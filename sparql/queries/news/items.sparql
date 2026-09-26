@@ -1,0 +1,14 @@
+# Every item, with the start of its text (the full text is fetched per item).
+SELECT ?item ?feed ?title ?link ?guid ?published ?firstSeen ?author ?snippet
+       (GROUP_CONCAT(DISTINCT ?category; separator=" | ") AS ?categories)
+WHERE {
+  GRAPH ${graph} {
+    ?item a dim:FeedItem ; dim:inFeed ?feed ; dcterms:title ?title ; dim:guid ?guid ; dcterms:created ?firstSeen .
+    OPTIONAL { ?item schema:url ?link }
+    OPTIONAL { ?item dcterms:issued ?published }
+    OPTIONAL { ?item dcterms:creator ?author }
+    OPTIONAL { ?item dcterms:description ?d BIND(SUBSTR(?d, 1, 400) AS ?snippet) }
+    OPTIONAL { ?item dim:category ?category }
+  }
+}
+GROUP BY ?item ?feed ?title ?link ?guid ?published ?firstSeen ?author ?snippet

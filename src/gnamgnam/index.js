@@ -49,6 +49,11 @@ export function createGnamgnamFacet ({ search }) {
       return { status: 'ok', bookmarks: search.documents.size, index: search.index.size }
     },
 
+    /** A bookmark was written elsewhere (e.g. saved from News): load it now. */
+    async refresh (resourceIri) {
+      return search.loadDocument?.(resourceIri) ?? null
+    },
+
     lookup (resourceIri) {
       const doc = search.documents.get(resourceIri)
       return doc ? { label: doc.name, href: href(doc), type: 'bookmark' } : null

@@ -54,7 +54,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 5 | Trestle outliner | 4 | `[x]` (local check pending) |
 | 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[x]` (local check pending) |
 | 7 | Wiki (from foowiki) | 4 | `[x]` (local check pending) |
-| 8 | Newsmonitor (RSS) | 4 | `[ ]` |
+| 8 | Newsmonitor (RSS) | 4 | `[x]` (local check pending) |
 | 9 | Blog engine | 7 | `[ ]` |
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[ ]` |
 | 11 | "What next?" advisor | 6, 3, 4 | `[ ]` |
@@ -716,31 +716,85 @@ probability.
 
 ## Phase 8 — Newsmonitor (RSS)
 
-**Source:** `~/github/NewsMonitor` (danja/NewsMonitor). **Graph:**
-`graph:facet/news` (feeds) + `graph:source/feed/<slug>` per feed if
-licences differ.
+**Source:** `~/github/NewsMonitor` (danja/NewsMonitor). **Graphs:**
+`graph:facet/news` (subscriptions, poll status, your read/starred flags) +
+`graph:source/news` (items; `proprietary-linkout`) — one source graph for
+all feeds rather than one per feed: every feed's items have the same
+standing (third-party, link out, expire).
 
 ### Tasks
 
-- [ ] Review NewsMonitor; record what ports.
-- [ ] Model: `dim:Feed`, `dim:FeedItem` (title, link, published,
-      summary, read/starred state).
-- [ ] Fetcher: RSS/Atom/JSON Feed parsing, conditional GET
-      (ETag/Last-Modified), polite scheduling, reuse `src/common` HTTP
-      fetch helpers (lifted from `enrich/Fetchers.js`).
-- [ ] Scheduler: `bin/news.js` for one-shot + a lightweight interval in the
-      app container (or cron in compose).
-- [ ] Reader UI: unread list, per-feed view, mark read, "save as
-      bookmark" (→ GnamGnam), "make task" (→ Farelo).
-- [ ] OPML import/export.
-- [ ] Items embedded and searchable; optional summarisation via enricher.
-- [ ] Retention policy for old items.
-- [ ] Tests: feed parsing fixtures, dedupe by GUID/link.
+- [x] Review NewsMonitor: a Java (OSGi/Stanbol-era) aggregator — RSS 1/2,
+      Atom and OPML parsers, a poller, feeds and entries as RDF
+      (`nm:` vocabulary, entry bodies as Markdown), preset keyword "topics"
+      scoring relevance, feed discovery by crawling pages; plus a 2023
+      Node feed-grabber and the curated feed lists. Ported: the feed model,
+      formats, discovery, OPML, the feed lists (importable as-is). Not
+      ported: the keyword topic scoring (the advisor, Phase 11, can use
+      embeddings instead) and link-crawling discovery.
+- [x] Model: `dim:Feed` (URL, title, site, tags, format, poll status, ETag /
+      Last-Modified, failures, next poll) and `dim:FeedItem` (feed, title,
+      link, guid, published, first seen, text, author, categories); SHACL
+      shapes. Read/starred are `dim:read` / `dim:starred` on the item IRI in
+      the facet graph. Subscription edits go through the Repository
+      (validated, change-logged); poll status and flags are written directly
+      (operational, not worth a change-log entry each).
+- [x] Parsing (`fast-xml-parser`, the one new dependency): RSS 2.0, RSS 1.0,
+      Atom, JSON Feed; CDATA, HTML titles, relative links, missing guids;
+      the fuller of description/content; HTML → text (`src/common/text/html.js`);
+      IRI-safe links; empty items dropped; charset from header/XML
+      declaration.
+- [x] Fetching lifted to `src/common/http/fetch.js` (a real streaming byte
+      cap, charset decoding, status/content-type helpers; the enricher
+      re-exports them).
+- [x] Poller: conditional GET, honest user-agent, one request per host at a
+      time with a pause, 4 hosts in parallel, doubling back-off (up to a
+      day), Retry-After, 410 stops polling, refusals recorded, 100 items per
+      poll, first poll marks items older than 14 days read, one run at a time.
+- [x] Scheduling: `bin/news.js poll` one-shot; `NEWS_POLL_MINUTES` runs it
+      in the server (and prunes daily). Off by default.
+- [x] Reader UI: river (unread/starred/all, by feed or tag, paging), read/star
+      in place (JS) or by form, opening an item marks it read, mark page
+      read; item page (text, original, links); feeds page (subscribe by
+      site or feed URL with discovery, import pasted OPML/URL list, poll,
+      OPML export); feed page (status, last error, next poll, settings,
+      items, unsubscribe). JSON: `/news/items.json`, `.json` on items/feeds.
+- [x] Save as bookmark (→ `graph:facet/gnamgnam`, survives re-ingest,
+      searchable at once via a new `refresh` facet hook and
+      `SearchService.loadDocument`) and make task (→ Farelo To do); both
+      star the item and link it both ways.
+- [x] OPML import/export; plain URL lists (NewsMonitor's `feedlists/*.txt`).
+- [~] Items searchable: `/find` matches titles and text lexically. Not
+      embedded: item volume and churn make vectors poor value now; saved
+      bookmarks get vectors the usual way. Summarisation left out likewise.
+- [x] Retention: `prune` (90 days, starred kept), daily when polling in the
+      server.
+- [x] Tests: fixtures for each format, HTML-to-text, discovery, OPML
+      round-trip, SHACL for feeds/items, poller (conditional GET, first-poll
+      read marking, back-off, 410, Retry-After, network errors, due/force,
+      single run), routes (discovery subscribe, flags, paging, OPML,
+      bookmark, task, import, find, health), store round-trip on Fuseki.
 
 ### Acceptance
 
-- 20+ feeds polling reliably; unread counts correct; one-click
-  bookmark/task creation works.
+- [~] 20+ feeds polling reliably: verified against a local feed server
+      (RSS + Atom + 410 + malformed; conditional GET answered 304 on the
+      second run). This sandbox has no internet access, so real feeds are
+      part of the local check.
+- [x] Unread counts correct (route + browser checks, mark-all → 0).
+- [x] One-click bookmark/task creation works, linked both ways (Playwright).
+- [x] `bin/validate.js` clean including `graph:facet/news`, `graph:source/news`.
+- [x] 243 core tests, 11 store tests; Playwright + axe clean, no horizontal
+      scroll at 375 px (light/dark) and 1280 px.
+- [ ] Local check: `bin/news.js import` a real feed list, `poll`, read in
+      the browser; optionally `NEWS_POLL_MINUTES`.
+
+### Notes
+
+- Changes from `bin/news.js` need a server restart to show (cached in
+  memory); polls run by the server don't.
+- Duplicate stories across feeds are kept apart (dedupe is per feed, by
+  guid, else link).
 
 ---
 
@@ -866,3 +920,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 5 | Trestle: shared outline parser (fixes bookmark contexts), Workflowy import (8,118 items, 5,819 bookmark links), outliner UI with keys + touch toolbar, exports that round-trip. 190 core + 7 store tests; Playwright + axe. | e698cec |
 | 2026-09-26 | 6 | Farelo: tasks, board (drag, keys, no-JS menu), Getting Things Diced (pure dice, policies, roll log, print), task pages, outline TODO import (144 tasks); outline parser treats `#` headings as items. 208 core + 9 store tests; 36k-roll distribution; Playwright + axe. | 0c96281 |
 | 2026-09-26 | 7 | Wiki: pages with full revisions, `[[Title]]` create-on-follow, mentions/backlinks, preview, 409 conflict page, history + diff, find/lookup, import from foowiki Turtle or Markdown files; `/find` tolerates a failing facet; inline code no longer linked. 223 core + 10 store tests; Playwright + axe. | 67d5304 |
+| 2026-09-26 | 8 | News: RSS/RDF/Atom/JSON Feed parsing, discovery, OPML/URL-list import, polite conditional-GET poller with back-off, river/item/feed pages, read/star in place, save as bookmark / make task (linked, starred), `bin/news.js`, optional server polling + pruning; fetch helpers lifted to `src/common/http/fetch.js`; `/find` + `refresh` hook. 243 core + 11 store tests; local feed server; Playwright + axe. | |

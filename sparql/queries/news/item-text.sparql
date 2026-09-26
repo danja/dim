@@ -1,0 +1,3 @@
+# One item's full text.
+SELECT ?text
+WHERE { GRAPH ${graph} { ${item} dcterms:description ?text } }

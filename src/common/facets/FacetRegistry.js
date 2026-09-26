@@ -14,6 +14,7 @@
  *     lookup (iri),          // optional: → { label, href, type } | null
  *     lookupUrl (url),       // optional: an external URL it holds → IRI | null
  *     lookupTitle (title),   // optional: exact title → IRI | null
+ *     refresh (iri),         // optional: a resource it shows changed elsewhere
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
  *   }
  *
@@ -105,6 +106,11 @@ export class FacetRegistry {
       if (found) return found
     }
     return null
+  }
+
+  /** Tell every facet that caches resources that this one changed. */
+  async refresh (resourceIri) {
+    for (const facet of this.facets) await facet.refresh?.(resourceIri)
   }
 
   /** → { iri, label, href, type, facet, facetLabel } for any IRI. */

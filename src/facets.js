@@ -2,6 +2,7 @@ import { createGnamgnamFacet } from './gnamgnam/index.js'
 import { createTrestleFacet } from './trestle/index.js'
 import { createFareloFacet } from './farelo/index.js'
 import { createWikiFacet } from './wiki/index.js'
+import { createNewsFacet } from './news/index.js'
 import { stubFacet } from './common/facets/stubFacet.js'
 
 /**
@@ -12,9 +13,9 @@ import { stubFacet } from './common/facets/stubFacet.js'
 /**
  * outlines / tasks: an OutlineStore and TaskStore (need the store); without
  * them Trestle and Farelo are stubs. rolls: the dice-roll log. wiki: a
- * WikiStore (likewise).
+ * WikiStore (likewise). news: { store, poller } (likewise).
  */
-export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null }) {
+export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null, news = null }) {
   return [
     createGnamgnamFacet({ search }),
     outlines
@@ -26,7 +27,9 @@ export function createFacets ({ search, outlines = null, tasks = null, rolls = n
     wiki
       ? createWikiFacet({ store: wiki })
       : stubFacet({ id: 'wiki', label: 'Wiki', phase: 7, description: 'Markdown wiki pages, linked to everything else.' }),
-    stubFacet({ id: 'news', label: 'News', phase: 8, description: 'Newsmonitor: RSS/Atom reader; save items as bookmarks or tasks.' }),
+    news
+      ? createNewsFacet({ ...news, tasks })
+      : stubFacet({ id: 'news', label: 'News', phase: 8, description: 'Newsmonitor: RSS/Atom reader; save items as bookmarks or tasks.' }),
     stubFacet({ id: 'blog', label: 'Blog', phase: 9, description: 'Blog engine: publish wiki pages and outline nodes as posts.' }),
     stubFacet({ id: 'squirt', label: 'Squirt', phase: 10, description: 'Mobile view of everything, with quick capture.' })
   ]
