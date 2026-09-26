@@ -1,0 +1,15 @@
+# Every post, drafts included, one row each.
+SELECT ?post ?title ?content ?slug ?status ?issued ?created ?modified ?abstract ?derivedFrom
+       (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
+WHERE {
+  GRAPH ${graph} {
+    ?post a dim:BlogPost ; dcterms:title ?title ; sioc:content ?content ; dim:slug ?slug ; dim:postStatus ?status .
+    OPTIONAL { ?post dcterms:issued ?issued }
+    OPTIONAL { ?post dcterms:created ?created }
+    OPTIONAL { ?post dcterms:modified ?modified }
+    OPTIONAL { ?post dcterms:abstract ?abstract }
+    OPTIONAL { ?post prov:wasDerivedFrom ?derivedFrom }
+    OPTIONAL { ?post dim:tag ?tag }
+  }
+}
+GROUP BY ?post ?title ?content ?slug ?status ?issued ?created ?modified ?abstract ?derivedFrom

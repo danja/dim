@@ -285,6 +285,17 @@ dim:FeedItemShape a sh:NodeShape ;
     sh:property [ sh:path dcterms:issued ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path dcterms:created ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:message "When the item was first seen." ] .
 
+dim:BlogPostShape a sh:NodeShape ;
+    sh:targetClass dim:BlogPost ;
+    sh:property [ sh:path dcterms:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 200 ; sh:message "A post has one title of 1–200 characters." ] ;
+    sh:property [ sh:path sioc:content ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:maxLength 200000 ] ;
+    sh:property [ sh:path dim:slug ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[a-z0-9][a-z0-9-]*$" ] ;
+    sh:property [ sh:path dim:postStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "draft" "published" ) ] ;
+    sh:property [ sh:path dcterms:issued ; sh:maxCount 1 ; sh:datatype xsd:dateTime ; sh:message "The publication date: set when first published." ] ;
+    sh:property [ sh:path dcterms:abstract ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:maxLength 1000 ] ;
+    sh:property [ sh:path prov:wasDerivedFrom ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path dim:tag ; sh:datatype xsd:string ; sh:pattern "^[^A-Z]*$" ] .
+
 dim:ConceptShape a sh:NodeShape ;
     sh:targetClass skos:Concept ;
     sh:property [

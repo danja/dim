@@ -58,6 +58,18 @@ describe('renderMarkdown', () => {
     expect(html).toMatch('<a href="/r/bookmark/a-1">bookmark/a-1</a>')
     expect(html).toMatch('<a href="/find?q=A%20one">A one</a>')
   })
+
+  it('allows relative paths, and maps or unlinks local links on request', () => {
+    const html = renderMarkdown('[up](../x/) [here](./y) [odd](..evil) [proto](//evil.example) [local](/wiki/page/a) [post](/blog/post/b)', { localHref: h => h.startsWith('/blog/') ? '../b/' : null })
+    expect(html).toMatch('<a href="../x/">up</a>')
+    expect(html).toMatch('<a href="./y">here</a>')
+    expect(html).not.toMatch('href="..evil"')
+    expect(html).not.toMatch('href="//evil')
+    expect(html).toMatch(/> local |local<\/a>|\blocal\b/)
+    expect(html).not.toMatch('href="/wiki/page/a"')
+    expect(html).toMatch('<a href="../b/">post</a>')
+    expect(renderMarkdown('[[Missing]]', { titleHref: () => null })).toBe('<p>Missing</p>\n')
+  })
 })
 
 describe('FacetRegistry resolution', () => {

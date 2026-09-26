@@ -65,8 +65,10 @@ export function createServer (options) {
     try {
       return await route.handler({ request, response, url, match: route.match, started, session, services, tabs, registry })
     } catch (error) {
-      logger.error('[server]', error)
-      if (!response.headersSent) return send(response, 500, { error: error.message })
+      // A handler may throw a client error (e.g. { status: 404 }); anything else is ours.
+      const status = Number.isInteger(error.status) && error.status >= 400 && error.status < 500 ? error.status : 500
+      if (status === 500) logger.error('[server]', error)
+      if (!response.headersSent) return send(response, status, { error: error.message })
       response.end()
     }
   })

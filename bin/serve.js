@@ -18,6 +18,7 @@ import OutlineStore from '../src/trestle/OutlineStore.js'
 import TaskStore from '../src/farelo/TaskStore.js'
 import WikiStore from '../src/wiki/WikiStore.js'
 import NewsStore from '../src/news/NewsStore.js'
+import PostStore from '../src/blog/PostStore.js'
 import Poller from '../src/news/Poller.js'
 import { NEWS_CONFIG } from '../config/preferences.js'
 import RollLog from '../src/farelo/RollLog.js'
@@ -60,8 +61,10 @@ const tasks = new TaskStore({ client, repository, links })
 const wiki = new WikiStore({ client, repository, links })
 const newsStore = new NewsStore({ client, repository, links })
 const poller = new Poller({ store: newsStore })
+const posts = new PostStore({ client, repository, links })
+const blog = { store: posts, title: process.env.BLOG_TITLE || 'Blog', author: process.env.BLOG_AUTHOR || 'owner' }
 const rolls = new RollLog({ client, registry })
-const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller } })
+const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller }, blog })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)

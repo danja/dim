@@ -55,7 +55,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[x]` (local check pending) |
 | 7 | Wiki (from foowiki) | 4 | `[x]` (local check pending) |
 | 8 | Newsmonitor (RSS) | 4 | `[x]` (local check pending) |
-| 9 | Blog engine | 7 | `[ ]` |
+| 9 | Blog engine | 7 | `[x]` (local check pending) |
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[ ]` |
 | 11 | "What next?" advisor | 6, 3, 4 | `[ ]` |
 | 12 | Operations: backup, auth, deploy hardening | runs alongside | `[ ]` |
@@ -804,17 +804,41 @@ standing (third-party, link out, expire).
 
 ### Tasks
 
-- [ ] Model: `dim:Post` (Markdown, title, slug, published date, draft
-      flag, tags), reuse wiki rendering.
-- [ ] Authoring: promote a wiki page or outline node to a draft post.
-- [ ] Public views: index, post page, tag pages, Atom feed.
-- [ ] Static export (`bin/blog-export.js`) to a directory for hosting
-      elsewhere — keeps the app itself localhost-only.
-- [ ] Tests: slug/date routing, feed validity, draft exclusion.
+- [x] Model: `dim:BlogPost` (title, `sioc:content` Markdown, `dim:slug`,
+      `dim:postStatus` draft/published, `dcterms:issued` set on first
+      publishing and kept thereafter, optional abstract, tags,
+      `prov:wasDerivedFrom` its source); SHACL shape. Rendering reuses the
+      shared Markdown renderer, which gained `localHref` (map or unlink
+      local links), `titleHref` → null (plain text), and relative hrefs.
+- [x] Authoring: new drafts by title; **Draft a blog post** on wiki pages
+      and outline items (outline: note + subtree as a Markdown list); a
+      `related` link back to the source. Editor with server-rendered
+      preview; publish / unpublish / delete.
+- [x] Public views: index, `/blog/YYYY/MM/DD/slug` (wrong date → 301),
+      prev/next, tag pages, Atom feed (20 latest). Drafts: owner only —
+      404 for anyone else, never in the feed, `/find` or the export.
+- [x] Static export (`bin/blog-export.js`): index, dated post dirs, tag
+      pages, `feed.atom`, `style.css`; relative links; links into the rest
+      of DIM become text; replaces only a directory it made (marker file).
+- [x] Also: a handler's thrown 4xx (e.g. "No such post") now answers with
+      that status instead of 500 — this also fixes the wiki's history,
+      revision and diff routes for unknown pages.
+- [x] Tests: date paths, slug uniqueness, publish date kept across
+      unpublish/republish, link mapping (public vs app), feed well-formed
+      (XML validator) and readable by our own feed parser, drafts excluded
+      everywhere, export file set and relative links, routes (draft 404,
+      publish, redirects, tags, feed, draft from wiki page), relative/mapped
+      links in the renderer, store round-trip.
 
 ### Acceptance
 
-- Drafts invisible publicly; export produces a valid static site + feed.
+- [x] Drafts invisible publicly (route tests + browser logged out: 404,
+      absent from index, feed and find).
+- [x] Export produces a valid static site + feed (feed parses as XML and
+      as Atom; site browsed over HTTP: relative links work; axe clean, no
+      horizontal scroll at 375 px and 1280 px, light and dark).
+- [x] 252 core tests, 12 store tests.
+- [ ] Local check: draft from a wiki page, publish, export, preview.
 
 ---
 
@@ -921,3 +945,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 6 | Farelo: tasks, board (drag, keys, no-JS menu), Getting Things Diced (pure dice, policies, roll log, print), task pages, outline TODO import (144 tasks); outline parser treats `#` headings as items. 208 core + 9 store tests; 36k-roll distribution; Playwright + axe. | 0c96281 |
 | 2026-09-26 | 7 | Wiki: pages with full revisions, `[[Title]]` create-on-follow, mentions/backlinks, preview, 409 conflict page, history + diff, find/lookup, import from foowiki Turtle or Markdown files; `/find` tolerates a failing facet; inline code no longer linked. 223 core + 10 store tests; Playwright + axe. | 67d5304 |
 | 2026-09-26 | 8 | News: RSS/RDF/Atom/JSON Feed parsing, discovery, OPML/URL-list import, polite conditional-GET poller with back-off, river/item/feed pages, read/star in place, save as bookmark / make task (linked, starred), `bin/news.js`, optional server polling + pruning; fetch helpers lifted to `src/common/http/fetch.js`; `/find` + `refresh` hook. 243 core + 11 store tests; local feed server; Playwright + axe. | cf557e2 |
+| 2026-09-26 | 9 | Blog: posts (drafts owner-only), drafts from wiki pages / outline items, dated URLs, tags, Atom, static export with relative links; Markdown renderer gains local-link mapping + relative hrefs; thrown 4xx keep their status. 252 core + 12 store tests; exported site browsed; Playwright + axe. | |

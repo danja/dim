@@ -60,6 +60,7 @@ function nodeActions ({ node, session, returnPath, parentPath }) {
     .map(([op, text]) => `<button name="op" value="${op}">${text}</button>`).join('')
   return `<div class="node-actions">
 <form class="inline-buttons" method="post" action="${nodePath(node)}/move">${formFields(session, returnPath)}${moves}</form>
+<form class="inline-buttons" method="post" action="/blog/posts">${formFields(session, '')}<input type="hidden" name="from" value="${esc(node.iri)}"><button>Draft a blog post</button></form>
 <form class="inline-buttons" method="post" action="${nodePath(node)}/delete" data-confirm="Delete this item and everything under it?">${formFields(session, parentPath)}<button class="danger">Delete</button></form>
 </div>`
 }

@@ -24,7 +24,8 @@
     "trestle-import": "node bin/trestle-import.js",
     "farelo-import": "node bin/farelo-import.js",
     "wiki-import": "node bin/wiki-import.js",
-    "news": "node bin/news.js"
+    "news": "node bin/news.js",
+    "blog-export": "node bin/blog-export.js"
   },
   "dependencies": {
     "@rdfjs/namespace": "^2.0.0",

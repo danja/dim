@@ -36,6 +36,7 @@ function pageActions ({ page, session }) {
   if (!session?.user) return ''
   return `<div class="node-actions">
 <a class="button" href="${pagePath(page)}/edit">Edit</a>
+<form class="inline-buttons" method="post" action="/blog/posts">${formFields(session, '')}<input type="hidden" name="from" value="${esc(page.iri)}"><button>Draft a blog post</button></form>
 <form class="inline-buttons" method="post" action="${pagePath(page)}/delete" data-confirm="Delete this page and its history?">${formFields(session, '/wiki/')}<button class="danger">Delete</button></form>
 </div>`
 }

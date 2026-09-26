@@ -169,6 +169,16 @@ dim:category a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "A ca
 dim:read a owl:DatatypeProperty ; rdfs:range xsd:boolean .
 dim:starred a owl:DatatypeProperty ; rdfs:range xsd:boolean ; rdfs:comment "Kept: starred items never expire." .
 
+## ── Blog (graph:facet/blog) ─────────────────────────────────────────
+## A post's text is sioc:content (Markdown), as for wiki pages. Published
+## posts have dcterms:issued (their date in the URL); drafts are only ever
+## shown to the owner. prov:wasDerivedFrom: the wiki page or outline item a
+## post was started from.
+dim:BlogPost a owl:Class ; rdfs:label "Blog post" .
+dim:postStatus a owl:DatatypeProperty ; rdfs:domain dim:BlogPost ; rdfs:range xsd:string ;
+    rdfs:comment "draft or published." .
+dim:slug a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "The last part of the post's URL." .
+
 ## ── Change log (graph:system/changes) ─────────────────────────────────
 ## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,
 ## prov:used (the resource), plus these.

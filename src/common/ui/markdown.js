@@ -9,12 +9,17 @@ import { esc } from '../http/respond.js'
  * link to the resolver, [[Title]] a link to a search for it.
  */
 
-const SAFE_HREF = /^(https?:|mailto:|\/(?!\/)|#)/i
+// Relative paths (./ ../) are safe too: the static blog export links posts that way.
+const SAFE_HREF = /^(https?:|mailto:|\/(?!\/)|\.{1,2}\/|#)/i
 
 function safeHref (href) {
   const h = String(href ?? '').trim()
   return SAFE_HREF.test(h) ? h : null
 }
+
+// Set for the duration of one (synchronous) parse: maps a local href
+// ("/…") to another, or to null to render the link's text alone.
+let localHref = null
 
 const marked = new Marked({
   gfm: true,
@@ -25,7 +30,8 @@ const marked = new Marked({
     },
     link ({ href, title, tokens }) {
       const text = this.parser.parseInline(tokens)
-      const target = safeHref(href)
+      let target = safeHref(href)
+      if (target && localHref && target.startsWith('/')) target = localHref(target)
       if (!target) return text
       return `<a href="${esc(target)}"${title ? ` title="${esc(title)}"` : ''}>${text}</a>`
     },
@@ -46,18 +52,26 @@ function linkWikiRefs (markdown, titleHref = findHref) {
       const value = inner.trim()
       const ts = value.match(/^([a-z][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9-]*)$/)
       const href = ts ? `/r/${ts[1]}/${ts[2]}` : titleHref(value)
-      return `[${value.replace(/[[\]]/g, '')}](${href})`
+      const text = value.replace(/[[\]]/g, '')
+      return href ? `[${text}](${href})` : text
     })
   ).join('')
 }
 
 /**
- * titleHref: where [[Some title]] points. Default: a search for it; the
- * wiki points it at the page of that name (created on follow).
+ * titleHref: where [[Some title]] points (null: plain text). Default: a
+ * search for it; the wiki points it at the page of that name (created on
+ * follow). localHref: rewrites local links ("/…"), null to unlink them —
+ * the static blog export uses it, since DIM's pages aren't published.
  */
-export function renderMarkdown (markdown, { titleHref } = {}) {
+export function renderMarkdown (markdown, { titleHref, localHref: mapLocal = null } = {}) {
   if (!markdown) return ''
-  return marked.parse(linkWikiRefs(markdown, titleHref))
+  localHref = mapLocal
+  try {
+    return marked.parse(linkWikiRefs(markdown, titleHref))
+  } finally {
+    localHref = null
+  }
 }
 
 /** One line of Markdown (a title) → safe inline HTML, no wrapping <p>. */

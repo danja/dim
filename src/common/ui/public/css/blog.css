@@ -1,0 +1,26 @@
+/* Blog: post lists, articles, the static site's header. */
+
+.posts { list-style: none; padding: 0; margin: 0; }
+.posts li { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+.posts h2 { font-size: 1.15rem; margin: 0; overflow-wrap: anywhere; }
+.posts p { margin: 0.25rem 0; }
+
+.post h1 { margin-bottom: 0.25rem; overflow-wrap: anywhere; }
+.post-body { overflow-wrap: anywhere; line-height: 1.6; }
+.post-body pre { overflow-x: auto; }
+.post-body img { max-width: 100%; }
+.post-nav { display: flex; justify-content: space-between; gap: 1rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.post-nav a { max-width: 48%; overflow-wrap: anywhere; }
+
+.draft-badge { font-size: 0.8rem; font-weight: 600; color: var(--warn); border: 1px solid currentColor; border-radius: 4px; padding: 0 0.3em; }
+.blog-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+.blog-actions form { margin: 0; }
+.blog-actions button.secondary, .blog-actions a.button.secondary { color: var(--text); background: var(--surface); border: 1px solid var(--border); font-weight: normal; }
+a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
+.post-edit textarea { min-height: 18rem; font-family: var(--mono); }
+
+.blog-site { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem var(--gutter); }
+.blog-name { font-weight: 700; font-size: 1.1rem; color: var(--text); text-decoration: none; }
+.static-blog main { max-width: var(--measure); margin: 0 auto; padding: 0 var(--gutter) 2rem; }
+.blog-actions button.danger { color: var(--bad); }
+.preview { margin-top: var(--gap); padding: 0 var(--gap); border: 2px dashed var(--border); border-radius: var(--radius); }
