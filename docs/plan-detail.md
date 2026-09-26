@@ -591,4 +591,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 1 | Moved code into `src/common` + `src/gnamgnam`, imports fixed, 43/43. | c4a9cb1 |
 | 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | e93f90d |
 | 2026-09-26 | 1 | Live check: search on the restructured branch works as before. Phase 1 done. | |
-| 2026-09-26 | 2 | Facet registry, shared shell with tabs, `/static`, GnamGnam at `/gnamgnam/` with redirects, stub facets. 76/76 tests; 375px screenshots and axe clean. Live check pending. | |
+| 2026-09-26 | 2 | Facet registry, shared shell with tabs, `/static`, GnamGnam at `/gnamgnam/` with redirects, stub facets. 76/76 tests; 375px screenshots and axe clean. Live check pending. | f96f490 |
