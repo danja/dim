@@ -58,7 +58,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 9 | Blog engine | 7 | `[x]` (local check pending) |
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[x]` (phone check needs https) |
 | 11 | "What next?" advisor | 6, 3, 4 | `[x]` (local check pending) |
-| 12 | Operations: backup, auth, deploy hardening | runs alongside | `[x]` (CI's first run to watch) |
+| 12 | Operations: backup, auth, deploy hardening | runs alongside | `[x]` |
 
 Phases 5–8 are independent of each other once Phase 4 is done and can be
 taken in any order; the order above puts the todo graph (Farelo) and the
@@ -963,7 +963,7 @@ time/resources.
 - [x] Docs in step: `docs/deployment.md` (settings, https for the phone via
       Tailscale or Caddy, backups and the drill, health and logs),
       `docs/tools.md`, README status.
-- [ ] Watch CI's first run on GitHub (native `faiss-node` build).
+- [x] CI's first runs on GitHub passed, including the native `faiss-node` build (2026-09-26).
 
 ## Open questions
 
