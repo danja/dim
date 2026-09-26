@@ -205,6 +205,24 @@ replaces them on every patch. URL-derivable details (`githubOwner`,
 `githubRepo`, `arxivId`, `wikipediaLanguage`, `wikipediaTitle`) are written
 at ingest instead, so enrichment never erases them.
 
+## LLM summarisers
+
+`--summariser ollama` (default) uses local Ollama (`OLLAMA_URL`,
+`ENRICH_CONFIG.model`). `--summariser remote` uses any OpenAI-compatible
+chat-completions API (`src/gnamgnam/enrich/summarise/RemoteSummariser.js`),
+configured by `LLM_BASE_URL` (e.g. `https://…/v1`), `LLM_API_KEY` and
+`LLM_MODEL`; `dim:summaryModel` records it as
+`remote/<host>/<model>-<promptVersion>`. It paces requests
+(`remoteRequestIntervalMs`), honours `Retry-After` on 429 once, and stops at
+the first 401/403. Page text is sent to the provider.
+
+Both share the prompt and reply parsing (`summarise/llm.js`) and a circuit
+breaker: after `llmFailureLimit` consecutive failures (timeouts, errors,
+empty replies) the LLM is skipped for the rest of the run and the offline
+chain answers, instead of every bookmark waiting out a timeout. Input size,
+reply budget and timeouts are in `ENRICH_CONFIG` (`llmInputChars`,
+`llmMaxTokens`, `ollamaTimeoutMs`, `remoteTimeoutMs`).
+
 ## Surviving a re-ingest
 
 `bin/ingest.js` drops and reloads the source graph, which removes enrichment

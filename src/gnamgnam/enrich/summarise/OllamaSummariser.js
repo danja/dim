@@ -1,23 +1,26 @@
-import logger from 'loglevel'
 import { ENRICH_CONFIG } from '../../../../config/preferences.js'
 import { Summariser, SummariseError } from './Summariser.js'
-import { extractKeywords, normaliseKeywords, buildMarkdown } from './text.js'
+import { buildPrompt, resultFromReply, CircuitBreaker } from './llm.js'
 
-const SUMMARY_PROMPT = `Read the following web page content. Reply in exactly this format on two lines:
-SUMMARY: <2-3 plain sentences saying what it is and why it might be useful, at most 1000 characters, no marketing language>
-KEY TERMS: <up to 12 comma-separated single-word key terms, lowercase>
-
-Content:
-`
+export { parseStructuredReply } from './llm.js'
 
 /**
  * Local LLM via Ollama /api/generate. Best-effort: null on any failure so
- * the orchestrator falls through to the mechanical summariser. Keywords
- * the LLM omits are filled in mechanically; markdown is always composed
- * locally for a uniform shape.
+ * the orchestrator falls through to the mechanical summariser; after
+ * ENRICH_CONFIG.llmFailureLimit failures in a row it stops trying.
  */
 export class OllamaSummariser extends Summariser {
-  constructor ({ baseUrl, model = ENRICH_CONFIG.model, promptVersion = ENRICH_CONFIG.promptVersion, maxChars = ENRICH_CONFIG.summaryMaxChars, keywordMax = ENRICH_CONFIG.keywordMax, timeoutMs = 120000 } = {}) {
+  constructor ({
+    baseUrl,
+    model = ENRICH_CONFIG.model,
+    promptVersion = ENRICH_CONFIG.promptVersion,
+    maxChars = ENRICH_CONFIG.summaryMaxChars,
+    keywordMax = ENRICH_CONFIG.keywordMax,
+    inputChars = ENRICH_CONFIG.llmInputChars,
+    maxTokens = ENRICH_CONFIG.llmMaxTokens,
+    timeoutMs = ENRICH_CONFIG.ollamaTimeoutMs,
+    failureLimit = ENRICH_CONFIG.llmFailureLimit
+  } = {}) {
     super()
     if (!baseUrl) throw new SummariseError('OllamaSummariser needs a baseUrl')
     this.baseUrl = baseUrl.replace(/\/$/, '')
@@ -25,7 +28,10 @@ export class OllamaSummariser extends Summariser {
     this.promptVersion = promptVersion
     this.maxChars = maxChars
     this.keywordMax = keywordMax
+    this.inputChars = inputChars
+    this.maxTokens = maxTokens
     this.timeoutMs = timeoutMs
+    this.breaker = new CircuitBreaker({ name: 'ollama', limit: failureLimit })
   }
 
   get id () { return `ollama/${this.model}-${this.promptVersion}` }
@@ -42,7 +48,7 @@ export class OllamaSummariser extends Summariser {
   }
 
   async summarise (text, ctx = {}) {
-    if (!text || !text.trim()) return null
+    if (!text || !text.trim() || this.breaker.open) return null
     let response
     try {
       response = await fetch(`${this.baseUrl}/api/generate`, {
@@ -50,43 +56,25 @@ export class OllamaSummariser extends Summariser {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: this.model,
-          prompt: `${SUMMARY_PROMPT}${text.slice(0, 6000)}`,
+          prompt: buildPrompt(text, this.inputChars),
           stream: false,
-          options: { num_predict: 300 }
+          options: { num_predict: this.maxTokens }
         }),
         signal: AbortSignal.timeout(this.timeoutMs)
       })
     } catch (error) {
-      logger.warn(`[enrich] ollama request failed: ${error.message}`)
+      this.breaker.failure(`request failed: ${error.message}`)
       return null
     }
     if (!response.ok) {
-      logger.warn(`[enrich] ollama HTTP ${response.status}`)
+      this.breaker.failure(`HTTP ${response.status}${response.status === 404 ? ` (is ${this.model} pulled?)` : ''}`)
       return null
     }
-    const parsed = parseStructuredReply(String((await response.json()).response ?? ''))
-    const summary = (parsed.summary || '').trim().slice(0, this.maxChars) || null
-    if (!summary) return null
-    let keywords = normaliseKeywords(parsed.keywords, { max: this.keywordMax })
-    if (!keywords.length) keywords = extractKeywords(`${ctx.title ?? ''}\n${text}`, { max: this.keywordMax })
-    const markdown = buildMarkdown({
-      title: ctx.linkText || ctx.title || null,
-      url: ctx.url ?? null,
-      summary,
-      keywords,
-      types: (ctx.bookmarkType ?? []).map(t => String(t).replace(/^.*\//, ''))
+    const result = resultFromReply((await response.json()).response, {
+      text, ctx, maxChars: this.maxChars, keywordMax: this.keywordMax, id: this.id
     })
-    return { summary, keywords, markdown, model: this.id }
+    if (result) this.breaker.success()
+    else this.breaker.failure('empty reply')
+    return result
   }
-}
-
-/** Parse the SUMMARY:/KEY TERMS: reply shape; tolerant of extra prose. */
-export function parseStructuredReply (reply) {
-  const summary = reply.match(/^SUMMARY:\s*(.+?)(?=^KEY TERMS:|\s*$)/ims)?.[1]
-    ?.replace(/\s+/g, ' ').trim() ?? null
-  const rawTerms = reply.match(/^KEY TERMS:\s*(.+?)$/im)?.[1] ?? ''
-  const keywords = rawTerms.split(/[,;\n]/).map(t => t.trim()).filter(Boolean)
-  if (summary) return { summary, keywords }
-  const fallback = reply.replace(/\s+/g, ' ').trim()
-  return { summary: fallback || null, keywords }
 }

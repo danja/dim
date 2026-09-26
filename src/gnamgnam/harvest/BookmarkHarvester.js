@@ -14,10 +14,9 @@ import { REFUSALS } from '../enrich/fetch/Fetcher.js'
  * type from URL + response headers + <title>, and emits bookmark records.
  *
  * Politeness follows HttpSource rules: honest user-agent, paced requests, a
- * refusal (401/403/404/410/429/451) is an answer recorded on the bookmark
+ * refusal (401/403/404/410/429/451, or 999) is an answer recorded on the bookmark
  * rather than retried around.
  */
-
 
 function cleanText (s, max = 2000) {
   return s.replace(/\s+/g, ' ').trim().slice(0, max) || null

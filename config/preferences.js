@@ -45,5 +45,12 @@ export const ENRICH_CONFIG = {
   summariser: 'ollama',
   model: 'qwen2.5:3b',
   promptVersion: 'summary-v1',
+  // LLM summarisers (Ollama and remote OpenAI-compatible):
+  llmInputChars: 6000, // page text sent per request
+  llmMaxTokens: 300, // reply budget
+  llmFailureLimit: 5, // consecutive failures before the LLM is skipped for the rest of the run
+  ollamaTimeoutMs: 120000,
+  remoteTimeoutMs: 60000,
+  remoteRequestIntervalMs: 2000, // pacing for free tiers; 429s also honour Retry-After
   checkpointEvery: 100
 }

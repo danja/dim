@@ -7,7 +7,7 @@ import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
 import { composeText } from '../src/gnamgnam/BookmarkText.js'
 import { catalogueFromUrl } from '../src/gnamgnam/Catalogue.js'
 import VectorIndex from '../src/common/vectors/VectorIndex.js'
-import { createEnricher } from '../src/gnamgnam/enrich/registry.js'
+import { createEnricher, SUMMARISER_CHOICES } from '../src/gnamgnam/enrich/registry.js'
 import { ENRICH_CONFIG } from '../config/preferences.js'
 
 /**
@@ -16,7 +16,7 @@ import { ENRICH_CONFIG } from '../config/preferences.js'
  *
  * Usage:
  *   node bin/enrich.js [--limit N] [--only-new] [--force] [--quiet]
- *     [--summariser ollama|extractive] [--reembed]
+ *     [--summariser ollama|remote|extractive] [--reembed]
  *
  * --only-new skips bookmarks that already have dim:summary. --force ignores
  * the enrichment cache. --quiet collapses per-bookmark lines to progress.
@@ -36,8 +36,8 @@ const quiet = args.includes('--quiet')
 const reembed = args.includes('--reembed')
 const summariserIdx = args.indexOf('--summariser')
 const summariser = summariserIdx === -1 ? ENRICH_CONFIG.summariser : args[summariserIdx + 1]
-if (!['ollama', 'extractive'].includes(summariser)) {
-  console.error(`--summariser must be ollama|extractive, got ${JSON.stringify(summariser)}`)
+if (!SUMMARISER_CHOICES.includes(summariser)) {
+  console.error(`--summariser must be ${SUMMARISER_CHOICES.join('|')}, got ${JSON.stringify(summariser)}`)
   process.exit(1)
 }
 
@@ -78,10 +78,16 @@ const alreadySummarised = rows.filter(row => row.summary).length
 if (onlyNew) candidates = candidates.filter(row => !row.summary)
 candidates = candidates.slice(0, limit)
 
-const enricher = createEnricher(client, {
-  summariser,
-  ollamaBaseUrl: config.has('enrichment.ollamaBaseUrl') ? config.get('enrichment.ollamaBaseUrl') : undefined
-})
+let enricher
+try {
+  enricher = createEnricher(client, {
+    summariser,
+    ollamaBaseUrl: config.has('enrichment.ollamaBaseUrl') ? config.get('enrichment.ollamaBaseUrl') : undefined
+  })
+} catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
 const chain = enricher.summarisers.map(s => s.id).join(' → ')
 const cache = enricher.cache
 

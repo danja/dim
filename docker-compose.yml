@@ -117,6 +117,10 @@ services:
       # Optional: lifts the GitHub API limit for enrichment from 60 to 5000
       # requests an hour. Empty means unauthenticated.
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      # Optional remote LLM for --summariser remote (see .env.example).
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
       PORT: "4110"
       # Modest by default and overridden from compose. The working set is the
       # document map and a few megabytes of vector index, not gigabytes.

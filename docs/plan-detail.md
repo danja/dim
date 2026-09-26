@@ -332,7 +332,11 @@ done locally.
       enrichment from cache) and `bin/deadlinks.js --wayback` (restores
       archived copies from cache).
 - [ ] Enricher: `--limit 50` sample → manual review (manual gate from
-      docs/enricher.md) → full run with `--summariser ollama` + `--reembed`.
+      docs/enricher.md) → full run with `--reembed`. **Local Ollama
+      (`qwen2.5:3b`) is too slow on this CPU — every call timed out at
+      120s.** Added `--summariser remote` (any OpenAI-compatible API, e.g.
+      OpenCode Zen) plus a circuit breaker for both LLM summarisers; the
+      sample/full run will use the remote one.
 - [ ] Vector index complete (`index.size` == bookmark count, minus logged
       embed timeouts).
 - [ ] Re-evaluate `minSimilarity` (currently 0.58) once summaries exist;
@@ -672,3 +676,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | — | Found the Phase 2 "done" commit missing from `main` (pushed after the merge); re-applied. | |
 | 2026-09-26 | 3 | 3a: catalogue details, link status + `bin/deadlinks.js` (Wayback), bookmark detail page, fix for re-ingest losing enrichment, query-parse tests. 114/114 tests; verified on a local Fuseki 5.6 (ingest 5,121, SHACL clean). Topics deferred. | 52ca784 |
 | 2026-09-26 | 3 | 3b: `retrieve --live` ran locally (118 min). Ingest then halted on LinkedIn's HTTP 999 (SHACL max 599); fixed — any three-digit status recorded, ≥600 = blocked. 116/116 tests. | 7aa6657 |
+| 2026-09-26 | 3 | 3b: host Ollama answered 404 (model not pulled), then timed out on every call (CPU too slow). Added `--summariser remote` (OpenAI-compatible: `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL`), LLM circuit breaker, LLM limits in `ENRICH_CONFIG`. 124/124 tests. | |
