@@ -31,6 +31,8 @@ docker compose up -d fuseki
 
 ## Use
 
+Full command reference for the bookmark tools: [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md).
+
 ```sh
 node bin/retrieve.js              # first-pass report over workflowy.md (offline)
 node bin/retrieve.js --live       # actually GET each URL (cached 7 days in data/cache)
