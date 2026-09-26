@@ -18,8 +18,17 @@ export class FetchError extends Error {
   }
 }
 
-/** Statuses that are an answer, not a retryable failure. */
-export const REFUSALS = new Set([401, 403, 404, 410, 429, 451])
+/**
+ * Statuses that are an answer, not a retryable failure. 999 is LinkedIn's
+ * (and a few others') non-standard "request denied" for crawlers.
+ */
+export const REFUSALS = new Set([401, 403, 404, 410, 429, 451, 999])
+
+/** A recordable HTTP status: any three-digit code, standard or not. */
+export function statusCode (value) {
+  const n = Number(value)
+  return value !== null && value !== undefined && value !== '' && Number.isInteger(n) && n >= 100 && n <= 999 ? n : null
+}
 
 export class Fetcher {
   canHandle (_ctx) { return false }

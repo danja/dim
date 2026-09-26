@@ -48,7 +48,7 @@ dim:contentHash a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range x
     rdfs:comment "sha256 (hex, 16 chars) of the extracted text the summary was built from." .
 dim:contentLength a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer .
 dim:fetchStatus a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer ;
-    rdfs:comment "HTTP status of the enrichment fetch; a refusal (401/403/404/410/429/451) is recorded, not retried." .
+    rdfs:comment "HTTP status of the enrichment fetch, any three-digit code; a refusal (401/403/404/410/429/451, or 999) is recorded, not retried." .
 
 ## ── Catalogue details per type (src/gnamgnam/Catalogue.js) ─────────────
 ## URL-derived at ingest: githubOwner, githubRepo, arxivId, wikipediaLanguage,

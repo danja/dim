@@ -315,9 +315,18 @@ done locally.
 
 ### 3b Tasks (local runs)
 
-- [ ] Set `GITHUB_TOKEN`, then run `bin/retrieve.js --live` over the full
-      set (1s pacing ≈ 1.5h); record status distribution
+- [~] Set `GITHUB_TOKEN`, then run `bin/retrieve.js --live` over the full
+      set — **ran locally, 118 min.** Record the status distribution
       (2xx/3xx/4xx/5xx/timeouts) in the log.
+- [x] **Bug fix — ingest halted by a non-standard status.** LinkedIn
+      answers crawlers with HTTP 999; the SHACL shapes allowed only
+      100–599, so the whole ingest refused. Now any three-digit code is
+      recorded (`dim:httpStatus` / `dim:fetchStatus` 100–999), codes ≥ 600
+      count as `blocked`, 999 joins the refusal set (one shared set; the
+      harvester's duplicate is gone), and the normaliser drops anything
+      that is not a three-digit code instead of failing the run.
+      Reproduced and verified on the sandbox Fuseki: same error before,
+      5,310 bookmarks ingested after.
 - [ ] Re-ingest with live data; titles/descriptions and URL catalogue
       details populated. Then `bin/enrich.js` (restores any earlier
       enrichment from cache) and `bin/deadlinks.js --wayback` (restores
@@ -662,3 +671,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 2 | Live check: shell, search, `/health` and redirects work against the live store. Phase 2 done. | |
 | 2026-09-26 | — | Found the Phase 2 "done" commit missing from `main` (pushed after the merge); re-applied. | |
 | 2026-09-26 | 3 | 3a: catalogue details, link status + `bin/deadlinks.js` (Wayback), bookmark detail page, fix for re-ingest losing enrichment, query-parse tests. 114/114 tests; verified on a local Fuseki 5.6 (ingest 5,121, SHACL clean). Topics deferred. | 52ca784 |
+| 2026-09-26 | 3 | 3b: `retrieve --live` ran locally (118 min). Ingest then halted on LinkedIn's HTTP 999 (SHACL max 599); fixed — any three-digit status recorded, ≥600 = blocked. 116/116 tests. | |

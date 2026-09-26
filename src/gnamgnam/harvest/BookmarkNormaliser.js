@@ -1,5 +1,6 @@
 import { NAMESPACES } from '../../common/rdf/NamespaceManager.js'
 import { catalogueFromUrl, cleanCatalogue } from '../Catalogue.js'
+import { statusCode } from '../enrich/fetch/Fetcher.js'
 
 /**
  * First-pass bookmark classification. Pure heuristics over URL + headers, no
@@ -101,9 +102,9 @@ export function normaliseBookmark (raw) {
     markdown: raw.markdown?.trim()?.slice(0, 4000) || null,
     contentHash: raw.contentHash ?? null,
     contentLength: typeof raw.contentLength === 'number' ? raw.contentLength : null,
-    fetchStatus: typeof raw.fetchStatus === 'number' ? raw.fetchStatus : null,
+    fetchStatus: statusCode(raw.fetchStatus),
     contentType: raw.contentType ?? null,
-    httpStatus: raw.httpStatus ?? null,
+    httpStatus: statusCode(raw.httpStatus),
     retrievedAt: raw.retrievedAt ?? null,
     domain: domainOf(url),
     context: raw.context?.trim()?.slice(0, 500) || null,

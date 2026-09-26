@@ -38,7 +38,8 @@ dim:BookmarkShape a sh:NodeShape ;
         sh:path dim:httpStatus ;
         sh:maxCount 1 ;
         sh:datatype xsd:integer ;
-        sh:minInclusive 100 ; sh:maxInclusive 599 ;
+        sh:minInclusive 100 ; sh:maxInclusive 999 ;
+        sh:message "A three-digit HTTP status as the server sent it; non-standard codes such as 999 are real." ;
     ] ;
     sh:property [
         sh:path dim:tag ;
@@ -88,7 +89,8 @@ dim:BookmarkShape a sh:NodeShape ;
         sh:path dim:fetchStatus ;
         sh:maxCount 1 ;
         sh:datatype xsd:integer ;
-        sh:minInclusive 100 ; sh:maxInclusive 599 ;
+        sh:minInclusive 100 ; sh:maxInclusive 999 ;
+        sh:message "A three-digit HTTP status as the server sent it; non-standard codes such as 999 are real." ;
     ] ;
     sh:property [
         sh:path dim:githubOwner ;

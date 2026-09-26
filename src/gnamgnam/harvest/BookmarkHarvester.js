@@ -6,6 +6,7 @@ import { parseWorkflowyFile, deduplicate } from './WorkflowyParser.js'
 import { normaliseBookmark, classifyUrl, domainOf } from './BookmarkNormaliser.js'
 import { HARVEST_CONFIG } from '../../../config/preferences.js'
 import Config from '../../common/Config.js'
+import { REFUSALS } from '../enrich/fetch/Fetcher.js'
 
 /**
  * Bookmark harvester: the versatile retrieval agent's first pass from
@@ -17,7 +18,6 @@ import Config from '../../common/Config.js'
  * rather than retried around.
  */
 
-const REFUSALS = new Set([401, 403, 404, 410, 429, 451])
 
 function cleanText (s, max = 2000) {
   return s.replace(/\s+/g, ' ').trim().slice(0, max) || null

@@ -18,6 +18,7 @@ describe('linkStatus', () => {
     expect(linkStatus({ httpStatus: 403 })).toBe('blocked')
     expect(linkStatus({ httpStatus: 429 })).toBe('blocked')
     expect(linkStatus({ httpStatus: 500 })).toBe('error')
+    expect(linkStatus({ httpStatus: 999 })).toBe('blocked')
     expect(linkStatus({ httpStatus: 'junk' })).toBe('unchecked')
   })
 
