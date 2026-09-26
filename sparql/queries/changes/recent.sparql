@@ -1,0 +1,21 @@
+# The most recently changed resources, with their latest change. Link
+# bookkeeping (<graph:facet/links>) and the poller's are left out.
+SELECT ?resource ?at ?action ?actor ?summary
+WHERE {
+  {
+    SELECT ?resource (MAX(?t) AS ?at)
+    WHERE {
+      GRAPH ${graph} { ?c prov:used ?resource ; prov:startedAtTime ?t ; prov:wasAssociatedWith ?who ; dim:inGraph ?g . }
+      FILTER(?who != "poller" && ?g != <graph:facet/links>)
+    }
+    GROUP BY ?resource
+    ORDER BY DESC(?at)
+    LIMIT ${limit}
+  }
+  GRAPH ${graph} {
+    ?c prov:used ?resource ; prov:startedAtTime ?at ; dim:changeAction ?action ; prov:wasAssociatedWith ?actor ; dim:inGraph ?cg .
+    FILTER(?cg != <graph:facet/links>)
+    OPTIONAL { ?c rdfs:comment ?summary }
+  }
+}
+ORDER BY DESC(?at)

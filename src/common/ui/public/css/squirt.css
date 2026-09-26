@@ -1,0 +1,20 @@
+/* Squirt: the phone front page. */
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.squirt-search { margin-top: var(--gap); }
+.squirt-search input { font-size: 1.1rem; }
+.capture textarea { min-height: 6rem; }
+.kinds { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; border: 0; padding: 0; margin: 0.5rem 0; }
+.kinds legend { font-size: 0.875rem; color: var(--muted); padding: 0; }
+.kinds label { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; }
+.captured { padding: 0.5rem 0.75rem; border-left: 4px solid var(--ok); background: var(--surface); }
+
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li { display: flex; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+.timeline .facet-icon { width: 1.5rem; flex: none; text-align: center; }
+.timeline a { overflow-wrap: anywhere; }
+.timeline .meta { margin: 0.15rem 0 0; overflow-wrap: anywhere; }
+
+.install { margin-top: 2rem; }
+a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
+.bookmarklet { font-weight: 600; }

@@ -31,7 +31,7 @@ docker compose up -d fuseki
 
 ## Use
 
-Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md), wiki [`docs/commands-wiki.md`](docs/commands-wiki.md), news [`docs/commands-news.md`](docs/commands-news.md), blog [`docs/commands-blog.md`](docs/commands-blog.md).
+Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md), wiki [`docs/commands-wiki.md`](docs/commands-wiki.md), news [`docs/commands-news.md`](docs/commands-news.md), blog [`docs/commands-blog.md`](docs/commands-blog.md), phone [`docs/commands-squirt.md`](docs/commands-squirt.md).
 
 ```sh
 node bin/retrieve.js              # first-pass report over workflowy.md (offline)
@@ -53,13 +53,13 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /gnamgnam/facets` | facet values and counts |
 | `GET /gnamgnam/bookmarks` | browse |
 | `GET /gnamgnam/bookmark/<slug>` | one bookmark — HTML detail page, JSON by `.json`, Turtle by `.ttl` |
-| `GET /<facet>/` | Squirt — placeholder page until built |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
 | `GET /trestle/` | outlines (Trestle): the Workflowy outline, editable |
 | `GET /farelo/` | tasks (Farelo): Kanban board; `/farelo/dice` picks the next task |
 | `GET /wiki/` | wiki pages: `[[Title]]` links, history and diffs |
 | `GET /news/` | feed reader: RSS/Atom/JSON Feed; items → bookmarks or tasks |
 | `GET /blog/` | blog: posts from wiki pages / outline items, Atom feed, static export |
+| `GET /squirt/` | phone front page: search, quick capture, recent activity; installable app with share target |
 | `GET /find?q=` | search every facet |
 | `GET /r/<type>/<slug>` | the page of any DIM resource |
 | `POST /links`, `POST /gnamgnam/bookmark/<slug>/annotations` | links, tags and notes — needs `DIM_WRITE_TOKEN` (see `docs/tools.md`) |
@@ -120,6 +120,8 @@ GnamGnam (bookmarks) is the first facet.
   per-host pacing, back-off), `formats/` (feeds, OPML, discovery), `api/`
 - `src/blog/` — the blog: `PostStore`, `render.js` (post HTML, Atom),
   `staticSite.js` (export), `sources.js` (drafts from wiki/outline), `api/`
+- `src/squirt/` — phone view: `capture.js` (routes captures), `timeline.js`
+  (change log + facet `recent()`), `pwa.js` + `sw.js` (manifest, worker), `api/`
 - `src/common/outline/OutlineParser.js` — Markdown bullet outlines
   (Workflowy export), shared by the bookmark harvester and Trestle
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL

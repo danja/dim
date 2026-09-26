@@ -40,6 +40,10 @@ export function renderPage ({ title, tabs, active, body, head = '', session = nu
 <meta name="color-scheme" content="light dark">
 <title>${esc(fullTitle)}</title>
 <link rel="stylesheet" href="/static/css/base.css">
+<link rel="manifest" href="/squirt/manifest.webmanifest">
+<meta name="theme-color" content="#2b5fae">
+<link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 ${session?.user && session.csrf ? `<meta name="csrf-token" content="${esc(session.csrf)}">` : ''}
 <script type="module" src="/static/js/tabs.js"></script>
 ${head}

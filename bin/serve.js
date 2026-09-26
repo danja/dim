@@ -64,7 +64,7 @@ const poller = new Poller({ store: newsStore })
 const posts = new PostStore({ client, repository, links })
 const blog = { store: posts, title: process.env.BLOG_TITLE || 'Blog', author: process.env.BLOG_AUTHOR || 'owner' }
 const rolls = new RollLog({ client, registry })
-const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller }, blog })
+const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller }, blog, client })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)

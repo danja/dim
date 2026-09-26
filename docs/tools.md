@@ -73,7 +73,7 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | `GET /wiki/…` | Wiki pages, history, diffs — see `docs/commands-wiki.md`. |
 | `GET /news/…` | News river, items, feeds, OPML — see `docs/commands-news.md`. |
 | `GET /blog/…` | Blog posts, tags, Atom feed — see `docs/commands-blog.md`. |
-| `GET /<facet>/` | Other facets (`squirt`): placeholder pages until their phase lands. |
+| `GET /squirt/…` | Phone front page, capture, share target, manifest, service worker — see `docs/commands-squirt.md`. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
 | `GET /static/…` | Shared UI kit (CSS, JS). |
 | `GET /health` | Per-facet status (`facets.gnamgnam` has bookmark/vector counts), whether writes are enabled, embedding model. |

@@ -18,3 +18,20 @@ document.addEventListener('click', e => {
     window.print()
   }
 })
+
+// Installable app + offline reading (Squirt): the service worker lives at
+// /squirt/sw.js with scope /. Needs a secure context (localhost or https).
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('/squirt/sw.js', { scope: '/' }).catch(() => {})
+}
+
+// Logging out forgets the pages kept for offline reading.
+document.addEventListener('submit', e => {
+  const form = e.target
+  if (!form.matches('form[action="/logout"]') || !('caches' in window) || form.dataset.cleared) return
+  e.preventDefault()
+  caches.keys()
+    .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+    .catch(() => {})
+    .finally(() => { form.dataset.cleared = '1'; form.submit() })
+})

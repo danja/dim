@@ -7,7 +7,7 @@ describe('named SPARQL queries', () => {
   const queries = new QueryService()
   const parser = new sparqljs.Parser()
   // Placeholders that take a SPARQL fragment rather than a single term.
-  const SAMPLE = { conditions: '?bookmark ?p ?o .', optional: 'dim:harvestRun "r" .' }
+  const SAMPLE = { conditions: '?bookmark ?p ?o .', optional: 'dim:harvestRun "r" .', limit: '10' }
 
   for (const name of queries.list()) {
     it(`${name} parses`, () => {

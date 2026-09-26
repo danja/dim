@@ -15,6 +15,7 @@
  *     lookupUrl (url),       // optional: an external URL it holds → IRI | null
  *     lookupTitle (title),   // optional: exact title → IRI | null
  *     refresh (iri),         // optional: a resource it shows changed elsewhere
+ *     recent ({ limit }),    // optional: → [{ iri, label, href, at, action }] not in the change log
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
  *   }
  *
@@ -106,6 +107,17 @@ export class FacetRegistry {
       if (found) return found
     }
     return null
+  }
+
+  /** What facets report as recent through recent() (not the change log). */
+  async recent (options = {}) {
+    const out = []
+    for (const facet of this.facets) {
+      try {
+        for (const item of (await facet.recent?.(options)) ?? []) out.push({ facet: facet.id, facetLabel: facet.label, ...item })
+      } catch { /* one facet's failure must not hide the others */ }
+    }
+    return out
   }
 
   /** Tell every facet that caches resources that this one changed. */

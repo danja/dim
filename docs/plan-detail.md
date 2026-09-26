@@ -56,7 +56,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 7 | Wiki (from foowiki) | 4 | `[x]` (local check pending) |
 | 8 | Newsmonitor (RSS) | 4 | `[x]` (local check pending) |
 | 9 | Blog engine | 7 | `[x]` (local check pending) |
-| 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[ ]` |
+| 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[x]` (phone check needs https) |
 | 11 | "What next?" advisor | 6, 3, 4 | `[ ]` |
 | 12 | Operations: backup, auth, deploy hardening | runs alongside | `[ ]` |
 
@@ -848,18 +848,51 @@ standing (third-party, link out, expire).
 
 ### Tasks
 
-- [ ] Review squirt; record what ports.
-- [ ] Unified timeline/inbox: recent items across facets (new feed items,
-      tasks due, recently edited pages/nodes, new bookmarks).
-- [ ] Quick capture: one input that creates a bookmark (URL), task
-      (`todo …`), note, depending on content — the "squirt" in.
-- [ ] Web App Manifest + service worker for installability and offline
-      read of recent items; share-target to capture from phone share sheet.
-- [ ] Cross-facet search as the primary control.
+- [x] Review squirt: a vanilla-JS plugin-based PWA "for posting information
+      to the web" — post creation with metadata, wiki, chat, SPARQL,
+      Excalidraw; installable, a GET share target (url/title/text), a
+      bookmarklet, a network-first service worker. Ported: the share
+      target, bookmarklet, manifest and network-first worker, and the idea of
+      one place to post from. Not ported: its own wiki/SPARQL/drawing
+      views (DIM's facets are those) and the plugin system (the facet
+      registry plays that part).
+- [x] Unified timeline ("Lately"): the latest change to each resource from
+      the change log (every facet writes there; link bookkeeping and the
+      poller left out; deleted things skipped) plus a new facet hook
+      `recent()` (News: newest unread items). Logged in only — it would
+      otherwise show drafts' titles.
+- [x] Quick capture: one box; `todo …` → Farelo task, a URL → GnamGnam
+      bookmark (searchable at once), else a note at the top of the wiki
+      Inbox; **Save as** overrides. Bookmark creation shared with News
+      (`src/gnamgnam/saveBookmark.js`).
+- [x] Web App Manifest (icons 192/512/maskable/SVG, shortcuts), service
+      worker at `/squirt/sw.js` with scope `/` (network first, last copy of
+      each opened page kept, 300 max, offline page, never login/logout/
+      writes), cleared on logout; share target `/squirt/share` (GET) and a
+      bookmarklet, both opening a pre-filled capture form with a guess.
+- [x] Cross-facet search as the first control on the page.
+- [x] Tests: classification (tasks, URLs in text as Android shares them,
+      notes, overrides), captures into each facet (Inbox newest first),
+      manifest, worker headers, share page (guess, login return), timeline
+      hidden from strangers.
 
 ### Acceptance
 
-- Installable on a phone; capture from share sheet lands in the right facet.
+- [x] Installable: Chrome's own check (`Page.getInstallabilityErrors`) is
+      empty and the manifest has no errors; the worker controls the page;
+      with the server stopped, opened pages still read and unopened ones
+      show the offline page (Playwright, persistent profile).
+- [x] Capture from the share target lands in the right facet (share URL →
+      bookmark; tasks and notes from the box) — browser checks; axe clean,
+      no horizontal scroll at 375 px.
+- [x] 259 core tests, 12 store tests.
+- [ ] Local check on a real phone: needs DIM behind https (Phase 12); then
+      install, and Share → DIM from another app.
+
+### Notes
+
+- A phone on the LAN over plain http gets the pages but not install or
+  offline: browsers require a secure context.
 
 ---
 
@@ -946,3 +979,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 7 | Wiki: pages with full revisions, `[[Title]]` create-on-follow, mentions/backlinks, preview, 409 conflict page, history + diff, find/lookup, import from foowiki Turtle or Markdown files; `/find` tolerates a failing facet; inline code no longer linked. 223 core + 10 store tests; Playwright + axe. | 67d5304 |
 | 2026-09-26 | 8 | News: RSS/RDF/Atom/JSON Feed parsing, discovery, OPML/URL-list import, polite conditional-GET poller with back-off, river/item/feed pages, read/star in place, save as bookmark / make task (linked, starred), `bin/news.js`, optional server polling + pruning; fetch helpers lifted to `src/common/http/fetch.js`; `/find` + `refresh` hook. 243 core + 11 store tests; local feed server; Playwright + axe. | cf557e2 |
 | 2026-09-26 | 9 | Blog: posts (drafts owner-only), drafts from wiki pages / outline items, dated URLs, tags, Atom, static export with relative links; Markdown renderer gains local-link mapping + relative hrefs; thrown 4xx keep their status. 252 core + 12 store tests; exported site browsed; Playwright + axe. | 3b32548 |
+| 2026-09-26 | 10 | Squirt: search-first phone page, capture routed to task / bookmark / wiki Inbox, timeline from the change log + facet `recent()`, manifest + icons, service worker (network first, offline copies, cleared on logout), share target + bookmarklet. Chrome reports it installable; offline verified with the server stopped. 259 core + 12 store tests; Playwright + axe. | |

@@ -43,6 +43,12 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
       return it?.iri === resourceIri ? { label: it.title, href: itemPath(it), type: 'news-item' } : null
     },
 
+    /** Newest unread items (items aren't in the change log). */
+    async recent ({ limit = 10 } = {}) {
+      const { items } = await store.itemList({ view: 'unread', limit })
+      return items.map(i => ({ iri: i.iri, label: i.title, href: itemPath(i), at: i.published ?? i.firstSeen, action: 'new', summary: null }))
+    },
+
     async lookupTitle (title) {
       const wanted = String(title).trim().toLowerCase()
       return (await store.feedList()).find(f => f.title.toLowerCase() === wanted)?.iri ?? null

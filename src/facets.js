@@ -4,6 +4,7 @@ import { createFareloFacet } from './farelo/index.js'
 import { createWikiFacet } from './wiki/index.js'
 import { createNewsFacet } from './news/index.js'
 import { createBlogFacet } from './blog/index.js'
+import { createSquirtFacet } from './squirt/index.js'
 import { stubFacet } from './common/facets/stubFacet.js'
 
 /**
@@ -15,9 +16,10 @@ import { stubFacet } from './common/facets/stubFacet.js'
  * outlines / tasks: an OutlineStore and TaskStore (need the store); without
  * them Trestle and Farelo are stubs. rolls: the dice-roll log. wiki: a
  * WikiStore (likewise). news: { store, poller } (likewise). blog:
- * { store, title, author } (likewise).
+ * { store, title, author } (likewise). client: the SPARQL client, for
+ * Squirt's timeline and bookmark capture.
  */
-export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null }) {
+export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, client = null }) {
   return [
     createGnamgnamFacet({ search }),
     outlines
@@ -35,7 +37,7 @@ export function createFacets ({ search, outlines = null, tasks = null, rolls = n
     blog
       ? createBlogFacet({ ...blog, wiki, outlines })
       : stubFacet({ id: 'blog', label: 'Blog', phase: 9, description: 'Blog engine: publish wiki pages and outline nodes as posts.' }),
-    stubFacet({ id: 'squirt', label: 'Squirt', phase: 10, description: 'Mobile view of everything, with quick capture.' })
+    createSquirtFacet({ client, tasks, wiki })
   ]
 }
 
