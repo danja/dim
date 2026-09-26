@@ -174,6 +174,48 @@ dim:LinkShape a sh:NodeShape ;
     sh:property [ sh:path dim:mentions ; sh:nodeKind sh:IRI ; sh:message "Links point at IRIs." ] ;
     sh:property [ sh:path dim:partOf ; sh:nodeKind sh:IRI ; sh:message "Links point at IRIs." ] .
 
+## Outlines (Trestle).
+dim:OutlineShape a sh:NodeShape ;
+    sh:targetClass dim:Outline ;
+    sh:property [
+        sh:path dcterms:title ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 200 ;
+        sh:message "An outline has one title, at most 200 characters." ;
+    ] .
+
+dim:OutlineNodeShape a sh:NodeShape ;
+    sh:targetClass dim:OutlineNode ;
+    sh:property [
+        sh:path dcterms:title ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:maxLength 4000 ;
+        sh:message "A node has one title (it may be empty), at most 4000 characters." ;
+    ] ;
+    sh:property [
+        sh:path dim:inOutline ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A node belongs to exactly one outline." ;
+    ] ;
+    sh:property [
+        sh:path dim:partOf ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A node has exactly one parent: a node, or the outline itself." ;
+    ] ;
+    sh:property [
+        sh:path dim:position ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:message "A node has one decimal position among its siblings." ;
+    ] ;
+    sh:property [
+        sh:path dim:collapsed ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+    ] .
+
 dim:ConceptShape a sh:NodeShape ;
     sh:targetClass skos:Concept ;
     sh:property [

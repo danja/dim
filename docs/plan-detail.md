@@ -50,8 +50,8 @@ These apply to every phase; a task isn't done if it breaks one.
 | 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` |
 | 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[x]` |
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[~]` 3a code done; 3b local runs |
-| 4 | Write path & cross-linking foundation | 2 | `[x]` (local check pending) |
-| 5 | Trestle outliner | 4 | `[ ]` |
+| 4 | Write path & cross-linking foundation | 2 | `[x]` |
+| 5 | Trestle outliner | 4 | `[x]` (local check pending) |
 | 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[ ]` |
 | 7 | Wiki (from foowiki) | 4 | `[ ]` |
 | 8 | Newsmonitor (RSS) | 4 | `[ ]` |
@@ -446,7 +446,7 @@ from the bookmark detail page.
 - [x] `bin/validate.js`: every graph conforms, including
       `graph:facet/gnamgnam`, `graph:facet/links`, `graph:system/changes`.
 - [x] 174 core tests.
-- [ ] Re-check on the local machine with `DIM_WRITE_TOKEN` set.
+- [x] Re-checked on the local machine with `DIM_WRITE_TOKEN` set (2026-09-26).
 
 ### Notes
 
@@ -460,29 +460,84 @@ from the bookmark detail page.
 
 ## Phase 5 — Trestle outliner
 
-**Source:** `~/github/trestle` (danja/trestle). **Graph:** `graph:facet/trestle`.
+**Source:** [danja/trestle](https://github.com/danja/trestle) (reviewed read-only).
+**Graph:** `graph:facet/trestle`. Command reference: `docs/commands-trestle.md`.
+
+### Review of danja/trestle
+
+What carried over: the model (title, Markdown description, parent,
+sibling order, created), Workflowy keys (Enter / Tab / Shift-Tab /
+arrows), zooming into a node with breadcrumbs, a card (detail) view, and
+the goal of a Workflowy-like outliner over RDF. What did not: the Vite
+bundle, the browser-side RDF model (rdf-ext in the page), the EventBus
+MVC and its 600–950-line files, the `ts:`/`prj:` vocabularies and the
+node-type selector (Project/Task/Node — tasks belong to Farelo), drag and
+drop (keyboard, buttons and the touch toolbar cover moving). Rebuilt on
+DIM's shared parts instead: server-rendered pages, the Phase 4 write path,
+links and shapes.
 
 ### Tasks
 
-- [ ] Review trestle: data model, UI interactions, storage; record which
-      parts port and which are replaced by `src/common`.
-- [ ] Model: `dim:Outline`, `dim:OutlineNode` with `dim:partOf` parent,
-      ordering (`dim:position` or `rdf:List` — decide, record why),
-      Markdown `dim:content`, collapsed state.
-- [ ] Import `data/workflowy.md` as an outline, linking nodes to the
-      bookmarks already harvested from it (`dim:resource`), using
-      `dim:sourceLine` to join.
-- [ ] Outliner UI: keyboard (Tab/Shift-Tab indent, Enter new node, arrows
-      move, Alt-arrows reorder), touch equivalents for mobile, zoom into
-      node, breadcrumbs.
-- [ ] Autosave through the Phase 4 write path (debounced PATCH).
-- [ ] Export outline as Markdown and Turtle.
-- [ ] Tests: tree ↔ triples round-trip, reorder/indent operations.
+- [x] Review trestle (above).
+- [x] Model: `dim:Outline`, `dim:OutlineNode`; `dim:partOf` parent (a node,
+      or the outline at top level); `dim:inOutline`; title `dcterms:title`
+      (inline Markdown); note `dim:note` (the plan said `dim:content` — the
+      shared note term already exists); `dim:collapsed`;
+      `dcterms:created` / `modified`; `dim:sourceLine` from imports. SHACL
+      `OutlineShape`, `OutlineNodeShape`.
+- [x] **Ordering (Q2): `dim:position`, a fractional `xsd:decimal`** — an
+      insert or move takes the midpoint of its neighbours and rewrites one
+      node; siblings are respread (1, 2, 3 …) only when a gap drops below
+      1e-6. An `rdf:List` would rewrite list cells on every move and is
+      awkward to query.
+- [x] Workflowy parser fix: a shared `src/common/outline/OutlineParser.js`
+      joins wrapped link titles (`[` / title / `](url)`), nests by
+      indentation, repairs a title missing its `[`. The bookmark harvester
+      now uses it: same 5,325 URLs, 76 more with link text, and contexts
+      are real ancestors ("Software Projects / Seki") instead of fragments.
+- [x] Import `data/workflowy.md` (`bin/trestle-import.js`): 8,118 items,
+      128 top level, SHACL-validated as a whole, 12 s; 5,819 `dim:resource`
+      links to existing bookmarks (joined by minting the bookmark IRI from
+      the URL — more exact than `dim:sourceLine`). Parents start collapsed.
+      Refuses to overwrite without `--replace`.
+- [x] Outliner UI (`src/trestle/`, `/static/js/outliner.js`): server-rendered
+      tree; zoom + breadcrumbs; ▸/▾ collapse; ⌗ to the linked bookmark.
+      Logged in: click a title to edit; Enter new item, Tab / Shift-Tab,
+      ↑/↓, Alt+↑/↓, Backspace on empty deletes, Esc; a touch toolbar with
+      the same actions; every action also has a no-JS form on the item
+      page. Links panel on item pages; notes' `[[references]]` become
+      mentions.
+- [x] Saving: each edit goes through the Phase 4 write path immediately
+      (on Enter/blur/move, not a debounced PATCH); after a structural
+      change the visible tree is re-fetched, so the page never drifts.
+- [x] Export: Markdown (outline and subtree) and Turtle (outline).
+- [x] Cross-facet: `/find` searches outline items; a bookmark's page shows
+      the outline items using it (**Used by**).
+- [x] Tests: outline parser, tree moves, import plan, decimal literals and
+      node shapes (offline); OutlineStore create/edit/move/delete/reload and
+      renumbering against the store.
 
 ### Acceptance
 
-- Workflowy outline browsable with bookmarks one click away.
-- Edit → reload → edits persist; export round-trips.
+- [x] Workflowy outline browsable with bookmarks one click away (⌗ on each
+      item; the item's title keeps its own link).
+- [x] Edit → reload → edits persist (Playwright: Enter, Tab, Shift-Tab,
+      Alt+↑, Backspace, note, collapse; reload shows the same tree).
+- [x] Export round-trips: the Markdown export of the imported outline parses
+      back to the same 8,118 items, 0 differences; the Turtle export parses
+      to the same 57,834 triples.
+- [x] axe clean, no horizontal scroll at 375 px (outline, item, editing).
+- [x] `bin/validate.js` clean including `graph:facet/trestle`.
+- [x] 190 core tests, 7 store tests.
+- [ ] Local check: import on your machine, then edit in the browser.
+
+### Notes
+
+- Outlines are cached in memory by the server: restart it after
+  `bin/trestle-import.js`.
+- Re-importing with `--replace` drops web edits to that outline.
+- The old outline context for bookmarks changed with the parser fix; it
+  refreshes on the next `bin/ingest.js`.
 
 ---
 
@@ -697,7 +752,7 @@ time/resources.
 | # | Question | Raised | Decision |
 |---|---|---|---|
 | Q1 | Links in a shared `graph:facet/links` or in the owning facet's graph? | Phase 4 | Shared `graph:facet/links` (2026-09-26). |
-| Q2 | Outline ordering: `dim:position` numbers or `rdf:List`? | Phase 5 | |
+| Q2 | Outline ordering: `dim:position` numbers or `rdf:List`? | Phase 5 | Fractional `xsd:decimal` `dim:position`; renumber a sibling list only when a gap < 1e-6 (2026-09-26). |
 | Q3 | Source repos (trestle, NewsMonitor, foowiki, squirt) are not in this sandbox — add them to the session / vendor snapshots when those phases start. | 2026-09-26 | |
 | Q4 | Getting Things Diced method — needs a local copy of the post. | 2026-09-26 | Resolved: copy in `docs/`, method in 6.1. |
 | Q5 | Write auth model for localhost: token vs Basic vs none-on-loopback. | Phase 4 | `DIM_WRITE_TOKEN` as Bearer/Basic; browser session + CSRF (2026-09-26). |
@@ -731,3 +786,5 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 3 | 3b: rotation sample 34/50 enriched (Groq answering), 13 refused, 3 failed; overnight `--only-new --llm-only --reembed` loop started. Added `docs/commands-gnamgnam.md`; `pipeline.sh` accepts `--summariser remote`. | |
 | 2026-09-26 | — | Command-reference commit had landed after the merge; re-applied. | |
 | 2026-09-26 | 4 | Write path (Repository + SHACL, token/session/CSRF auth, change log), links (shared graph, mentions, /r resolver, links panel, picker), /find, bookmark tags + notes. 174 core + 5 store tests; Playwright + axe; survives re-ingest. | 2672317 |
+| 2026-09-26 | 4 | Local check: writes, notes, tags and links work. Phase 4 done. | |
+| 2026-09-26 | 5 | Trestle: shared outline parser (fixes bookmark contexts), Workflowy import (8,118 items, 5,819 bookmark links), outliner UI with keys + touch toolbar, exports that round-trip. 190 core + 7 store tests; Playwright + axe. | |

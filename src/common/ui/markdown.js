@@ -54,4 +54,10 @@ export function renderMarkdown (markdown) {
   return marked.parse(linkWikiRefs(markdown))
 }
 
+/** One line of Markdown (a title) → safe inline HTML, no wrapping <p>. */
+export function renderInline (markdown) {
+  if (!markdown) return ''
+  return marked.parseInline(linkWikiRefs(markdown))
+}
+
 export default renderMarkdown

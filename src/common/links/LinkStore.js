@@ -79,6 +79,17 @@ export class LinkStore {
     })
   }
 
+  /** Drop every link to or from these resources (they are being deleted). */
+  async forget (resources, { chunk = 200 } = {}) {
+    if (!resources?.length) return
+    const graph = await this.graph()
+    for (let i = 0; i < resources.length; i += chunk) {
+      const values = resources.slice(i, i + chunk).map(r => iri(r)).join(' ')
+      await this.client.update(`DELETE { GRAPH ${iri(graph)} { ?s ?p ?o } }
+WHERE { GRAPH ${iri(graph)} { { ?s ?p ?o VALUES ?s { ${values} } } UNION { ?s ?p ?o VALUES ?o { ${values} } } } }`)
+    }
+  }
+
   /** → [{ kind, direction: 'out'|'in', iri }] for one resource. */
   async linksOf (resource) {
     const graph = await this.graph()

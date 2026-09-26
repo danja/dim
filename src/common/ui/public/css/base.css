@@ -263,3 +263,82 @@ textarea {
 .picker li[aria-selected="true"], .picker li:hover { background: var(--bg); }
 .picker small { display: block; color: var(--muted); }
 .groups h2 { margin-top: 1.5rem; }
+
+/* ── Outliner (Trestle) ──────────────────────────────────────────────── */
+
+.crumbs { font-size: 0.875rem; color: var(--muted); overflow-wrap: anywhere; }
+.crumbs a { color: inherit; }
+.node-title { margin-top: 0.25rem; }
+
+.outline ul { list-style: none; margin: 0; padding: 0 0 0 1.1rem; }
+.outline > ul { padding-left: 0; }
+.outline li { margin: 0; }
+.outline .row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-height: 36px;
+  padding: 0.2rem 0;
+}
+.outline .toggle, .outline .toggle-space {
+  flex: none;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 28px;
+  text-align: center;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+.outline .toggle-form { display: contents; }
+.outline .bullet {
+  flex: none;
+  width: 20px;
+  line-height: 28px;
+  text-align: center;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 1.2rem;
+}
+.outline .title { flex: 1; min-width: 0; line-height: 28px; overflow-wrap: anywhere; cursor: text; }
+.outline .has-note, .outline .res { flex: none; line-height: 28px; color: var(--muted); text-decoration: none; }
+.outline li[data-collapsed] > .row .bullet { text-shadow: 0 0 0 var(--accent); }
+.outline .title-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0.1rem 0.4rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+.outliner-status:empty { display: none; }
+.outliner-status { color: var(--bad); font-size: 0.875rem; }
+.outliner-toolbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem var(--gutter) calc(0.4rem + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.outliner-toolbar[hidden] { display: none; }
+.outliner-toolbar button { min-width: 44px; padding: 0.4rem; font-size: 1.1rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); }
+.add-node { display: flex; gap: 0.5rem; margin: 0.75rem 0; }
+.add-node input { flex: 1; }
+.node-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+.inline-buttons { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.inline-buttons button { min-height: 36px; padding: 0.25rem 0.6rem; font-size: 0.875rem; font-weight: normal; color: var(--text); background: var(--surface); border: 1px solid var(--border); }
+.inline-buttons button.danger { color: var(--bad); }
+.keys { margin: 0 0 0.5rem; font-size: 0.875rem; }
+kbd { font-family: var(--mono); font-size: 0.8em; padding: 0 0.3em; border: 1px solid var(--border); border-radius: 3px; }
+.outline[data-busy] { cursor: progress; opacity: 0.85; }

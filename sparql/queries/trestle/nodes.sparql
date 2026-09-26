@@ -1,0 +1,15 @@
+# Every node of one outline, one row each.
+SELECT ?node ?title ?parent ?position ?note ?collapsed ?created ?modified ?line
+WHERE {
+  GRAPH ${graph} {
+    ?node dim:inOutline ${outline} ;
+          dcterms:title ?title ;
+          dim:partOf ?parent ;
+          dim:position ?position .
+    OPTIONAL { ?node dim:note ?note }
+    OPTIONAL { ?node dim:collapsed ?collapsed }
+    OPTIONAL { ?node dcterms:created ?created }
+    OPTIONAL { ?node dcterms:modified ?modified }
+    OPTIONAL { ?node dim:sourceLine ?line }
+  }
+}

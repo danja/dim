@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitest/config'
 
+// Everything except tests/store/, which needs a live SPARQL endpoint
+// (npm run test:store).
 export default defineConfig({
   test: {
-    include: ['tests/common/**/*.test.js', 'tests/gnamgnam/**/*.test.js', 'tests/app/**/*.test.js'],
-    exclude: ['tests/store/**'],
+    include: ['tests/**/*.test.js'],
+    exclude: ['tests/store/**', '**/node_modules/**'],
     testTimeout: 30000
   }
 })

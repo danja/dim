@@ -1,0 +1,8 @@
+# What a set of nodes links to as resources (links graph), for the tree view.
+SELECT ?node ?resource
+WHERE {
+  GRAPH ${graph} {
+    ?node dim:resource ?resource .
+    VALUES ?node { ${nodes} }
+  }
+}

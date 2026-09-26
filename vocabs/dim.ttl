@@ -94,6 +94,20 @@ dim:mentions a owl:ObjectProperty ;
 dim:partOf a owl:ObjectProperty, owl:TransitiveProperty ;
     rdfs:comment "Containment: an outline node in an outline, a task in a project." .
 
+## ── Outlines (Trestle, graph:facet/trestle) ─────────────────────────────
+## Nodes are dim:partOf their parent node, or of the outline at top level.
+## Titles are dcterms:title (inline Markdown), notes dim:note.
+dim:Outline a owl:Class ; rdfs:label "Outline" ;
+    rdfs:comment "A tree of outline nodes, e.g. the Workflowy import." .
+dim:OutlineNode a owl:Class ; rdfs:label "Outline node" ;
+    rdfs:comment "One item in an outline." .
+dim:inOutline a owl:ObjectProperty ; rdfs:domain dim:OutlineNode ; rdfs:range dim:Outline ;
+    rdfs:comment "The outline a node belongs to, at any depth." .
+dim:position a owl:DatatypeProperty ; rdfs:domain dim:OutlineNode ; rdfs:range xsd:decimal ;
+    rdfs:comment "Order among siblings, ascending. Fractional, so an insert between two siblings rewrites one node." .
+dim:collapsed a owl:DatatypeProperty ; rdfs:domain dim:OutlineNode ; rdfs:range xsd:boolean ;
+    rdfs:comment "Children hidden in the outline view. Absent means expanded." .
+
 ## ── Change log (graph:system/changes) ─────────────────────────────────
 ## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,
 ## prov:used (the resource), plus these.

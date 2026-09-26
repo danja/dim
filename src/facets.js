@@ -1,4 +1,5 @@
 import { createGnamgnamFacet } from './gnamgnam/index.js'
+import { createTrestleFacet } from './trestle/index.js'
 import { stubFacet } from './common/facets/stubFacet.js'
 
 /**
@@ -6,10 +7,15 @@ import { stubFacet } from './common/facets/stubFacet.js'
  * answer to "what does the app serve?". Stubs are replaced by real facet
  * modules as their phase in docs/plan-detail.md lands.
  */
-export function createFacets ({ search }) {
+/**
+ * outlines: an OutlineStore (needs the store); without one Trestle is a stub.
+ */
+export function createFacets ({ search, outlines = null }) {
   return [
     createGnamgnamFacet({ search }),
-    stubFacet({ id: 'trestle', label: 'Trestle', phase: 5, description: 'Outliner: the Workflowy outline, editable, with every link one click away.' }),
+    outlines
+      ? createTrestleFacet({ store: outlines })
+      : stubFacet({ id: 'trestle', label: 'Trestle', phase: 5, description: 'Outliner: the Workflowy outline, editable, with every link one click away.' }),
     stubFacet({ id: 'farelo', label: 'Farelo', phase: 6, description: 'Kanban board with Getting Things Diced: pick the next task by a priority-weighted dice roll.' }),
     stubFacet({ id: 'wiki', label: 'Wiki', phase: 7, description: 'Markdown wiki pages, linked to everything else.' }),
     stubFacet({ id: 'news', label: 'News', phase: 8, description: 'Newsmonitor: RSS/Atom reader; save items as bookmarks or tasks.' }),

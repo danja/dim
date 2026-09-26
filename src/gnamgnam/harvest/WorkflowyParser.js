@@ -1,50 +1,33 @@
 import fs from 'fs'
+import { parseOutline, walkOutline, extractLinks, plainText } from '../../common/outline/OutlineParser.js'
 
 /**
- * Parse data/workflowy.md for markdown links.
- * Returns [{ url, linkText, context, sourceLine }] with one row per link
- * occurrence; dedup happens in the harvester (first link text wins, contexts
- * merged).
+ * Links in data/workflowy.md, one row per occurrence:
+ * [{ url, linkText, context, sourceLine }]. Dedup happens in the harvester
+ * (first link text wins, contexts merged).
+ *
+ * Built on the shared outline parser, so context is the item's real
+ * ancestors ("Inbox / Synths") and link titles Workflowy wrapped across
+ * lines are read whole.
  */
 
-const LINK_RE = /\[([^\]]*)\]\((https?:[^)\s]+)\)/g
+const CONTEXT_PART_MAX = 80
+const CONTEXT_MAX = 300
+
+function contextOf (ancestors) {
+  const parts = ancestors
+    .map(a => plainText(a.text))
+    .filter(Boolean)
+    .map(t => t.length > CONTEXT_PART_MAX ? `${t.slice(0, CONTEXT_PART_MAX - 1)}…` : t)
+  return parts.join(' / ').slice(0, CONTEXT_MAX) || null
+}
 
 export function parseWorkflowy (text) {
   const rows = []
-  const lines = text.split('\n')
-  // Outline context: track the most recent non-link heading-ish lines.
-  const stack = []
-  lines.forEach((line, i) => {
-    const indent = line.match(/^\s*/)[0].length
-    const stripped = line.trim().replace(/^[-*]\s*/, '')
-    if (stripped && !stripped.includes('http')) {
-      while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop()
-      if (stripped.length < 120) stack.push({ indent, text: stripped.slice(0, 120) })
-    }
-    let m
-    LINK_RE.lastIndex = 0
-    const matches = [...line.matchAll(/\[([^\]]*)\]\((https?:[^)\s]+)\)/g)]
-    for (m of matches) {
-      const linkText = (m[1] || '').trim()
-      const url = m[2].trim().replace(/[),.]+$/, '')
-      // Skip self-links where text duplicates a bare URL; keep the URL.
-      rows.push({
-        url,
-        linkText: linkText === url ? '' : linkText,
-        context: stack.map(s => s.text).join(' / ').slice(0, 300) || null,
-        sourceLine: i + 1
-      })
-    }
-    // Bare URLs not in markdown form.
-    const rest = line.replace(/\[([^\]]*)\]\((https?:[^)\s]+)\)/g, '')
-    for (const b of rest.matchAll(/(https?:\/\/[^\s)>\]]+)/g)) {
-      const url = b[1].replace(/[),.]+$/, '')
-      rows.push({
-        url,
-        linkText: '',
-        context: stack.map(s => s.text).join(' / ').slice(0, 300) || null,
-        sourceLine: i + 1
-      })
+  walkOutline(parseOutline(text).items, (item, ancestors) => {
+    const context = contextOf(ancestors)
+    for (const link of extractLinks(item.text)) {
+      rows.push({ url: link.url, linkText: link.text, context, sourceLine: item.line })
     }
   })
   return rows

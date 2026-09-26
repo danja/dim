@@ -31,7 +31,7 @@ docker compose up -d fuseki
 
 ## Use
 
-Full command reference for the bookmark tools: [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md).
+Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md).
 
 ```sh
 node bin/retrieve.js              # first-pass report over workflowy.md (offline)
@@ -55,6 +55,7 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /gnamgnam/bookmark/<slug>` | one bookmark — HTML detail page, JSON by `.json`, Turtle by `.ttl` |
 | `GET /<facet>/` | Trestle, Farelo, Wiki, News, Blog, Squirt — placeholder pages until built |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
+| `GET /trestle/` | outlines (Trestle): the Workflowy outline, editable |
 | `GET /find?q=` | search every facet |
 | `GET /r/<type>/<slug>` | the page of any DIM resource |
 | `POST /links`, `POST /gnamgnam/bookmark/<slug>/annotations` | links, tags and notes — needs `DIM_WRITE_TOKEN` (see `docs/tools.md`) |
@@ -105,6 +106,10 @@ GnamGnam (bookmarks) is the first facet.
   - `deadlinks/` — Wayback Machine lookups
   - `api/` — routes (under `/gnamgnam`), search page, bookmark Turtle
   - `index.js` — the facet object
+- `src/trestle/` — the outliner facet: `OutlineStore` (outlines in memory,
+  written through), `tree.js` (pure moves), `importOutline.js`, `api/`
+- `src/common/outline/OutlineParser.js` — Markdown bullet outlines
+  (Workflowy export), shared by the bookmark harvester and Trestle
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL
 - `sparql/queries/` — every query, by name
 - `tests/common/`, `tests/gnamgnam/` — offline suite (`npm test`);

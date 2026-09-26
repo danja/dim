@@ -20,7 +20,8 @@
     "search": "node bin/search.js",
     "serve": "node bin/serve.js",
     "validate": "node bin/validate.js",
-    "deadlinks": "node bin/deadlinks.js"
+    "deadlinks": "node bin/deadlinks.js",
+    "trestle-import": "node bin/trestle-import.js"
   },
   "dependencies": {
     "@rdfjs/namespace": "^2.0.0",

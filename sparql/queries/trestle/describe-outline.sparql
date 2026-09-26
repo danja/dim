@@ -1,0 +1,9 @@
+# One outline and all its nodes, as Turtle (/trestle/outline/<slug>.ttl).
+CONSTRUCT { ?s ?p ?o }
+WHERE {
+  GRAPH ${graph} {
+    { ${outline} ?p ?o . BIND(${outline} AS ?s) }
+    UNION
+    { ?s dim:inOutline ${outline} ; ?p ?o . }
+  }
+}

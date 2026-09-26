@@ -1,0 +1,9 @@
+# Every outline with its title and creation time.
+SELECT ?outline ?title ?created
+WHERE {
+  GRAPH ${graph} {
+    ?outline a dim:Outline ; dcterms:title ?title .
+    OPTIONAL { ?outline dcterms:created ?created }
+  }
+}
+ORDER BY ?title

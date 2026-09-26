@@ -14,6 +14,7 @@ import GraphRegistry from '../src/common/store/GraphRegistry.js'
 import ChangeLog from '../src/common/store/ChangeLog.js'
 import Repository from '../src/common/store/Repository.js'
 import LinkStore from '../src/common/links/LinkStore.js'
+import OutlineStore from '../src/trestle/OutlineStore.js'
 
 logger.setLevel('info')
 
@@ -48,7 +49,8 @@ const repository = new Repository({
 })
 const links = new LinkStore({ client, repository })
 
-const facets = createFacets({ search })
+const outlines = new OutlineStore({ client, repository, links })
+const facets = createFacets({ search, outlines })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)

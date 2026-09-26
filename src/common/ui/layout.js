@@ -40,6 +40,7 @@ export function renderPage ({ title, tabs, active, body, head = '', session = nu
 <meta name="color-scheme" content="light dark">
 <title>${esc(fullTitle)}</title>
 <link rel="stylesheet" href="/static/css/base.css">
+${session?.user && session.csrf ? `<meta name="csrf-token" content="${esc(session.csrf)}">` : ''}
 <script type="module" src="/static/js/tabs.js"></script>
 ${head}
 </head>

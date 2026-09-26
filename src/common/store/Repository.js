@@ -129,6 +129,21 @@ WHERE { GRAPH ${iri(graph)} { ${iri(subject)} ?p ?o VALUES (?p) { ${values} } } 
     return { graph, subject, triples }
   }
 
+  /**
+   * Delete whole resources (every triple with them as subject) from a graph,
+   * in chunks. One change-log entry, on the first subject.
+   */
+  async deleteResources ({ graph, subjects, actor, summary = null, chunk = 200 }) {
+    if (!subjects?.length) return { graph, deleted: 0 }
+    for (let i = 0; i < subjects.length; i += chunk) {
+      const values = subjects.slice(i, i + chunk).map(s => iri(s)).join(' ')
+      await this.client.update(`DELETE { GRAPH ${iri(graph)} { ?s ?p ?o } }
+WHERE { GRAPH ${iri(graph)} { ?s ?p ?o VALUES ?s { ${values} } } }`)
+    }
+    await this.changeLog.record({ actor, action: 'delete', graph, subject: subjects[0], predicates: [], summary: summary ?? `deleted ${subjects.length}` })
+    return { graph, deleted: subjects.length }
+  }
+
   /** Remove exact triples (all about `subject`) from a graph. */
   async remove ({ graph, subject, triples, actor, summary = null }) {
     if (!triples?.length) throw new WriteError('remove() needs triples')
