@@ -22,7 +22,8 @@
     "validate": "node bin/validate.js",
     "deadlinks": "node bin/deadlinks.js",
     "trestle-import": "node bin/trestle-import.js",
-    "farelo-import": "node bin/farelo-import.js"
+    "farelo-import": "node bin/farelo-import.js",
+    "wiki-import": "node bin/wiki-import.js"
   },
   "dependencies": {
     "@rdfjs/namespace": "^2.0.0",

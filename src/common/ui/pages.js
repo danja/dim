@@ -21,10 +21,10 @@ ${error ? `<p class="status" role="alert">${esc(error)}</p>` : ''}
 
 export function renderFindPage ({ tabs, session, query, groups }) {
   const sections = groups.map(g => `<section>
-<h2>${esc(g.label)}</h2>
+<h2>${esc(g.label)}</h2>${g.error ? `\n<p class="muted">Search unavailable here: ${esc(g.error)}</p>` : ''}
 <ul class="results">${g.results.map(r => `<li class="card"><h3><a href="${esc(r.href)}">${esc(r.label)}</a></h3>${r.snippet ? `<p class="meta">${esc(r.snippet)}</p>` : ''}</li>`).join('')}</ul>
 </section>`).join('\n')
-  const status = query ? (groups.length ? '' : '<p class="muted">Nothing found.</p>') : ''
+  const status = query ? (groups.some(g => g.results.length) ? '' : '<p class="muted">Nothing found.</p>') : ''
   const body = `<h1>Find</h1>
 <form class="search" method="get" action="/find" role="search">
 <input type="search" name="q" value="${esc(query ?? '')}" placeholder="search everything…" aria-label="Search everything">

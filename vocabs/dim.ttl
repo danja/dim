@@ -6,6 +6,7 @@
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
 @prefix schema:  <https://schema.org/> .
+@prefix sioc:    <http://rdfs.org/sioc/ns#> .
 
 dim: a owl:Ontology ;
     rdfs:label "DIM vocabulary" ;
@@ -133,6 +134,17 @@ dim:rank a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer 
 dim:listSize a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer ; rdfs:comment "How many tasks were numbered (at most 11)." .
 dim:rollPolicy a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:string ;
     rdfs:comment "replace, skip or new: how the list was treated after the previous pick." .
+
+## ── Wiki (graph:facet/wiki), after danja/foowiki ────────────────────────
+## A page's current text is sioc:content (Markdown), as in FooWiki. Every
+## save also writes a full revision; revisions chain by prov:wasRevisionOf.
+dim:WikiPage a owl:Class ; rdfs:label "Wiki page" .
+dim:PageRevision a owl:Class ; rdfs:subClassOf prov:Entity ; rdfs:label "Page revision" ;
+    rdfs:comment "The title and text of a page as saved at one time." .
+dim:revisionOf a owl:ObjectProperty ; rdfs:domain dim:PageRevision ; rdfs:range dim:WikiPage .
+dim:revisionNumber a owl:DatatypeProperty ; rdfs:range xsd:integer ;
+    rdfs:comment "1 for the first save, then +1. On a page: its current revision." .
+dim:currentRevision a owl:ObjectProperty ; rdfs:domain dim:WikiPage ; rdfs:range dim:PageRevision .
 
 ## ── Change log (graph:system/changes) ─────────────────────────────────
 ## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,

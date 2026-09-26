@@ -1,0 +1,10 @@
+# A page's revisions, newest first (without their text).
+SELECT ?revision ?n ?title ?created ?actor
+WHERE {
+  GRAPH ${graph} {
+    ?revision dim:revisionOf ${page} ; dim:revisionNumber ?n ; dcterms:title ?title .
+    OPTIONAL { ?revision dcterms:created ?created }
+    OPTIONAL { ?revision prov:wasAttributedTo ?actor }
+  }
+}
+ORDER BY DESC(?n)

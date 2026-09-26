@@ -123,8 +123,13 @@ export class FacetRegistry {
     const groups = []
     for (const facet of this.facets) {
       if (typeof facet.find !== 'function') continue
-      const results = await facet.find(q, { limit })
-      if (results.length) groups.push({ facet: facet.id, label: facet.label, results })
+      // One facet failing (e.g. no embedding service) must not hide the others.
+      try {
+        const results = await facet.find(q, { limit })
+        if (results.length) groups.push({ facet: facet.id, label: facet.label, results })
+      } catch (error) {
+        groups.push({ facet: facet.id, label: facet.label, results: [], error: error.message })
+      }
     }
     return groups
   }

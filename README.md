@@ -31,7 +31,7 @@ docker compose up -d fuseki
 
 ## Use
 
-Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md).
+Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md), wiki [`docs/commands-wiki.md`](docs/commands-wiki.md).
 
 ```sh
 node bin/retrieve.js              # first-pass report over workflowy.md (offline)
@@ -53,10 +53,11 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /gnamgnam/facets` | facet values and counts |
 | `GET /gnamgnam/bookmarks` | browse |
 | `GET /gnamgnam/bookmark/<slug>` | one bookmark — HTML detail page, JSON by `.json`, Turtle by `.ttl` |
-| `GET /<facet>/` | Trestle, Farelo, Wiki, News, Blog, Squirt — placeholder pages until built |
+| `GET /<facet>/` | News, Blog, Squirt — placeholder pages until built |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
 | `GET /trestle/` | outlines (Trestle): the Workflowy outline, editable |
 | `GET /farelo/` | tasks (Farelo): Kanban board; `/farelo/dice` picks the next task |
+| `GET /wiki/` | wiki pages: `[[Title]]` links, history and diffs |
 | `GET /find?q=` | search every facet |
 | `GET /r/<type>/<slug>` | the page of any DIM resource |
 | `POST /links`, `POST /gnamgnam/bookmark/<slug>/annotations` | links, tags and notes — needs `DIM_WRITE_TOKEN` (see `docs/tools.md`) |
@@ -111,6 +112,8 @@ GnamGnam (bookmarks) is the first facet.
   written through), `tree.js` (pure moves), `importOutline.js`, `api/`
 - `src/farelo/` — the task facet: `TaskStore`, `tasks.js` (states, rules),
   `dice.js` (Getting Things Diced), `RollLog`, `fromOutline.js`, `api/`
+- `src/wiki/` — the wiki facet: `WikiStore` (pages + revisions),
+  `mentionSync.js`, `importPages.js` (foowiki / Markdown files), `api/`
 - `src/common/outline/OutlineParser.js` — Markdown bullet outlines
   (Workflowy export), shared by the bookmark harvester and Trestle
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL

@@ -19,6 +19,7 @@ export const NAMESPACES = Object.freeze({
   skos: 'http://www.w3.org/2004/02/skos/core#',
   dcterms: 'http://purl.org/dc/terms/',
   prov: 'http://www.w3.org/ns/prov#',
+  sioc: 'http://rdfs.org/sioc/ns#',
   spdx: 'http://spdx.org/rdf/terms#',
   sh: 'http://www.w3.org/ns/shacl#'
 })

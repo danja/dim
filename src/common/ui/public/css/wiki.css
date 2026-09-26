@@ -1,0 +1,63 @@
+/* Wiki pages: content, links to pages not yet written, diffs, preview. */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+a.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+
+.wiki-content { overflow-wrap: anywhere; }
+.wiki-content pre { overflow-x: auto; }
+
+/* [[Title]] of a page that doesn't exist yet: follow it to create one. */
+.wiki-content a[href^="/wiki/page/"][href*="?title="] {
+  color: var(--bad);
+  text-decoration-style: dashed;
+}
+
+.wiki-index { columns: 16rem; padding-left: 1.2rem; }
+.wiki-edit textarea { min-height: 18rem; font-family: var(--mono); }
+
+.preview {
+  margin-top: var(--gap);
+  padding: 0 var(--gap);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.diff {
+  list-style: none;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.diff li { padding: 0 0.5rem; }
+.diff li::before { display: inline-block; width: 1.2em; color: var(--muted); }
+.diff .ins { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.diff .ins::before { content: "+"; color: var(--ok); }
+.diff .del { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.diff .del::before { content: "−"; color: var(--bad); }
+.diff .same::before { content: " "; }
+.diff .fold { color: var(--muted); font-style: italic; background: var(--bg); }
+
+.wiki-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+.wiki-actions button.secondary { color: var(--text); background: var(--surface); border: 1px solid var(--border); }

@@ -36,22 +36,28 @@ const marked = new Marked({
   }
 })
 
-function linkWikiRefs (markdown) {
-  // Leave fenced code alone; rewrite [[…]] everywhere else.
-  return String(markdown ?? '').split(/(```[\s\S]*?```)/g).map((part, i) => i % 2
+const findHref = title => `/find?q=${encodeURIComponent(title)}`
+
+function linkWikiRefs (markdown, titleHref = findHref) {
+  // Leave fenced and inline code alone; rewrite [[…]] everywhere else.
+  return String(markdown ?? '').split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => i % 2
     ? part
     : part.replace(/\[\[([^\]\n]{1,200})\]\]/g, (_m, inner) => {
       const value = inner.trim()
       const ts = value.match(/^([a-z][a-z0-9-]*)\/([A-Za-z0-9][A-Za-z0-9-]*)$/)
-      const href = ts ? `/r/${ts[1]}/${ts[2]}` : `/find?q=${encodeURIComponent(value)}`
+      const href = ts ? `/r/${ts[1]}/${ts[2]}` : titleHref(value)
       return `[${value.replace(/[[\]]/g, '')}](${href})`
     })
   ).join('')
 }
 
-export function renderMarkdown (markdown) {
+/**
+ * titleHref: where [[Some title]] points. Default: a search for it; the
+ * wiki points it at the page of that name (created on follow).
+ */
+export function renderMarkdown (markdown, { titleHref } = {}) {
   if (!markdown) return ''
-  return marked.parse(linkWikiRefs(markdown))
+  return marked.parse(linkWikiRefs(markdown, titleHref))
 }
 
 /** One line of Markdown (a title) → safe inline HTML, no wrapping <p>. */

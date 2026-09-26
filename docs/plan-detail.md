@@ -53,7 +53,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 4 | Write path & cross-linking foundation | 2 | `[x]` |
 | 5 | Trestle outliner | 4 | `[x]` (local check pending) |
 | 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[x]` (local check pending) |
-| 7 | Wiki (from foowiki) | 4 | `[ ]` |
+| 7 | Wiki (from foowiki) | 4 | `[x]` (local check pending) |
 | 8 | Newsmonitor (RSS) | 4 | `[ ]` |
 | 9 | Blog engine | 7 | `[ ]` |
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[ ]` |
@@ -652,21 +652,65 @@ probability.
 
 ### Tasks
 
-- [ ] Review foowiki; record what ports.
-- [ ] Model: `dim:Page` with Markdown body (`dim:content`), title, slug,
-      revisions (`prov:wasRevisionOf`), tags as SKOS.
-- [ ] Markdown rendering with `marked` (already a dependency), sanitised
-      output; `[[Page]]` links, create-on-follow for missing pages.
-- [ ] Edit UI: textarea + preview (JS-enhanced), conflict detection via
-      revision id.
-- [ ] Mentions → `dim:mentions` cross-links (Phase 4 parser).
-- [ ] Page history and diff view.
-- [ ] Wiki pages indexed in cross-facet search (adapter).
-- [ ] Tests: link parsing, render sanitisation, revision chain.
+- [x] Review foowiki: a client-side wiki over a SPARQL store. Page IRI per
+      title; `dc:title`, `sioc:content` (Markdown), `dc:date`,
+      `foaf:maker`, tags; links between pages are relative
+      `[text](Page Title)`; no history, no server. Ported: the vocabulary
+      (`sioc:content`), Markdown bodies, title-based linking. Not ported:
+      the client-side store access (DIM writes through the server).
+- [x] Model: `dim:WikiPage` (slug IRI `dim:page/<slug>`; `dcterms:title`,
+      `sioc:content`, `dim:tag`, created/modified, `dim:revisionNumber`,
+      `dim:currentRevision`). Every save also writes a full-text
+      `dim:PageRevision` (`prov:Entity`; `dim:revisionOf`, number,
+      `prov:wasRevisionOf` the previous one, author). SHACL shapes for both.
+      Tags are plain `dim:tag` literals, as in GnamGnam and Farelo, not SKOS
+      — one tag vocabulary across facets is a later clean-up.
+- [x] Rendering: the shared safe Markdown renderer, now with a `titleHref`
+      option — `[[Title]]` goes to that wiki page, or (dashed red) to a
+      "no page yet — create it" page; `[[type/slug]]` goes to anything.
+      Fixed on the way: `[[…]]` inside inline code was being linked.
+- [x] Edit UI: title, text, tags; **Preview** rendered by the server (no JS
+      needed); conflict detection by revision number — a stale save is a
+      409 page that keeps your text, rebases the form on the latest
+      revision and shows what the other save changed.
+- [x] Mentions: every save syncs `dim:mentions` (wiki titles first, then
+      any facet's titles); creating a page links the earlier `[[Title]]`s
+      that were waiting for it. Backlinks show as **Mentioned by** in the
+      links panel.
+- [x] History (every revision, author, time), any revision's text, and a
+      line diff between revisions (LCS, `src/common/text/diff.js`; long
+      unchanged runs folded).
+- [x] Facet hooks: `/find` (title, text, tags), `lookup`, `lookupTitle`,
+      `/r/page/<slug>`; exports `.md`, `.ttl` (page + revisions), `.json`.
+- [x] Import (`bin/wiki-import.js`): a foowiki Turtle dump or a folder of
+      `.md` files (front matter / `# heading` / file name for the title);
+      links between imported pages become wiki links; a re-run adds a
+      revision only where the text changed.
+- [x] `/find` no longer fails outright when one facet's search throws
+      (e.g. Ollama down): that facet shows "search unavailable".
+- [x] Tests: link parsing and create-on-follow hrefs, sanitisation, inline
+      code, revision numbering and 409, SHACL for page and revision, diff
+      and folding, import rewriting (foowiki and Markdown), routes
+      (preview, conflict form, login, mention sync, `/find`), and the
+      store round-trip (revisions, reload, delete).
 
 ### Acceptance
 
-- Create/edit/link pages; backlinks shown; history viewable.
+- [x] Create/edit/link pages; backlinks shown; history viewable
+      (Playwright: follow a missing `[[Title]]` → create → preview → save;
+      backlinks; two editors → conflict page → save; history; diff;
+      delete. axe clean, no horizontal scroll at 375 px light/dark and
+      1280 px).
+- [x] `bin/validate.js` clean including `graph:facet/wiki`.
+- [x] 223 core tests, 10 store tests.
+- [ ] Local check: `bin/wiki-import.js` on the foowiki dump (or a notes
+      folder), then create and edit a page.
+
+### Notes
+
+- Pages are cached in memory by the server: restart after an import.
+- Renaming a page keeps its slug (the IRI is stable); `[[New title]]`
+  finds it by title.
 
 ---
 
@@ -821,3 +865,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 4 | Local check: writes, notes, tags and links work. Phase 4 done. | |
 | 2026-09-26 | 5 | Trestle: shared outline parser (fixes bookmark contexts), Workflowy import (8,118 items, 5,819 bookmark links), outliner UI with keys + touch toolbar, exports that round-trip. 190 core + 7 store tests; Playwright + axe. | e698cec |
 | 2026-09-26 | 6 | Farelo: tasks, board (drag, keys, no-JS menu), Getting Things Diced (pure dice, policies, roll log, print), task pages, outline TODO import (144 tasks); outline parser treats `#` headings as items. 208 core + 9 store tests; 36k-roll distribution; Playwright + axe. | 0c96281 |
+| 2026-09-26 | 7 | Wiki: pages with full revisions, `[[Title]]` create-on-follow, mentions/backlinks, preview, 409 conflict page, history + diff, find/lookup, import from foowiki Turtle or Markdown files; `/find` tolerates a failing facet; inline code no longer linked. 223 core + 10 store tests; Playwright + axe. | |

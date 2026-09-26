@@ -1,0 +1,9 @@
+# One page and all its revisions, as Turtle (/wiki/page/<slug>.ttl).
+CONSTRUCT { ?s ?p ?o }
+WHERE {
+  GRAPH ${graph} {
+    { ${page} ?p ?o . BIND(${page} AS ?s) }
+    UNION
+    { ?s dim:revisionOf ${page} ; ?p ?o . }
+  }
+}

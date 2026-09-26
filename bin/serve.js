@@ -16,6 +16,7 @@ import Repository from '../src/common/store/Repository.js'
 import LinkStore from '../src/common/links/LinkStore.js'
 import OutlineStore from '../src/trestle/OutlineStore.js'
 import TaskStore from '../src/farelo/TaskStore.js'
+import WikiStore from '../src/wiki/WikiStore.js'
 import RollLog from '../src/farelo/RollLog.js'
 
 logger.setLevel('info')
@@ -53,8 +54,9 @@ const links = new LinkStore({ client, repository })
 
 const outlines = new OutlineStore({ client, repository, links })
 const tasks = new TaskStore({ client, repository, links })
+const wiki = new WikiStore({ client, repository, links })
 const rolls = new RollLog({ client, registry })
-const facets = createFacets({ search, outlines, tasks, rolls })
+const facets = createFacets({ search, outlines, tasks, rolls, wiki })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)

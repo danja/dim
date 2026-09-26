@@ -1,0 +1,9 @@
+# One revision of a page, with its text.
+SELECT ?n ?title ?content ?created ?actor
+WHERE {
+  GRAPH ${graph} {
+    ${revision} dim:revisionNumber ?n ; dcterms:title ?title ; sioc:content ?content .
+    OPTIONAL { ${revision} dcterms:created ?created }
+    OPTIONAL { ${revision} prov:wasAttributedTo ?actor }
+  }
+}

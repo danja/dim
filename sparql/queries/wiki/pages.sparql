@@ -1,0 +1,11 @@
+# Every wiki page, current text, one row each.
+SELECT ?page ?title ?content ?created ?modified ?revision (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
+WHERE {
+  GRAPH ${graph} {
+    ?page a dim:WikiPage ; dcterms:title ?title ; sioc:content ?content ; dim:revisionNumber ?revision .
+    OPTIONAL { ?page dcterms:created ?created }
+    OPTIONAL { ?page dcterms:modified ?modified }
+    OPTIONAL { ?page dim:tag ?tag }
+  }
+}
+GROUP BY ?page ?title ?content ?created ?modified ?revision
