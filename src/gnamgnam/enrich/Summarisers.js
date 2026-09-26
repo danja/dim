@@ -8,4 +8,5 @@ export { splitSentences, extractKeywords, normaliseKeywords, buildMarkdown } fro
 export { ExtractiveSummariser, MechanicalSummariser } from './summarise/ExtractiveSummarisers.js'
 export { OllamaSummariser, parseStructuredReply } from './summarise/OllamaSummariser.js'
 export { RemoteSummariser } from './summarise/RemoteSummariser.js'
+export { RotatingSummariser } from './summarise/RotatingSummariser.js'
 export { Summariser as default } from './summarise/Summariser.js'

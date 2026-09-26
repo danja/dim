@@ -57,5 +57,7 @@ export const ENRICH_CONFIG = {
   remoteMaxRetries: 4,
   remoteRetryBaseMs: 5000,
   remoteRetryCapMs: 60000,
+  // LLM_PROVIDERS rotation: longest wait for one bookmark when every provider is cooling down.
+  rotationMaxWaitMs: 180000,
   checkpointEvery: 100
 }

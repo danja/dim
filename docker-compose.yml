@@ -122,6 +122,13 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-}
+      LLM_PROVIDERS: ${LLM_PROVIDERS:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      HF_TOKEN: ${HF_TOKEN:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
       PORT: "4110"
       # Modest by default and overridden from compose. The working set is the
       # document map and a few megabytes of vector index, not gigabytes.

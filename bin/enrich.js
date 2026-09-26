@@ -99,6 +99,7 @@ const cache = enricher.cache
 console.log(`Store: ${rows.length} bookmarks (${alreadySummarised} already summarised).`)
 console.log(`Plan: enriching ${candidates.length} (only-new=${onlyNew}, force=${force}, limit=${limit === Infinity ? 'none' : limit}).`)
 console.log(`Summarisers: ${chain}`)
+for (const s of enricher.summarisers) if (s.describe) console.log(`  ${s.id}: ${s.describe()}`)
 console.log(`Cache: ${cache?.cachePath ?? '(none)'}, TTL ${fmtAge(enricher.cacheTtlMs)}.${reembed ? ' Re-embed on.' : ''}`)
 
 const counts = {}

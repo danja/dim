@@ -219,6 +219,19 @@ exponential backoff (`remoteRetryBaseMs` doubling, capped at
 `remoteRetryCapMs`) or the server's `Retry-After`; and stops at the first
 401/403. A bookmark that still fails counts once towards the circuit breaker. Page text is sent to the provider.
 
+**Rotation.** With `LLM_PROVIDERS=mistral,groq,openrouter` (and those
+providers' keys — peasant's names: `MISTRAL_API_KEY`, `GROQ_API_KEY`,
+`OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `HF_TOKEN`, `NVIDIA_API_KEY`),
+`RotatingSummariser` sends each bookmark to the first available provider.
+A 429/5xx/network error cools that provider down (Retry-After, or its own
+doubling backoff) and the next is asked at once; 401/402/403 drops it for
+the run; a bad or empty reply passes the bookmark to the next provider.
+When all are cooling it waits for the first back, up to `rotationMaxWaitMs`
+per bookmark. Base URLs, default models and reply budgets are in
+`summarise/providers.js` (from peasant's measured profiles); override with
+`<NAME>_MODEL`, `<NAME>_BASE_URL`, `<NAME>_MAX_TOKENS`. `dim:summaryModel`
+names the provider and model that actually answered.
+
 Both share the prompt and reply parsing (`summarise/llm.js`) and a circuit
 breaker: after `llmFailureLimit` consecutive failures (timeouts, errors,
 empty replies) the LLM is skipped for the rest of the run and the offline
