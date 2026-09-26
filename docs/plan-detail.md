@@ -572,4 +572,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 6 | Getting Things Diced post added to `docs/`; method written into Phase 6. | 6273a99 |
 | 2026-09-26 | 1 | Baseline `npm test`: 6 files, 43 tests pass. | |
 | 2026-09-26 | 1 | Moved code into `src/common` + `src/gnamgnam`, imports fixed, 43/43. | c4a9cb1 |
-| 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | |
+| 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | e93f90d |
