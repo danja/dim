@@ -3,7 +3,7 @@ import { parseWorkflowy, deduplicate } from '../../../src/gnamgnam/harvest/Workf
 import { classifyUrl, normaliseBookmark } from '../../../src/gnamgnam/harvest/BookmarkNormaliser.js'
 import { serialiseBookmark } from '../../../src/gnamgnam/harvest/BookmarkSerialiser.js'
 import { URIMinter } from '../../../src/common/rdf/URIMinter.js'
-import { composeText } from '../../../src/common/embeddings/EmbeddingService.js'
+import { composeText } from '../../../src/gnamgnam/BookmarkText.js'
 
 describe('workflowy parser', () => {
   it('extracts markdown links with text and line numbers', () => {

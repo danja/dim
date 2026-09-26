@@ -47,7 +47,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | Phase | Name | Depends on | Status |
 |---|---|---|---|
 | 0 | Starter: core port + first dataset | — | `[~]` mostly done |
-| 1 | Restructure into `common` + `gnamgnam` | 0 | `[ ]` |
+| 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` (live check pending) |
 | 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[ ]` |
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[ ]` |
 | 4 | Write path & cross-linking foundation | 2 | `[ ]` |
@@ -121,33 +121,60 @@ a shared core, with no behaviour change.
 
 ### 1.2 Tasks
 
-- [ ] Run `npm test` and record the baseline (count, pass/fail) in the log.
-- [ ] Create `src/common/` and `src/gnamgnam/`; `git mv` files per 1.1 so
-      history follows.
-- [ ] Update all imports in `src/`, `bin/`, `tests/`, `config/`.
-- [ ] Make `SearchService` / `LexicalIndex` generic: take a document
-      adapter `{ textView query, compose(doc), facets }` instead of
-      hard-wiring bookmarks. GnamGnam supplies the bookmark adapter.
-- [ ] Split `src/api/server.js` (243 lines) into
-      `src/common/http/{router,negotiate,respond}.js` and
-      `src/gnamgnam/routes.js` + `src/gnamgnam/pages/search.js`.
-- [ ] Refactor other files over ~200 lines (C6):
-      `enrich/Summarisers.js` (248), `vectors/VectorIndex.js` (233),
-      `enrich/Fetchers.js` (216) — one class per file where natural.
-- [ ] Move `tests/` to mirror the new layout (`tests/common/…`,
-      `tests/gnamgnam/…`).
-- [ ] `bin/*` scripts: keep names/flags stable (docs/tools.md is the contract);
-      they just import from new paths. Consider `bin/gnamgnam/` later only
-      if the bin dir gets crowded.
-- [ ] Add `graph:facet/*` kind to `GRAPH_KINDS`.
-- [ ] Update `README.md`, `docs/tools.md`, `docs/enricher.md` paths.
+- [x] Run `npm test` and record the baseline — 6 files, 43 tests, all pass.
+- [x] Create `src/common/` and `src/gnamgnam/`; `git mv` files per 1.1 so
+      history follows. `TurtleReader` went to `common/rdf/` (ShapeValidator
+      needs it); `src/api/server.js` became `src/server.js`.
+- [x] Update all imports in `src/`, `bin/`, `tests/`, `config/`.
+      `Config` and `QueryService` project-root paths adjusted for the new depth.
+- [x] Make `SearchService` generic: it now requires an `adapter`
+      (`{ id, queries: { textView, filter, facets, count }, subject,
+      facetNames, toDocument(row, provenance), filterConditions(facets) }`).
+      GnamGnam supplies `src/gnamgnam/BookmarkSearch.js`. `LexicalIndex`
+      was already field-generic and is unchanged. Bookmark text composition
+      (`textView`, `composeText`) moved from `EmbeddingService` to
+      `src/gnamgnam/BookmarkText.js`; `EmbeddingService.embedBookmark/embedBatch`
+      (unused) replaced by `embedText(text)`.
+- [x] Split `src/api/server.js` (243 lines) into
+      `src/common/http/{Router,negotiate,respond}.js`, `src/server.js`
+      (common routes `/health`, `/ns`) and
+      `src/gnamgnam/api/{routes,searchPage,bookmarkData}.js`. URLs unchanged.
+      `Router` pulled forward from Phase 2.
+- [x] Refactor other files over ~200 lines (C6):
+  - `enrich/Summarisers.js` (248) → `enrich/summarise/{Summariser,text,ExtractiveSummarisers,OllamaSummariser}.js`
+  - `enrich/Fetchers.js` (216) → `enrich/fetch/{Fetcher,HttpFetcher,ApiFetchers}.js`
+  - The old files remain as re-export barrels so importers are unchanged.
+  - `vectors/VectorIndex.js` (233) **left whole**: one cohesive class
+    (add/search/compact/save/load over one FAISS index plus its IRI map);
+    splitting would scatter shared private state for no gain.
+  - Also extracted `common/store/GraphWriter.js` (batched grouped writes,
+    Turtle-file loading) from `IngestPipeline`, so every facet writes the
+    same way.
+- [x] Move `tests/` to mirror the new layout (`tests/common/…`,
+      `tests/gnamgnam/…`); `tests/store/` stays the live-store suite.
+      New tests: SearchService + adapter, Router, GraphWriter, facet graph
+      kind, common routes (`/health`, `/ns/*.ttl`, 405 on writes).
+- [x] `bin/*` scripts: names/flags unchanged; imports updated.
+      `bin/retrieve.js` smoke-tested offline: 5,136 URLs classified.
+- [x] Add `facet` kind to `GRAPH_KINDS` (`graph:facet/<id>`, user precedence).
+- [x] Update `README.md` layout and `docs/enricher.md` paths
+      (`docs/tools.md` had no source paths to change).
 
 ### Acceptance
 
-- `npm test` passes with the same number of tests as the baseline (plus any new).
-- `node bin/serve.js` serves the same search results for 3 recorded
-  queries as before the move (record queries + top-5 IRIs in the log).
-- No file in `src/` over ~200 lines, or a note here saying why not.
+- [x] `npm test` passes: 10 files, 62 tests (baseline 43 + 19 new).
+- [~] `node bin/serve.js` serves the same results for 3 recorded queries —
+      **not verified live**: there is no Fuseki/Ollama in the cloud build
+      sandbox. Covered by stub-backed server tests plus SearchService
+      tests; re-check against the live store locally and log it here.
+- [x] No file in `src/` over ~200 lines, except `VectorIndex.js` (reason above).
+
+### Behaviour notes
+
+- A non-GET request to an **unknown** path now returns 404 (was 405);
+  to a known path it is still 405.
+- The `domain` facet filter now uses `literal()` escaping instead of
+  stripping quotes — same results for real domains, and safer.
 
 ---
 
@@ -178,8 +205,9 @@ rule as `enrich/registry.js`).
 
 ### 2.2 Tasks
 
-- [ ] `src/common/http/Router.js` — tiny path router on `node:http`
+- [x] `src/common/http/Router.js` — tiny path router on `node:http`
       (method + pattern → handler), with content negotiation reused.
+      (Done in Phase 1.)
 - [ ] `src/common/facets/FacetRegistry.js` — loads `src/facets.js`, calls
       `init`, mounts `routes`, exposes the tab list.
 - [ ] `src/common/ui/`:
@@ -542,3 +570,6 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | — | 0 | Docs. | 7a44995 |
 | 2026-09-26 | — | Created this detailed plan from `docs/plan.md`. | bcd0263 |
 | 2026-09-26 | 6 | Getting Things Diced post added to `docs/`; method written into Phase 6. | 6273a99 |
+| 2026-09-26 | 1 | Baseline `npm test`: 6 files, 43 tests pass. | |
+| 2026-09-26 | 1 | Moved code into `src/common` + `src/gnamgnam`, imports fixed, 43/43. | c4a9cb1 |
+| 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | |

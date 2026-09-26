@@ -5,6 +5,7 @@ import SPARQLClient from '../src/common/store/SPARQLClient.js'
 import VectorIndex from '../src/common/vectors/VectorIndex.js'
 import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
 import SearchService from '../src/common/search/SearchService.js'
+import { bookmarkSearchAdapter } from '../src/gnamgnam/BookmarkSearch.js'
 import { createServer } from '../src/server.js'
 
 logger.setLevel('info')
@@ -24,7 +25,7 @@ const index = await VectorIndex.open({
   model: config.get('embedding.model')
 })
 const embeddings = EmbeddingService.fromConfig(config)
-const search = new SearchService({ client, index, embeddings })
+const search = new SearchService({ client, index, embeddings, adapter: bookmarkSearchAdapter })
 const loaded = await search.loadDocuments()
 
 console.log(`Loaded ${loaded} bookmarks, ${index.size} vectors from ${index.path}`)

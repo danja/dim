@@ -4,7 +4,7 @@ Augment bookmarks by GETting target URLs and turning the result into a
 short summary text, stored in SPARQL and fed to the lexical + vector index.
 
 First-pass stays as-is (`BookmarkHarvester.probe()` in
-`src/harvest/BookmarkHarvester.js` → title + meta description only).
+`src/gnamgnam/harvest/BookmarkHarvester.js` → title + meta description only).
 The enricher is a separate, resumable second pass: fetch → extract →
 summarise → write. Every stage is a pluggable interface so new sites,
 formats, and models are added without touching the orchestrator.
@@ -24,7 +24,7 @@ SPARQL text-view rows ─▶ Enricher ─▶ SPARQL UPDATE patch + re-embed queu
      source)      format)      model)        + cache)
 ```
 
-`Enricher.run(bookmark)` (new `src/enrich/Enricher.js`):
+`Enricher.run(bookmark)` (new `src/gnamgnam/enrich/Enricher.js`):
 
 1. Load cached enrichment for `bookmark.url`; skip if `contentHash`
    unchanged and `summarisedAt` fresh (30d default).
@@ -44,7 +44,7 @@ aborts a 5k run.
 ## Plugin interfaces
 
 All plugins are ESM classes, constructed with `{ config }`, one method
-each. Registration is explicit in `src/enrich/registry.js` (ordered
+each. Registration is explicit in `src/gnamgnam/enrich/registry.js` (ordered
 arrays, first `canHandle()` win) — no magic autoload.
 
 ```js
@@ -98,7 +98,7 @@ Adding a site later = one new `Fetcher`/`Extractor` file + one line in
 ### Selection
 
 ```js
-// src/enrich/registry.js
+// src/gnamgnam/enrich/registry.js
 export const fetchers   = [new GithubApiFetcher(), new ArxivFetcher(), new WikipediaFetcher(), new HttpFetcher()]
 export const extractors = [new GithubExtractor(), new HtmlExtractor(), new PdfExtractor(), new FallbackExtractor()]
 export const summarisers = [new OllamaSummariser(), new ExtractiveSummariser()] // tried in order
@@ -106,7 +106,7 @@ export const writers    = [new SparqlPatchWriter(client), new CacheWriter(cacheP
 ```
 
 `canHandle()` order is most-specific first, default last. Type hints
-come from `classifyUrl()` (`src/harvest/BookmarkNormaliser.js`) +
+come from `classifyUrl()` (`src/gnamgnam/harvest/BookmarkNormaliser.js`) +
 live `contentType`.
 
 ## Data model
@@ -131,9 +131,9 @@ Raw extracted text stays in `data/cache/enrichment/<hash>.txt`
 * `sparql/queries/bookmark/text-view.sparql` — add
   `OPTIONAL { ?bookmark dim:summary ?summary }` (+ model/date for debugging).
 * `EmbeddingService.textView()/composeText()`
-  (`src/embeddings/EmbeddingService.js`) — append summary after
+  (`src/gnamgnam/BookmarkText.js`) — append summary after
   description, before tags; `textHash()` then auto-invalidates stale vectors.
-* `SearchService.loadDocuments()` (`src/search/SearchService.js`) —
+* `SearchService.loadDocuments()` (`src/common/search/SearchService.js` + `src/gnamgnam/BookmarkSearch.js`) —
   map `summary` into the lexical `body` field (`LexicalIndex.js:43-55`).
 
 Patch shape (via `SPARQLHelper.iri()/literal()` + `QueryService`, same
@@ -208,7 +208,7 @@ against `VectorIndex.positionByIri`, `index.add()` replacements,
 
 ## Build order
 1. `vocabs/dim.ttl` terms + SHACL shape + `text-view.sparql` optional.
-2. `src/enrich/{Enricher,Fetcher,Extractors,Summarisers,Writers,registry}.js` + `ENRICH_CONFIG`.
+2. `src/gnamgnam/enrich/{Enricher,Fetcher,Extractors,Summarisers,Writers,registry}.js` + `ENRICH_CONFIG`.
 3. `FallbackExtractor` + `ExtractiveSummariser` + `CacheWriter` (fully offline path works end-to-end).
 4. `HttpFetcher` + `HtmlExtractor` + `SparqlPatchWriter` + `bin/enrich.js --limit`.
 5. `OllamaSummariser` + site fetchers (GitHub/arXiv/Wikipedia) + re-embed wiring.

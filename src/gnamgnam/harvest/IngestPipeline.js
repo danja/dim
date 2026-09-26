@@ -2,16 +2,15 @@ import logger from 'loglevel'
 import GraphRegistry from '../../common/store/GraphRegistry.js'
 import QueryService from '../../common/store/QueryService.js'
 import URIMinter from '../../common/rdf/URIMinter.js'
-import { insertDataQuery } from '../../common/store/SPARQLHelper.js'
+import GraphWriter from '../../common/store/GraphWriter.js'
 import { serialiseBookmark, serialiseBookmarkTypeScheme } from './BookmarkSerialiser.js'
-import { parseTurtleFile } from '../../common/rdf/TurtleReader.js'
 import { NAMESPACES } from '../../common/rdf/NamespaceManager.js'
-import { iri, literal } from '../../common/store/SPARQLHelper.js'
 
 /**
  * Ingest pipeline for bookmarks. Adapted from plugin-universe IngestPipeline:
  * register graph → drop → write grouped (one bookmark per group so nothing is
- * split across INSERTs) → optional SHACL validation before write.
+ * split across INSERTs) → optional SHACL validation before write. Batched
+ * writing lives in common/store/GraphWriter.js.
  */
 
 export class IngestError extends Error {
@@ -22,14 +21,13 @@ export class IngestError extends Error {
   }
 }
 
-const BATCH_SIZE = 500
-
 export class IngestPipeline {
   constructor (client, {
     registry = new GraphRegistry(client),
     minter = new URIMinter(),
     validator = null,
-    queries = new QueryService()
+    queries = new QueryService(),
+    writer = new GraphWriter(client, { registry })
   } = {}) {
     if (!client) throw new IngestError('IngestPipeline needs a SPARQLClient')
     this.client = client
@@ -37,24 +35,7 @@ export class IngestPipeline {
     this.minter = minter
     this.validator = validator
     this.queries = queries
-  }
-
-  async #writeGrouped (graph, groups) {
-    let batch = []
-    let written = 0
-    const flush = async () => {
-      if (batch.length === 0) return
-      await this.client.update(insertDataQuery(graph, batch))
-      written += batch.length
-      batch = []
-    }
-    for (const group of groups) {
-      if (batch.length > 0 && batch.length + group.length > BATCH_SIZE) await flush()
-      batch.push(...group)
-      if (batch.length >= BATCH_SIZE) await flush()
-    }
-    await flush()
-    return written
+    this.writer = writer
   }
 
   async run (harvester) {
@@ -113,7 +94,7 @@ export class IngestPipeline {
       }
     }
 
-    const written = await this.#writeGrouped(graph, groups)
+    const written = await this.writer.writeGrouped(graph, groups)
     logger.info(`[ingest] ${harvester.id}: ${minted.length} bookmarks, ${written} triples`)
 
     return {
@@ -150,36 +131,14 @@ export class IngestPipeline {
       comment: 'SKOS concept scheme for bookmark types, derived from first-pass retrieval'
     })
     const triples = serialiseBookmarkTypeScheme([...types].sort())
-    const written = await this.#writeGrouped(graph, triples.map(triple => [triple]))
+    const written = await this.writer.writeGrouped(graph, triples.map(triple => [triple]))
     return { graph, tripleCount: written }
   }
 
-  async writeTurtleFile (file, { kind, id, licence, derivedFrom, comment = null }) {
-    const dataset = await parseTurtleFile(file)
-    const bySubject = new Map()
-    for (const quad of dataset) {
-      const key = quad.subject.value
-      if (!bySubject.has(key)) bySubject.set(key, [])
-      bySubject.get(key).push(`${termToSparql(quad.subject)} ${termToSparql(quad.predicate)} ${termToSparql(quad.object)} .`)
-    }
-    await this.registry.drop(kind, id)
-    const graph = await this.registry.register({ kind, id, licence, derivedFrom, comment })
-    const written = await this.#writeGrouped(graph, [...bySubject.values()])
-    return { graph, tripleCount: written }
+  /** Delegates to GraphWriter; kept so bin/ingest.js reads unchanged. */
+  async writeTurtleFile (file, options) {
+    return this.writer.writeTurtleFile(file, options)
   }
-}
-
-function termToSparql (term) {
-  if (term.termType === 'NamedNode') return iri(term.value)
-  if (term.termType === 'BlankNode') return `_:${term.value}`
-  if (term.termType === 'Literal') {
-    if (term.language) return `${literal(term.value)}@${term.language}`
-    if (term.datatype && term.datatype.value !== `${NAMESPACES.xsd}string`) {
-      return `${literal(term.value)}^^${iri(term.datatype.value)}`
-    }
-    return literal(term.value)
-  }
-  throw new IngestError(`Cannot write a ${term.termType} term`)
 }
 
 export default IngestPipeline

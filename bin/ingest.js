@@ -5,10 +5,11 @@ import SPARQLClient from '../src/common/store/SPARQLClient.js'
 import IngestPipeline from '../src/gnamgnam/harvest/IngestPipeline.js'
 import BookmarkHarvester from '../src/gnamgnam/harvest/BookmarkHarvester.js'
 import ShapeValidator from '../src/common/store/ShapeValidator.js'
-import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
+import EmbeddingService, { textHash } from '../src/common/embeddings/EmbeddingService.js'
 import VectorIndex from '../src/common/vectors/VectorIndex.js'
 import SearchService from '../src/common/search/SearchService.js'
-import { composeText, textHash } from '../src/common/embeddings/EmbeddingService.js'
+import { bookmarkSearchAdapter } from '../src/gnamgnam/BookmarkSearch.js'
+import { composeText } from '../src/gnamgnam/BookmarkText.js'
 
 /**
  * Harvest workflowy bookmarks, write them to the store, build the vector index.
@@ -97,7 +98,7 @@ const index = await VectorIndex.open({
 })
 
 async function unembedded () {
-  const search = new SearchService({ client, index, embeddings })
+  const search = new SearchService({ client, index, embeddings, adapter: bookmarkSearchAdapter })
   const total = await search.loadDocuments()
   const missing = [...search.documents.values()]
     .filter(doc => !index.positionByIri.has(doc.iri))

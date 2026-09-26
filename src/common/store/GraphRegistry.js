@@ -16,7 +16,9 @@ export const GRAPH_KINDS = Object.freeze({
   retrieval: { prefix: 'graph:retrieval', precedence: 'discovery' },
   curated: { prefix: 'graph:curated', precedence: 'curated' },
   alignment: { prefix: 'graph:alignment', precedence: 'curated' },
-  system: { prefix: 'graph:system', precedence: 'curated' }
+  system: { prefix: 'graph:system', precedence: 'curated' },
+  // One graph per facet's own authored data, e.g. graph:facet/farelo (docs/plan-detail.md).
+  facet: { prefix: 'graph:facet', precedence: 'user' }
 })
 
 export const LICENCES = Object.freeze({

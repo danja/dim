@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import QueryService from '../../../src/common/store/QueryService.js'
-import { createServer, negotiate, bookmarkDataUrl } from '../../../src/server.js'
+import { createServer } from '../../../src/server.js'
+import { negotiate } from '../../../src/common/http/negotiate.js'
+import { bookmarkDataUrl } from '../../../src/gnamgnam/api/bookmarkData.js'
 
 const DOC = {
   iri: 'http://purl.org/stuff/dim/bookmark/foo-12345678',
@@ -88,5 +90,26 @@ describe('bookmark data links', () => {
     expect(negotiate('.ttl')).toBe('turtle')
     expect(negotiate(undefined, 'text/turtle')).toBe('turtle')
     expect(negotiate(undefined, 'text/html')).toBe('html')
+  })
+})
+
+describe('common routes', () => {
+  it('reports health', async () => {
+    const base = await listen(stubSearch([DOC]))
+    const body = await (await fetch(`${base}/health`)).json()
+    expect(body).toMatchObject({ status: 'ok', bookmarks: 1, index: 0 })
+  })
+
+  it('serves a vocabulary as turtle', async () => {
+    const base = await listen(stubSearch([DOC]))
+    const response = await fetch(`${base}/ns/dim.ttl`)
+    expect(response.headers.get('content-type')).toMatch('text/turtle')
+    expect(await response.text()).toMatch('dim:Bookmark')
+  })
+
+  it('refuses writes', async () => {
+    const base = await listen(stubSearch([DOC]))
+    const response = await fetch(`${base}/search`, { method: 'POST' })
+    expect(response.status).toBe(405)
   })
 })

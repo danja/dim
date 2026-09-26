@@ -6,7 +6,7 @@ import {
 import { enrichmentTriples } from '../../../src/gnamgnam/enrich/Writers.js'
 import { normaliseBookmark } from '../../../src/gnamgnam/harvest/BookmarkNormaliser.js'
 import { serialiseBookmark } from '../../../src/gnamgnam/harvest/BookmarkSerialiser.js'
-import { composeText } from '../../../src/common/embeddings/EmbeddingService.js'
+import { composeText } from '../../../src/gnamgnam/BookmarkText.js'
 
 afterEach(() => {
   vi.unstubAllGlobals()

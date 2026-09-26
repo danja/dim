@@ -11,7 +11,7 @@ import { Enricher } from '../../../src/gnamgnam/enrich/Enricher.js'
 import { defaultExtractors, defaultSummarisers } from '../../../src/gnamgnam/enrich/registry.js'
 import { normaliseBookmark } from '../../../src/gnamgnam/harvest/BookmarkNormaliser.js'
 import { serialiseBookmark } from '../../../src/gnamgnam/harvest/BookmarkSerialiser.js'
-import { composeText } from '../../../src/common/embeddings/EmbeddingService.js'
+import { composeText } from '../../../src/gnamgnam/BookmarkText.js'
 
 describe('enricher plugin selection', () => {
   it('routes github/arxiv/wikipedia urls to site fetchers', () => {

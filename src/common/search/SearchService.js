@@ -1,15 +1,26 @@
 import { RETRIEVAL_CONFIG } from '../../../config/preferences.js'
-import { iri } from '../store/SPARQLHelper.js'
 import QueryService from '../store/QueryService.js'
 import GraphRegistry from '../store/GraphRegistry.js'
-import { NAMESPACES } from '../rdf/NamespaceManager.js'
 import LexicalIndex, { tokenise } from './LexicalIndex.js'
 
 export { tokenise }
 
 /**
- * Hybrid retrieval over bookmarks: lexical + vector + facet filter.
- * Adapted from plugin-universe SearchService (plugin → bookmark).
+ * Hybrid retrieval: lexical + vector + facet filter. Adapted from
+ * plugin-universe SearchService.
+ *
+ * Facet-agnostic: an adapter supplies what is specific to one document type.
+ *
+ *   {
+ *     id,                                 // e.g. 'bookmark'
+ *     queries: { textView, filter, facets, count },  // QueryService names
+ *     subject,                            // SPARQL variable holding the IRI
+ *     facetNames,                         // filter keys the adapter accepts
+ *     toDocument (row, provenance),       // text-view row → document
+ *     filterConditions (facets)           // → SPARQL patterns ([] = none)
+ *   }
+ *
+ * A document needs at least { iri, name }; LexicalIndex reads the rest.
  */
 
 export class SearchError extends Error {
@@ -24,13 +35,14 @@ export function fuse (lexical, vector) {
 }
 
 export class SearchService {
-  constructor ({ client, index, embeddings, queries = new QueryService(), registry = null }) {
-    for (const [key, value] of Object.entries({ client, index, embeddings })) {
+  constructor ({ client, index, embeddings, adapter, queries = new QueryService(), registry = null }) {
+    for (const [key, value] of Object.entries({ client, index, embeddings, adapter })) {
       if (!value) throw new SearchError(`SearchService needs ${key}`)
     }
     this.client = client
     this.index = index
     this.embeddings = embeddings
+    this.adapter = adapter
     this.queries = queries
     this.registry = registry ?? new GraphRegistry(client)
     this.documents = new Map()
@@ -49,29 +61,12 @@ export class SearchService {
       })
     }
 
-    const rows = await this.client.select(this.queries.get('bookmark/text-view', {}))
-    this.documents = new Map(rows.map(row => [row.bookmark, {
-      iri: row.bookmark,
-      url: row.url,
-      linkText: row.linkText ?? null,
-      name: row.linkText ?? row.title ?? row.url,
-      title: row.title ?? null,
-      description: row.description ?? null,
-      summary: row.summary ?? null,
-      markdown: row.summaryMarkdown ?? null,
-      keywords: row.keywords ? row.keywords.split(', ').filter(Boolean) : [],
-      domain: row.domain ?? null,
-      contentType: row.contentType ?? null,
-      httpStatus: row.httpStatus ?? null,
-      provenance: this.sources.get(row.g) ?? null,
-      bookmarkTypes: row.bookmarkTypes ? row.bookmarkTypes.split(', ').filter(Boolean) : [],
-      // LexicalIndex expects these fields; map bookmark types into roles/categories/tags.
-      roles: row.bookmarkTypes ? row.bookmarkTypes.split(', ').filter(Boolean) : [],
-      categories: row.bookmarkTypes ? row.bookmarkTypes.split(', ').filter(Boolean) : [],
-      formats: [],
-      tags: row.tags ? row.tags.split(', ').filter(Boolean) : [],
-      parameters: []
-    }]))
+    const rows = await this.client.select(this.queries.get(this.adapter.queries.textView, {}))
+    const subject = this.adapter.subject
+    this.documents = new Map(rows.map(row => [
+      row[subject],
+      this.adapter.toDocument(row, this.sources.get(row.g) ?? null)
+    ]))
     this.lexical.build(this.documents.values())
     return this.documents.size
   }
@@ -80,18 +75,13 @@ export class SearchService {
     return this.lexical.score(queryTokens, doc)
   }
 
-  #filterConditions ({ bookmarkType, domain }) {
-    const conditions = []
-    if (bookmarkType) conditions.push(`?bookmark ${iri(NAMESPACES.dim + 'bookmarkType')} ${iri(NAMESPACES.dim + 'concept/' + bookmarkType)} .`)
-    if (domain) conditions.push(`?bookmark ${iri(NAMESPACES.dim + 'domain')} "${domain.replace(/"/g, '')}" .`)
-    return conditions.length ? conditions.join('\n    ') : null
-  }
-
   async #filterSet (facets) {
-    const conditions = this.#filterConditions(facets)
-    if (!conditions) return null
-    const rows = await this.client.select(this.queries.get('bookmark/filter', { conditions }))
-    return new Set(rows.map(row => row.bookmark))
+    const conditions = this.adapter.filterConditions(facets)
+    if (conditions.length === 0) return null
+    const rows = await this.client.select(this.queries.get(this.adapter.queries.filter, {
+      conditions: conditions.join('\n    ')
+    }))
+    return new Set(rows.map(row => row[this.adapter.subject]))
   }
 
   async search (queryText, { facets = {}, limit = RETRIEVAL_CONFIG.defaultPageSize } = {}) {
@@ -112,10 +102,10 @@ export class SearchService {
     }
 
     const fused = []
-    for (const [bookmarkIri, doc] of this.documents) {
-      if (allowed && !allowed.has(bookmarkIri)) continue
+    for (const [docIri, doc] of this.documents) {
+      if (allowed && !allowed.has(docIri)) continue
       const lexical = this.lexicalScore(queryTokens, doc)
-      const vector = vectorScores.get(bookmarkIri) ?? 0
+      const vector = vectorScores.get(docIri) ?? 0
       if (lexical === 0 && vector === 0) continue
       fused.push({ ...doc, score: fuse(lexical, vector), signals: { lexical, vector } })
     }
@@ -141,7 +131,7 @@ export class SearchService {
   }
 
   async facets () {
-    const rows = await this.client.select(this.queries.get('bookmark/facets', {}))
+    const rows = await this.client.select(this.queries.get(this.adapter.queries.facets, {}))
     const grouped = {}
     for (const row of rows) {
       grouped[row.facet] ??= []
@@ -151,7 +141,7 @@ export class SearchService {
   }
 
   async count () {
-    const [row] = await this.client.select(this.queries.get('bookmark/count', {}))
+    const [row] = await this.client.select(this.queries.get(this.adapter.queries.count, {}))
     return Number(row?.count ?? 0)
   }
 }

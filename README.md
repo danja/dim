@@ -51,22 +51,38 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /bookmark/<slug>` | one bookmark — HTML/JSON, or Turtle by `Accept`/`.ttl` |
 | `GET /health` | corpus and index size |
 
-## Layout (copied from plugin-universe, adapted)
+## Layout
 
-- `src/store/` — `SPARQLClient`, `SPARQLHelper`, `QueryService` (file-based
-  queries), `GraphRegistry` (named graphs, provenance, licence flags),
-  `ShapeValidator` (SHACL)
-- `src/rdf/` — `NamespaceManager` (single prefix registry), `URIMinter`
-  (content-hash IRIs; one URL = one bookmark)
-- `src/vectors/` — `VectorIndex` (persisted FAISS), `VectorOperations`
-- `src/embeddings/` — `EmbeddingService`, bookmark text view
-- `src/search/` — `SearchService` (hybrid retrieval), `LexicalIndex`
-- `src/harvest/` — `Harvester` (interface), `BookmarkHarvester` (retrieval
-  agent), `WorkflowyParser`, `BookmarkNormaliser` (URL-heuristic SKOS typing),
-  `BookmarkSerialiser`, `IngestPipeline`, `HttpSource`, `TurtleReader`
-- `src/api/server.js` — read-only JSON + HTML
+Shared core in `src/common/`, one directory per facet (see `docs/plan.md`).
+GnamGnam (bookmarks) is the first facet.
+
+- `src/server.js` — HTTP server: common routes (`/health`, `/ns`) plus each
+  facet's routes
+- `src/common/` — facet-agnostic core (copied from plugin-universe, adapted)
+  - `store/` — `SPARQLClient`, `SPARQLHelper`, `QueryService` (file-based
+    queries), `GraphRegistry` (named graphs, provenance, licence flags),
+    `GraphWriter` (batched grouped writes), `ShapeValidator` (SHACL)
+  - `rdf/` — `NamespaceManager` (single prefix registry), `URIMinter`
+    (content-hash IRIs; one URL = one bookmark), `TurtleReader`
+  - `vectors/` — `VectorIndex` (persisted FAISS), `VectorOperations`
+  - `embeddings/` — `EmbeddingService`
+  - `search/` — `SearchService` (hybrid retrieval, driven by a per-facet
+    adapter), `LexicalIndex`
+  - `harvest/` — `Harvester` (interface), `HttpSource`
+  - `http/` — `Router`, response helpers, content negotiation
+- `src/gnamgnam/` — the bookmark facet
+  - `harvest/` — `BookmarkHarvester` (retrieval agent), `WorkflowyParser`,
+    `BookmarkNormaliser` (URL-heuristic SKOS typing), `BookmarkSerialiser`,
+    `IngestPipeline`
+  - `enrich/` — second-pass enricher (`docs/enricher.md`); plugins in
+    `fetch/` and `summarise/`
+  - `BookmarkText.js` — composed text view for embeddings
+  - `BookmarkSearch.js` — search adapter
+  - `api/` — routes, search page, bookmark Turtle
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL
 - `sparql/queries/` — every query, by name
+- `tests/common/`, `tests/gnamgnam/` — offline suite (`npm test`);
+  `tests/store/` — live-store suite (`npm run test:store`)
 
 ## Licence
 

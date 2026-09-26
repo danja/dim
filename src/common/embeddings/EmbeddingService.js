@@ -4,9 +4,9 @@ import { EMBEDDING_CONFIG } from '../../../config/preferences.js'
 import VectorOperations from '../vectors/VectorOperations.js'
 
 /**
- * Embedding generation for bookmarks. Adapted from plugin-universe
- * EmbeddingService: the composed text view is link text + URL host + fetched
- * title/description + SKOS type labels + tags, rather than plugin fields.
+ * Embedding generation. Adapted from plugin-universe EmbeddingService.
+ * Facet-agnostic: callers compose the text (e.g. gnamgnam/BookmarkText.js)
+ * and pass it to embed() or embedText().
  */
 
 export class EmbeddingError extends Error {
@@ -15,48 +15,6 @@ export class EmbeddingError extends Error {
     this.name = 'EmbeddingError'
     if (cause) this.cause = cause
   }
-}
-
-function localName (term) {
-  if (typeof term !== 'string') {
-    throw new EmbeddingError(`Expected an IRI or a label, got ${typeof term}`)
-  }
-  const cut = Math.max(term.lastIndexOf('/'), term.lastIndexOf('#'))
-  return cut === -1 ? term : term.slice(cut + 1)
-}
-
-export function textView (bookmark) {
-  if (!bookmark || !bookmark.url) {
-    throw new EmbeddingError('Cannot compose text for a bookmark with no URL')
-  }
-  let host = null
-  try { host = new URL(bookmark.url).hostname } catch { host = null }
-  return {
-    linkText: bookmark.linkText ?? null,
-    url: bookmark.url,
-    host,
-    title: bookmark.title ?? null,
-    description: bookmark.description ?? null,
-    summary: bookmark.summary ?? null,
-    keywords: bookmark.keywords ?? [],
-    bookmarkTypes: (bookmark.bookmarkTypes ?? []).map(localName),
-    tags: bookmark.tags ?? []
-  }
-}
-
-export function composeText (bookmark) {
-  const view = textView(bookmark)
-  const parts = []
-  if (view.linkText) parts.push(view.linkText)
-  if (view.title && view.title !== view.linkText) parts.push(view.title)
-  if (view.host) parts.push(`on ${view.host}`)
-  if (view.bookmarkTypes.length) parts.push(view.bookmarkTypes.join(', '))
-  if (view.description) parts.push(view.description)
-  if (view.summary && view.summary !== view.description) parts.push(view.summary)
-  if (view.keywords.length) parts.push(view.keywords.join(', '))
-  if (view.tags.length) parts.push(view.tags.join(', '))
-  parts.push(view.url)
-  return parts.join('. ')
 }
 
 export function textHash (text) {
@@ -144,8 +102,8 @@ export class EmbeddingService {
     )
   }
 
-  async embedBookmark (bookmark) {
-    const text = composeText(bookmark)
+  /** Embed composed text and return the vector with its bookkeeping. */
+  async embedText (text) {
     const vector = await this.embed(text)
     return {
       vector,
@@ -155,14 +113,6 @@ export class EmbeddingService {
       dimension: this.dimension,
       embeddedAt: new Date().toISOString()
     }
-  }
-
-  async embedBatch (bookmarks) {
-    const results = []
-    for (const bookmark of bookmarks) {
-      results.push(await this.embedBookmark(bookmark))
-    }
-    return results
   }
 
   async isAvailable () {
