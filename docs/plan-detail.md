@@ -320,10 +320,35 @@ the ultimate aim.
 
 ### Tasks
 
-- [ ] Read the "Getting Things Diced" post
-      (<https://web.archive.org/web/20230321045154/https://hyperdata.it/blog/2015/05/11/getting-things-diced/>)
-      and summarise the method here. (Not fetchable from the build
-      sandbox on 2026-09-26 — needs a copy in `docs/` or a manual summary.)
+- [x] Read the "Getting Things Diced" post — local copy at
+      [`docs/Getting Things Diced – hyperdata.it.html`](Getting%20Things%20Diced%20–%20hyperdata.it.html)
+      (Danny Ayers, hyperdata.it, 2015-05-11). Method summarised in 6.1.
+
+### 6.1 Getting Things Diced — the method
+
+A chance-based way to pick the next task that still respects priorities.
+
+1. List about 11 tasks.
+2. Give each a relative priority, 1 (high) … 11 (low). Fewer than 11 tasks →
+   leave out the higher numbers; more than 11 → the lowest-priority tasks
+   stay unnumbered (not in the draw).
+3. Map priority → target (the sum of two dice), so the most likely sums go
+   to the highest priorities:
+
+   | Priority | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+   |---|---|---|---|---|---|---|---|---|---|---|---|
+   | Target (2d6 sum) | 7 | 6 | 8 | 5 | 9 | 4 | 10 | 3 | 11 | 2 | 12 |
+   | P(target) | 16.67% | 13.89% | 13.89% | 11.11% | 11.11% | 8.33% | 8.33% | 5.56% | 5.56% | 2.78% | 2.78% |
+
+4. Roll two dice; do the task whose target equals the sum.
+5. Afterwards, whichever suits: replace that task/target with another, ignore
+   that target on the next roll (re-roll if hit), or write a whole new list.
+
+If a sum hits an empty target (fewer than 11 tasks), roll again. The
+target order works out to 7, then alternating either side of 7
+(6, 8, 5, 9, …), which gives each successive priority the same or a lower
+probability.
+
 - [ ] Model: `dim:Task` (title, Markdown notes, status as SKOS concept in
       `dim:task-states`: backlog/todo/doing/blocked/done), `dim:dependsOn`,
       `dim:partOf` (projects = tasks with children), estimate, due,
@@ -331,18 +356,33 @@ the ultimate aim.
 - [ ] Kanban board UI: columns = states, drag/drop (pointer events,
       keyboard fallback), swimlanes by project, mobile: one column at a
       time with swipe/tab switch.
-- [ ] "Dice" mode per the GTD-diced method: random/weighted pick from
-      eligible tasks (not blocked, deps met), with a reason shown.
+- [ ] "Dice" mode implementing 6.1 in `src/farelo/dice.js`
+      (pure functions, no I/O):
+  - [ ] `diceList(tasks)` — the eligible tasks (not blocked, dependencies
+        met, not done), sorted by priority; the top 11 get priorities 1–11
+        and targets from the table. Ties are broken by due date, then age.
+  - [ ] `roll(rng)` → 2d6 sum; `pick(list, rng)` re-rolls on empty or
+        excluded targets. Injectable RNG so tests can use a seed.
+  - [ ] After-pick policies (user choice, remembered per board): *replace*
+        (refill the slot from the next unnumbered task), *skip target*
+        (exclude it for the next roll), *new list* (recompute).
+  - [ ] UI: a "Roll" button that animates two dice, shows the sum, target
+        and chosen task, plus the probability table for the current list.
+        Printable list view (the post's own "nice printable version" todo).
+  - [ ] Record each roll as a `prov:Activity` (sum, chosen task, policy)
+        so Phase 11 can learn from accept/skip.
 - [ ] Task detail page: resources one click away, "Linked from" panel,
       history from change log.
 - [ ] Import: seed tasks from Trestle nodes tagged TODO / checkbox items.
-- [ ] Tests: state transitions, dependency eligibility, dice selection
-      (seeded RNG).
+- [ ] Tests: state transitions, dependency eligibility; dice: target table
+      matches 6.1, the distribution over 36k seeded rolls is within 1% of
+      the P(target) row, the <11-task re-roll, and each after-pick policy.
 
 ### Acceptance
 
 - Board usable on phone and desktop; moving a card persists.
 - Dice pick never returns a blocked or dependency-pending task.
+- Pick frequencies match the 2d6 distribution for the priority table in 6.1.
 
 ---
 
@@ -486,7 +526,7 @@ time/resources.
 | Q1 | Links in a shared `graph:facet/links` or in the owning facet's graph? | Phase 4 | |
 | Q2 | Outline ordering: `dim:position` numbers or `rdf:List`? | Phase 5 | |
 | Q3 | Source repos (trestle, NewsMonitor, foowiki, squirt) are not in this sandbox — add them to the session / vendor snapshots when those phases start. | 2026-09-26 | |
-| Q4 | Getting Things Diced method — needs a local copy of the post. | 2026-09-26 | |
+| Q4 | Getting Things Diced method — needs a local copy of the post. | 2026-09-26 | Resolved: copy in `docs/`, method in 6.1. |
 | Q5 | Write auth model for localhost: token vs Basic vs none-on-loopback. | Phase 4 | |
 
 ---
@@ -500,4 +540,5 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-08 | 0 | Core port, 5,121 bookmarks stored, hybrid search live. | 8adb9d9 |
 | — | 0 | Second-pass enricher. | d06e4fb |
 | — | 0 | Docs. | 7a44995 |
-| 2026-09-26 | — | Created this detailed plan from `docs/plan.md`. | |
+| 2026-09-26 | — | Created this detailed plan from `docs/plan.md`. | bcd0263 |
+| 2026-09-26 | 6 | Getting Things Diced post added to `docs/`; method written into Phase 6. | 6273a99 |
