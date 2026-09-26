@@ -661,4 +661,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 2 | Facet registry, shared shell with tabs, `/static`, GnamGnam at `/gnamgnam/` with redirects, stub facets. 76/76 tests; 375px screenshots and axe clean. Live check pending. | f96f490 |
 | 2026-09-26 | 2 | Live check: shell, search, `/health` and redirects work against the live store. Phase 2 done. | |
 | 2026-09-26 | — | Found the Phase 2 "done" commit missing from `main` (pushed after the merge); re-applied. | |
-| 2026-09-26 | 3 | 3a: catalogue details, link status + `bin/deadlinks.js` (Wayback), bookmark detail page, fix for re-ingest losing enrichment, query-parse tests. 114/114 tests; verified on a local Fuseki 5.6 (ingest 5,121, SHACL clean). Topics deferred. | |
+| 2026-09-26 | 3 | 3a: catalogue details, link status + `bin/deadlinks.js` (Wayback), bookmark detail page, fix for re-ingest losing enrichment, query-parse tests. 114/114 tests; verified on a local Fuseki 5.6 (ingest 5,121, SHACL clean). Topics deferred. | 52ca784 |
