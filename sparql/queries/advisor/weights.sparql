@@ -1,0 +1,3 @@
+# The learnt weights (JSON), if any.
+SELECT ?weights
+WHERE { GRAPH ${graph} { ${subject} dim:weights ?weights } }

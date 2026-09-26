@@ -179,6 +179,15 @@ dim:postStatus a owl:DatatypeProperty ; rdfs:domain dim:BlogPost ; rdfs:range xs
     rdfs:comment "draft or published." .
 dim:slug a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "The last part of the post's URL." .
 
+## ── Advisor (graph:facet/advisor) ─────────────────────────────────────
+## "What next?" feedback: each accept or skip of a suggestion, and the
+## weights learnt from accepts (a JSON object on dim:advisor-weights).
+dim:Advice a owl:Class ; rdfs:subClassOf prov:Activity ; rdfs:label "Advice feedback" .
+dim:adviceFor a owl:ObjectProperty ; rdfs:domain dim:Advice ; rdfs:comment "The suggested task." .
+dim:adviceAction a owl:DatatypeProperty ; rdfs:domain dim:Advice ; rdfs:range xsd:string ; rdfs:comment "accept or skip." .
+dim:adviceRank a owl:DatatypeProperty ; rdfs:domain dim:Advice ; rdfs:range xsd:integer ; rdfs:comment "Where the task was in the list (1 = top)." .
+dim:weights a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "Advisor feature weights as JSON." .
+
 ## ── Change log (graph:system/changes) ─────────────────────────────────
 ## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,
 ## prov:used (the resource), plus these.

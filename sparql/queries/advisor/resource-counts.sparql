@@ -1,0 +1,4 @@
+# How many resources each thing links to (dim:resource), for "ready".
+SELECT ?s (COUNT(DISTINCT ?o) AS ?n)
+WHERE { GRAPH ${graph} { ?s dim:resource ?o } }
+GROUP BY ?s

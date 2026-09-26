@@ -55,7 +55,7 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /gnamgnam/bookmark/<slug>` | one bookmark — HTML detail page, JSON by `.json`, Turtle by `.ttl` |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
 | `GET /trestle/` | outlines (Trestle): the Workflowy outline, editable |
-| `GET /farelo/` | tasks (Farelo): Kanban board; `/farelo/dice` picks the next task |
+| `GET /farelo/` | tasks (Farelo): Kanban board; `/farelo/next` suggests what to do next (with reasons), `/farelo/dice` rolls for it |
 | `GET /wiki/` | wiki pages: `[[Title]]` links, history and diffs |
 | `GET /news/` | feed reader: RSS/Atom/JSON Feed; items → bookmarks or tasks |
 | `GET /blog/` | blog: posts from wiki pages / outline items, Atom feed, static export |
@@ -120,6 +120,8 @@ GnamGnam (bookmarks) is the first facet.
   per-host pacing, back-off), `formats/` (feeds, OPML, discovery), `api/`
 - `src/blog/` — the blog: `PostStore`, `render.js` (post HTML, Atom),
   `staticSite.js` (export), `sources.js` (drafts from wiki/outline), `api/`
+- `src/advisor/` — "What next?": `score.js` (pure scoring, reasons, learning),
+  `Advisor.js`, `AdviceStore.js` (feedback, weights), `explain.js` (optional LLM), `api/`
 - `src/squirt/` — phone view: `capture.js` (routes captures), `timeline.js`
   (change log + facet `recent()`), `pwa.js` + `sw.js` (manifest, worker), `api/`
 - `src/common/outline/OutlineParser.js` — Markdown bullet outlines

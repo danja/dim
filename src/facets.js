@@ -17,16 +17,17 @@ import { stubFacet } from './common/facets/stubFacet.js'
  * them Trestle and Farelo are stubs. rolls: the dice-roll log. wiki: a
  * WikiStore (likewise). news: { store, poller } (likewise). blog:
  * { store, title, author } (likewise). client: the SPARQL client, for
- * Squirt's timeline and bookmark capture.
+ * Squirt's timeline and bookmark capture. advisor: the "What next?" Advisor
+ * (shown in Farelo and on Squirt).
  */
-export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, client = null }) {
+export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, client = null, advisor = null }) {
   return [
     createGnamgnamFacet({ search }),
     outlines
       ? createTrestleFacet({ store: outlines })
       : stubFacet({ id: 'trestle', label: 'Trestle', phase: 5, description: 'Outliner: the Workflowy outline, editable, with every link one click away.' }),
     tasks
-      ? createFareloFacet({ store: tasks, rolls })
+      ? createFareloFacet({ store: tasks, rolls, advisor })
       : stubFacet({ id: 'farelo', label: 'Farelo', phase: 6, description: 'Kanban board with Getting Things Diced: pick the next task by a priority-weighted dice roll.' }),
     wiki
       ? createWikiFacet({ store: wiki })
@@ -37,7 +38,7 @@ export function createFacets ({ search, outlines = null, tasks = null, rolls = n
     blog
       ? createBlogFacet({ ...blog, wiki, outlines })
       : stubFacet({ id: 'blog', label: 'Blog', phase: 9, description: 'Blog engine: publish wiki pages and outline nodes as posts.' }),
-    createSquirtFacet({ client, tasks, wiki })
+    createSquirtFacet({ client, tasks, wiki, advisor })
   ]
 }
 

@@ -57,7 +57,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 8 | Newsmonitor (RSS) | 4 | `[x]` (local check pending) |
 | 9 | Blog engine | 7 | `[x]` (local check pending) |
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[x]` (phone check needs https) |
-| 11 | "What next?" advisor | 6, 3, 4 | `[ ]` |
+| 11 | "What next?" advisor | 6, 3, 4 | `[x]` (local check pending) |
 | 12 | Operations: backup, auth, deploy hardening | runs alongside | `[ ]` |
 
 Phases 5–8 are independent of each other once Phase 4 is done and can be
@@ -903,21 +903,38 @@ time/resources.
 
 ### Tasks
 
-- [ ] Define inputs: eligible tasks (Farelo), due dates, estimates,
-      priority, context (time available, device, location), recency of
-      work, linked resources' readiness.
-- [ ] Scoring v1: transparent weighted formula, every suggestion shows
-      its reasons. Dice mode (Phase 6) as the tie-breaker.
-- [ ] Surface related resources for the chosen task via cross-links +
-      semantic search (bookmarks, pages, feed items).
-- [ ] Optional LLM pass (Ollama) to explain/rank the top N — advisory only.
-- [ ] Feedback: accept/skip recorded to tune weights.
-- [ ] Shown on Squirt home and Farelo.
+- [x] Inputs: ready tasks (Farelo's dice eligibility), priority, due date,
+      estimate vs time available, `@context` tags vs where I am, whether
+      it's under way, how many tasks wait on it, linked resources, age,
+      recent skips. Device/location are covered by the `@context` choice
+      rather than sensed.
+- [x] Scoring v1 (`src/advisor/score.js`, pure): Σ weight × feature, every
+      suggestion lists its reasons with points; ties broken by the board
+      order (priority, due, age); a close call (top two within 5%) offers
+      the dice.
+- [x] Related resources for the top suggestion: its links, plus other
+      facets' matches for its topic words (two thirds of them, whole words;
+      verbs such as "write", "fix" ignored) — plain search was too loose.
+- [x] Optional LLM pass: "Ask an LLM to talk it through" sends the top five
+      titles and reasons to the enrichment LLM settings; advisory only,
+      shown under the list.
+- [x] Feedback in `graph:facet/advisor`: "Not now" records a skip that
+      pushes the task down for a few days; "Do this now" moves it to Doing
+      and, if it wasn't the top, nudges the weights toward where it beat the
+      ones above (perceptron step, weights kept within 0.1–6); weights
+      shown and resettable.
+- [x] Shown at `/farelo/next` (linked from the board) and as **Next up** on
+      Squirt.
 
 ### Acceptance
 
-- Given a seeded fixture graph, suggestions are deterministic and
-  explainable; skip feedback changes later ordering.
+- [x] Given a seeded fixture, suggestions are deterministic and explained
+      (exact order, reasons and points asserted); a skip changes later
+      ordering (fixture + live: the skipped top task drops to second).
+- [x] 272 core tests, 13 store tests; Playwright + axe clean at 375 px and
+      1280 px.
+- [ ] Local check: tag tasks with `@contexts` and estimates, try a few days
+      of "Do this now" / "Not now", see the weights move.
 
 ---
 
@@ -980,3 +997,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 8 | News: RSS/RDF/Atom/JSON Feed parsing, discovery, OPML/URL-list import, polite conditional-GET poller with back-off, river/item/feed pages, read/star in place, save as bookmark / make task (linked, starred), `bin/news.js`, optional server polling + pruning; fetch helpers lifted to `src/common/http/fetch.js`; `/find` + `refresh` hook. 243 core + 11 store tests; local feed server; Playwright + axe. | cf557e2 |
 | 2026-09-26 | 9 | Blog: posts (drafts owner-only), drafts from wiki pages / outline items, dated URLs, tags, Atom, static export with relative links; Markdown renderer gains local-link mapping + relative hrefs; thrown 4xx keep their status. 252 core + 12 store tests; exported site browsed; Playwright + axe. | 3b32548 |
 | 2026-09-26 | 10 | Squirt: search-first phone page, capture routed to task / bookmark / wiki Inbox, timeline from the change log + facet `recent()`, manifest + icons, service worker (network first, offline copies, cleared on logout), share target + bookmarklet. Chrome reports it installable; offline verified with the server stopped. 259 core + 12 store tests; Playwright + axe. | 5793270 |
+| 2026-09-26 | 11 | What next? advisor: transparent weighted scoring with reasons, time/@context inputs, skip penalty, learning from accepts, related resources, close-call dice, optional LLM second opinion; on /farelo/next and Squirt. 272 core + 13 store tests; Playwright + axe. | |

@@ -10,13 +10,14 @@ import { renderHome, renderShare, renderOffline } from './pages.js'
 
 const queries = new QueryService()
 
-export function registerRoutes (router, { client, tasks, wiki, mentions, appName, tabs, services, registry, origin }) {
+export function registerRoutes (router, { client, tasks, wiki, mentions, advisor, appName, tabs, services, registry, origin }) {
   const originOf = request => origin ?? `http://${request.headers.host ?? 'localhost'}`
   const activity = session => session.user && client ? recentActivity({ client, queries, registry, session }) : []
 
   router.get('/squirt', async ({ request, response, url, session }) => {
     const captured = url.searchParams.has('captured') ? { href: url.searchParams.get('captured'), label: url.searchParams.get('label') } : null
-    return sendHtml(response, 200, renderHome({ items: await activity(session), captured, origin: originOf(request), tabs, session }))
+    const next = session.user && advisor ? (await advisor.suggest({ limit: 1 }).catch(() => ({ ranked: [] }))).ranked[0] : null
+    return sendHtml(response, 200, renderHome({ items: await activity(session), next, captured, origin: originOf(request), tabs, session }))
   })
 
   router.get('/squirt/recent.json', async ({ response, session }) =>

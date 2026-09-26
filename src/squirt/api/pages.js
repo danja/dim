@@ -1,13 +1,14 @@
 import { esc } from '../../common/http/respond.js'
 import { renderPage } from '../../common/ui/layout.js'
 import { formFields } from '../../common/http/write.js'
+import { nextCard } from '../../advisor/api/page.js'
 
 /** Squirt: search, capture, and what happened lately — for the phone. */
 
 const KIND_LABELS = [['auto', 'Guess'], ['bookmark', 'Bookmark'], ['task', 'Task'], ['note', 'Note']]
 
 function squirtPage ({ title, body, tabs, session }) {
-  return renderPage({ title, tabs, active: 'squirt', session, body, head: '<link rel="stylesheet" href="/static/css/squirt.css">' })
+  return renderPage({ title, tabs, active: 'squirt', session, body, head: '<link rel="stylesheet" href="/static/css/squirt.css">\n<link rel="stylesheet" href="/static/css/advisor.css">' })
 }
 
 const searchForm = `<form class="search squirt-search" method="get" action="/find" role="search">
@@ -53,12 +54,13 @@ function extras (origin) {
 </details>`
 }
 
-export function renderHome ({ items, captured, origin, tabs, session }) {
+export function renderHome ({ items, next = null, captured, origin, tabs, session }) {
   const done = captured?.href?.startsWith('/') ? `<p role="status" class="captured">Saved: <a href="${esc(captured.href)}">${esc(captured.label || captured.href)}</a></p>` : ''
   const body = `<h1 class="visually-hidden">Squirt</h1>
 ${searchForm}
 ${done}
 ${captureForm({ session })}
+${nextCard(next)}
 ${session?.user ? `<h2>Lately</h2>\n${timeline(items)}` : ''}
 ${extras(origin)}`
   return squirtPage({ title: 'Squirt', body, tabs, session })

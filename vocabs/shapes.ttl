@@ -296,6 +296,13 @@ dim:BlogPostShape a sh:NodeShape ;
     sh:property [ sh:path prov:wasDerivedFrom ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
     sh:property [ sh:path dim:tag ; sh:datatype xsd:string ; sh:pattern "^[^A-Z]*$" ] .
 
+dim:AdviceShape a sh:NodeShape ;
+    sh:targetClass dim:Advice ;
+    sh:property [ sh:path dim:adviceFor ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path dim:adviceAction ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "accept" "skip" ) ] ;
+    sh:property [ sh:path dim:adviceRank ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] ;
+    sh:property [ sh:path prov:startedAtTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
+
 dim:ConceptShape a sh:NodeShape ;
     sh:targetClass skos:Concept ;
     sh:property [

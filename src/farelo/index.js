@@ -1,4 +1,5 @@
 import { registerRoutes } from './api/routes.js'
+import { registerAdvisorRoutes } from '../advisor/api/routes.js'
 import { taskPath } from './api/common.js'
 import { STATES } from './tasks.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
@@ -8,7 +9,8 @@ import { plainText } from '../common/outline/OutlineParser.js'
  * Farelo — tasks on a Kanban board, with Getting Things Diced to pick the
  * next one (docs/plan-detail.md Phase 6). Tasks live in graph:facet/farelo.
  */
-export function createFareloFacet ({ store, rolls = null, rng }) {
+/** advisor: the "What next?" Advisor (src/advisor), mounted at /farelo/next. */
+export function createFareloFacet ({ store, rolls = null, rng, advisor = null }) {
   if (!store) throw new Error('Farelo needs a TaskStore')
   const label = task => plainText(task.title)
   return {
@@ -19,6 +21,10 @@ export function createFareloFacet ({ store, rolls = null, rng }) {
 
     routes (router, ctx) {
       registerRoutes(router, { store, rolls, rng, ...ctx })
+      if (advisor) {
+        advisor.registry = ctx.registry
+        registerAdvisorRoutes(router, { advisor, ...ctx })
+      }
     },
 
     async health () {

@@ -1,0 +1,31 @@
+/* What next? */
+
+.next-context { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: end; margin-bottom: var(--gap); }
+.next-context label { display: flex; flex-direction: column; font-size: 0.875rem; color: var(--muted); }
+.next-context select { min-height: 44px; font: inherit; }
+
+.suggestions { list-style: none; padding: 0; margin: 0; }
+.suggestion { padding: 0.75rem; margin-bottom: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.suggestion.top { border: 2px solid var(--accent); }
+.suggestion-head { display: flex; align-items: baseline; gap: 0.6rem; }
+.suggestion-head h2 { flex: 1; font-size: 1.1rem; margin: 0; overflow-wrap: anywhere; }
+.rank { font-weight: 700; color: var(--muted); }
+.score { font-family: var(--mono); font-size: 0.875rem; color: var(--muted); }
+.reasons { list-style: none; padding: 0; margin: 0.4rem 0; font-size: 0.925rem; }
+.reasons .points { display: inline-block; min-width: 3.2em; font-family: var(--mono); font-size: 0.85rem; }
+.reasons .plus .points { color: var(--ok); }
+.reasons .minus .points { color: var(--bad); }
+.related h3 { font-size: 0.95rem; margin: 0.5rem 0 0.25rem; }
+.related ul { margin: 0; padding-left: 1.2rem; }
+.related a { overflow-wrap: anywhere; }
+.next-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.next-actions form { margin: 0; }
+button.secondary { color: var(--text); background: var(--surface); border: 1px solid var(--border); font-weight: normal; }
+.close-call { padding: 0.5rem 0.75rem; border-left: 4px solid var(--warn); background: var(--surface); }
+.explanation { margin: var(--gap) 0; padding: 0.5rem 0.75rem; border-left: 4px solid var(--accent); background: var(--surface); }
+.weights { margin-top: 1.5rem; }
+.weights table { border-collapse: collapse; margin: 0.5rem 0; }
+.weights th, .weights td { text-align: left; padding: 0.2rem 0.75rem 0.2rem 0; }
+.next-card { margin: var(--gap) 0; padding: 0.5rem 0.75rem; border: 2px solid var(--accent); border-radius: var(--radius); }
+.next-card h2 { font-size: 1rem; margin: 0; }
+.next-card p { margin: 0.25rem 0; overflow-wrap: anywhere; }

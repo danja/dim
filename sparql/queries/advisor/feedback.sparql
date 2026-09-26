@@ -1,0 +1,10 @@
+# Accept/skip feedback since a time, newest first.
+SELECT ?advice ?task ?action ?rank ?at
+WHERE {
+  GRAPH ${graph} {
+    ?advice a dim:Advice ; dim:adviceFor ?task ; dim:adviceAction ?action ; prov:startedAtTime ?at .
+    OPTIONAL { ?advice dim:adviceRank ?rank }
+    FILTER(?at >= ${since})
+  }
+}
+ORDER BY DESC(?at)

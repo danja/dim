@@ -79,3 +79,44 @@ A roll that hits an empty number rolls again. Every roll is recorded
 **Note:** `node bin/trestle-import.js --replace` recreates the outline's
 items, which drops links *to* them — including tasks' links to their
 outline items. Run `node bin/farelo-import.js` afterwards to relink.
+
+## What next? (`/farelo/next`)
+
+The advisor ranks the tasks that are ready (To do or Doing, not projects,
+nothing they wait on unfinished) and says why. It's also linked from the
+board and shown as **Next up** on Squirt.
+
+- **Tell it your situation:** how much time you have (15 min … 2 h) and
+  where you are. Where you are is any `@tag` on your tasks, e.g. `@desk`,
+  `@bench`, `@town`. Both are optional.
+- **Each suggestion shows its reasons** with points, e.g. `+3.0 priority 1`,
+  `+2.6 due in 2 days`, `−2.0 needs ~90 min, more than 30`. The score is
+  their sum:
+
+| Reason | Adds when | Default weight |
+|---|---|---|
+| Priority | priority 1 → full, 5 → a fifth | 3 |
+| Due soon | overdue or due today → full, fading to nothing two weeks out | 3 |
+| Under way | it's in Doing — finish what you started | 1.5 |
+| Fits your time | its estimate fits (takes away when it doesn't) | 2 |
+| Your context | it has your `@tag` (takes away if tagged for somewhere else) | 1 |
+| Unblocks others | other tasks wait on it (full at 3) | 1.5 |
+| Resources ready | it links to bookmarks, pages, … | 0.5 |
+| Waiting long | it has waited up to 60 days | 0.5 |
+| Skipped lately | you said "Not now" (takes away, fading over ~3 days) | 2 |
+
+- **Do this now:** moves the task to Doing and opens it. Picking something
+  lower in the list teaches the advisor: the weights move a little toward
+  the reasons where your choice beat the ones above it. **How suggestions
+  are scored** shows the current weights and resets them.
+- **Not now:** pushes that task down for a few days.
+- **Related:** the top suggestion lists what's to hand. That is its links,
+  plus things in other facets whose names share most of the task's topic
+  words.
+- **Close calls:** when the top two are within 5%, the page offers the dice.
+- **Ask an LLM to talk it through:** sends the top five titles and their
+  reasons to the LLM configured for enrichment (`LLM_PROVIDERS` or
+  `LLM_BASE_URL`; see `docs/commands-gnamgnam.md`). It is a second opinion
+  only; the order stays DIM's.
+
+Feedback and weights live in `graph:facet/advisor`.

@@ -47,7 +47,7 @@ export function renderBoard ({ tasks, projectId = null, allDone = false, tabs, s
     ? `<form class="filter" method="get" action="/farelo/"><select name="project" aria-label="Project"><option value="">All projects</option>${projects.map(p => `<option value="${esc(p.id)}"${p.id === project?.id ? ' selected' : ''}>${esc(p.title)}</option>`).join('')}</select><button>Show</button></form>`
     : ''
   const colTabs = STATES.map(s => `<a href="#col-${s}">${esc(STATE_LABELS[s])} <span class="count">${cols[s].length}</span></a>`).join('')
-  const body = `<div class="board-head"><h1>Tasks</h1><a class="dice-link" href="/farelo/dice">🎲 Roll for the next task</a></div>
+  const body = `<div class="board-head"><h1>Tasks</h1><span class="board-links"><a class="dice-link" href="/farelo/next">What next?</a> <a class="dice-link" href="/farelo/dice">🎲 Roll for the next task</a></span></div>
 ${filter}
 ${newTaskForm(session, project)}
 <nav class="col-tabs" aria-label="Columns">${colTabs}</nav>
