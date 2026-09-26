@@ -39,3 +39,8 @@ export function sendHtml (response, status, body) {
 export function esc (s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
+
+export function redirect (response, status, location) {
+  response.writeHead(status, { Location: location, 'Content-Length': 0 })
+  response.end()
+}

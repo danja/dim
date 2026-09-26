@@ -44,20 +44,27 @@ node bin/serve.js                 # search UI + JSON API on :4110
 
 | Endpoint | Returns |
 |---|---|
-| `GET /` | server-rendered search page |
-| `GET /search?q=&bookmarkType=&domain=` | hybrid search results as JSON |
-| `GET /facets` | facet values and counts |
-| `GET /bookmarks` | browse |
-| `GET /bookmark/<slug>` | one bookmark — HTML/JSON, or Turtle by `Accept`/`.ttl` |
-| `GET /health` | corpus and index size |
+| `GET /` | redirects to the default facet (`app.defaultFacet`, GnamGnam) |
+| `GET /gnamgnam/` | server-rendered bookmark search page |
+| `GET /gnamgnam/search?q=&bookmarkType=&domain=` | hybrid search results as JSON |
+| `GET /gnamgnam/facets` | facet values and counts |
+| `GET /gnamgnam/bookmarks` | browse |
+| `GET /gnamgnam/bookmark/<slug>` | one bookmark — JSON, or Turtle by `Accept`/`.ttl` |
+| `GET /<facet>/` | Trestle, Farelo, Wiki, News, Blog, Squirt — placeholder pages until built |
+| `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
+
+Every page shares one mobile-first shell with a tab per facet
+(`src/common/ui/`). The pre-facet URLs (`/search`, `/facets`, `/bookmarks`,
+`/bookmark/<slug>`) redirect permanently to their `/gnamgnam/` equivalents.
 
 ## Layout
 
 Shared core in `src/common/`, one directory per facet (see `docs/plan.md`).
 GnamGnam (bookmarks) is the first facet.
 
-- `src/server.js` — HTTP server: common routes (`/health`, `/ns`) plus each
-  facet's routes
+- `src/server.js` — HTTP server: common routes (`/`, `/health`, `/ns`,
+  `/static`) plus each facet's routes
+- `src/facets.js` — every facet, in tab order
 - `src/common/` — facet-agnostic core (copied from plugin-universe, adapted)
   - `store/` — `SPARQLClient`, `SPARQLHelper`, `QueryService` (file-based
     queries), `GraphRegistry` (named graphs, provenance, licence flags),
@@ -69,7 +76,9 @@ GnamGnam (bookmarks) is the first facet.
   - `search/` — `SearchService` (hybrid retrieval, driven by a per-facet
     adapter), `LexicalIndex`
   - `harvest/` — `Harvester` (interface), `HttpSource`
-  - `http/` — `Router`, response helpers, content negotiation
+  - `http/` — `Router`, response helpers, content negotiation, static files
+  - `facets/` — `FacetRegistry` (the facet contract), `stubFacet`
+  - `ui/` — page shell with the tab row (`layout.js`); `public/` CSS + JS
 - `src/gnamgnam/` — the bookmark facet
   - `harvest/` — `BookmarkHarvester` (retrieval agent), `WorkflowyParser`,
     `BookmarkNormaliser` (URL-heuristic SKOS typing), `BookmarkSerialiser`,
@@ -78,7 +87,8 @@ GnamGnam (bookmarks) is the first facet.
     `fetch/` and `summarise/`
   - `BookmarkText.js` — composed text view for embeddings
   - `BookmarkSearch.js` — search adapter
-  - `api/` — routes, search page, bookmark Turtle
+  - `api/` — routes (under `/gnamgnam`), search page, bookmark Turtle
+  - `index.js` — the facet object
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL
 - `sparql/queries/` — every query, by name
 - `tests/common/`, `tests/gnamgnam/` — offline suite (`npm test`);

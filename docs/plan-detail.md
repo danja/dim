@@ -48,7 +48,7 @@ These apply to every phase; a task isn't done if it breaks one.
 |---|---|---|---|
 | 0 | Starter: core port + first dataset | — | `[~]` mostly done |
 | 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` |
-| 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[ ]` |
+| 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[x]` (live check pending) |
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[ ]` |
 | 4 | Write path & cross-linking foundation | 2 | `[ ]` |
 | 5 | Trestle outliner | 4 | `[ ]` |
@@ -183,53 +183,70 @@ a shared core, with no behaviour change.
 **Goal:** one server hosts every facet; each facet has a mobile-first page
 with the tab row on top.
 
-### 2.1 Facet contract
+### 2.1 Facet contract (as built)
 
-Each facet exports from `src/<facet>/index.js`:
+A facet is a plain object (`src/common/facets/FacetRegistry.js`):
 
 ```js
-export default {
-  id: 'gnamgnam',            // path segment and graph suffix
+{
+  id: 'gnamgnam',             // path segment: /gnamgnam/…
   label: 'GnamGnam',          // tab text
-  graphs: ['graph:source/workflowy'],
-  vocab: 'vocabs/gnamgnam.ttl',        // optional
-  shapes: 'vocabs/shapes/gnamgnam.ttl',// optional
-  routes (router, ctx) { … },          // registers /gnamgnam/...
-  searchAdapter,                       // optional: feeds common search
-  async init (ctx) { … }               // optional: load indexes etc.
+  description: '…',           // one line
+  routes (router, { tabs, facet }) { … },  // registers /<id>/… routes
+  health () { … }             // optional: status for /health
 }
 ```
 
-`src/facets.js` lists facets explicitly, in tab order (no autoload, same
-rule as `enrich/registry.js`).
+`src/facets.js` builds the list explicitly, in tab order (no autoload):
+GnamGnam (real, `src/gnamgnam/index.js`) then stubs for Trestle, Farelo,
+Wiki, News, Blog, Squirt (`src/common/facets/stubFacet.js` — a page saying
+what the facet will be and which phase builds it). A facet's graphs,
+vocab, shapes and search adapter will join the contract when a second
+real facet needs them (Phase 4+), rather than being guessed now.
 
 ### 2.2 Tasks
 
 - [x] `src/common/http/Router.js` — tiny path router on `node:http`
       (method + pattern → handler), with content negotiation reused.
       (Done in Phase 1.)
-- [ ] `src/common/facets/FacetRegistry.js` — loads `src/facets.js`, calls
-      `init`, mounts `routes`, exposes the tab list.
-- [ ] `src/common/ui/`:
-  - [ ] `layout.js` — HTML shell: `<head>`, viewport meta, CSS link,
-        tab row (`<nav>` with `aria-current` on the active facet), `<main>`.
-  - [ ] `public/css/base.css` — CSS custom properties (colour tokens,
-        light/dark via `prefers-color-scheme`), fluid type, mobile-first
-        layout, tab row that scrolls horizontally on narrow screens.
-  - [ ] `public/js/` — small ESM modules (progressive enhancement only;
-        pages work without JS where feasible).
-  - [ ] Static file serving for `/static/*` with cache headers.
-- [ ] `/` redirects to the default facet (config), each facet at `/<id>/`.
-- [ ] Port GnamGnam search page onto the shell.
-- [ ] `bin/serve.js` boots via `FacetRegistry`.
-- [ ] Tests: router matching, negotiation, layout renders one tab per
-      facet with the right `aria-current`.
+- [x] `src/common/facets/FacetRegistry.js` — validates facets (id, label,
+      routes, no duplicates), mounts their routes, exposes the tab list,
+      collects per-facet health.
+- [x] `src/common/ui/`:
+  - [x] `layout.js` — HTML shell: viewport + `color-scheme` meta, shared
+        stylesheet, tab row (`<nav aria-label="Facets">` with
+        `aria-current="page"` on the active facet), `<main>`.
+  - [x] `public/css/base.css` — colour tokens with a dark set via
+        `prefers-color-scheme`, mobile-first layout (16px gutter, 44px
+        touch targets), sticky tab row that scrolls sideways on narrow
+        screens, search form and result cards.
+  - [x] `public/js/tabs.js` — progressive enhancement only: scrolls the
+        current tab into view. Pages work without JS.
+  - [x] Static serving for `/static/*` (`src/common/http/staticFiles.js`):
+        known types only, path-traversal safe, 1h cache.
+- [x] `/` redirects (302, query kept) to `app.defaultFacet`
+      (new `config/config.json` key, required — no silent default).
+      Each facet at `/<id>/`.
+- [x] GnamGnam moved under `/gnamgnam/` on the shell; search page
+      restyled as cards, keeps the selected type. Old URLs (`/search`,
+      `/facets`, `/bookmarks`, `/bookmark/<slug>`) 301 to the new ones.
+- [x] `bin/serve.js` boots via `createFacets()` + `createServer({ facets })`.
+- [x] `/health` now reports `facets: { <id>: status }`; GnamGnam's entry
+      holds the bookmark and vector counts (they were top-level before).
+- [x] Tests: router, registry validation/tabs/health, layout (active tab,
+      escaping, viewport), static root containment, redirects, stub
+      pages, stylesheet serving. 12 files, 76 tests.
+- [x] README, `docs/tools.md`, `docs/deployment.md` updated.
 
 ### Acceptance
 
-- On a 375px-wide viewport (Playwright screenshot), GnamGnam search is
-  usable and the tab row is visible; stub tabs exist for all planned facets.
-- Lighthouse/axe basic accessibility: no critical issues on the shell.
+- [x] At 375px (Playwright, stub data): GnamGnam search usable, tab row
+      visible and scrollable, no horizontal page scroll; stub tabs for
+      all planned facets. Checked light and dark, and at 1024px.
+- [x] axe-core 4: no violations on the search page or a stub page, light
+      and dark.
+- [ ] Re-check against the live store locally (search, `/health`, old
+      bookmark links redirecting).
 
 ---
 
@@ -574,3 +591,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 1 | Moved code into `src/common` + `src/gnamgnam`, imports fixed, 43/43. | c4a9cb1 |
 | 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | e93f90d |
 | 2026-09-26 | 1 | Live check: search on the restructured branch works as before. Phase 1 done. | |
+| 2026-09-26 | 2 | Facet registry, shared shell with tabs, `/static`, GnamGnam at `/gnamgnam/` with redirects, stub facets. 76/76 tests; 375px screenshots and axe clean. Live check pending. | |

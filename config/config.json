@@ -30,5 +30,8 @@
       "file": "data/workflowy.md",
       "cachePath": "data/cache/retrieval.json"
     }
+  },
+  "app": {
+    "defaultFacet": "gnamgnam"
   }
 }

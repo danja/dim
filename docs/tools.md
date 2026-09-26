@@ -56,13 +56,18 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 
 | Endpoint | Returns |
 |---|---|
-| `GET /?q=…&bookmarkType=…&domain=…` | Search page (HTML). |
-| `GET /search?q=…&bookmarkType=…&domain=…&limit=` | Hybrid results (JSON) with per-signal scores. Each result carries a `data` URL. |
-| `GET /facets` | `bookmarkType` + `domain` values and counts. |
-| `GET /bookmarks?limit=` | Browse. |
-| `GET /bookmark/<slug>[.ttl\|.json]` | One bookmark (content-negotiated). `.ttl` serves the saved triples from the store; search results link it as `data`. |
+| `GET /` | Redirects to the default facet (`app.defaultFacet` in `config/config.json`), keeping the query string. |
+| `GET /gnamgnam/?q=…&bookmarkType=…&domain=…` | Bookmark search page (HTML). |
+| `GET /gnamgnam/search?q=…&bookmarkType=…&domain=…&limit=` | Hybrid results (JSON) with per-signal scores. Each result carries a `data` URL. |
+| `GET /gnamgnam/facets` | `bookmarkType` + `domain` values and counts. |
+| `GET /gnamgnam/bookmarks?limit=` | Browse. |
+| `GET /gnamgnam/bookmark/<slug>[.ttl\|.json]` | One bookmark (content-negotiated). `.ttl` serves the saved triples from the store; search results link it as `data`. |
+| `GET /<facet>/` | Other facets (`trestle`, `farelo`, `wiki`, `news`, `blog`, `squirt`): placeholder pages until their phase lands. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
-| `GET /health` | Bookmark/vector counts, embedding model. |
+| `GET /static/…` | Shared UI kit (CSS, JS). |
+| `GET /health` | Per-facet status (`facets.gnamgnam` has bookmark/vector counts), embedding model. |
+
+Old URLs `/search`, `/facets`, `/bookmarks`, `/bookmark/<slug>` redirect (301) to `/gnamgnam/…`.
 
 ## SPARQL queries (`sparql/queries/`, loaded by name via `QueryService`)
 

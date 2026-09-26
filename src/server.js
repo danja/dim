@@ -1,15 +1,19 @@
 import http from 'http'
 import fs from 'fs'
 import { join as pathJoin, isAbsolute } from 'path'
+import { fileURLToPath } from 'url'
 import logger from 'loglevel'
 import Router from './common/http/Router.js'
-import { JSON_HEADERS, LICENCE, send, sendText } from './common/http/respond.js'
-import { registerRoutes as registerGnamgnam } from './gnamgnam/api/routes.js'
+import FacetRegistry from './common/facets/FacetRegistry.js'
+import { registerStatic } from './common/http/staticFiles.js'
+import { JSON_HEADERS, LICENCE, send, sendText, redirect } from './common/http/respond.js'
 
 /**
  * DIM HTTP server. Adapted from plugin-universe src/api/server.js.
- * Common routes (health, vocabularies) live here; facet routes are
- * registered by each facet. Read-only for now.
+ *
+ * Common routes live here: `/` (→ default facet), `/health`, `/ns`, and
+ * `/static/*` (the shared UI kit). Everything else is registered by a
+ * facet under `/<facet-id>/` — see src/facets.js for the list.
  */
 
 export const VOCABULARIES = Object.freeze({
@@ -17,11 +21,14 @@ export const VOCABULARIES = Object.freeze({
   shapes: 'vocabs/shapes.ttl'
 })
 
-function registerCommonRoutes (router, { search, config, projectRoot }) {
-  router.get('/health', ({ response }) => send(response, 200, {
+export const STATIC_ROOT = fileURLToPath(new URL('./common/ui/public/', import.meta.url))
+
+function registerCommonRoutes (router, { registry, config, defaultFacet, projectRoot }) {
+  router.get('/', ({ response, url }) => redirect(response, 302, `/${defaultFacet}/${url.search}`))
+
+  router.get('/health', async ({ response }) => send(response, 200, {
     status: 'ok',
-    bookmarks: search.documents.size,
-    index: search.index.size,
+    facets: await registry.health(),
     embeddingModel: config?.get('embedding.model') ?? null,
     licence: LICENCE
   }))
@@ -37,13 +44,23 @@ function registerCommonRoutes (router, { search, config, projectRoot }) {
     const body = await fs.promises.readFile(isAbsolute(file) ? file : pathJoin(projectRoot, file), 'utf8')
     return sendText(response, 200, body, 'text/turtle; charset=utf-8')
   })
+
+  registerStatic(router, { prefix: '/static', root: STATIC_ROOT })
 }
 
-export function createRouter ({ search, config, projectRoot = process.cwd() }) {
-  if (!search) throw new Error('The server needs a SearchService')
+/**
+ * facets: facet objects in tab order (src/facets.js).
+ * defaultFacet: id `/` redirects to; config `app.defaultFacet` when omitted.
+ */
+export function createRouter ({ facets, config = null, defaultFacet = null, projectRoot = process.cwd() }) {
+  const registry = new FacetRegistry(facets)
+  const home = defaultFacet ?? config?.get('app.defaultFacet')
+  if (!home || !registry.get(home)) {
+    throw new Error(`Default facet ${JSON.stringify(home)} is not one of: ${registry.facets.map(f => f.id).join(', ')}`)
+  }
   const router = new Router()
-  registerCommonRoutes(router, { search, config, projectRoot })
-  registerGnamgnam(router, { search })
+  registerCommonRoutes(router, { registry, config, defaultFacet: home, projectRoot })
+  registry.mount(router, {})
   return router
 }
 

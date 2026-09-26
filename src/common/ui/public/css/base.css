@@ -1,0 +1,160 @@
+/* DIM shared styles. Mobile-first: base rules are for narrow screens,
+   min-width queries add room. Colours are tokens; dark mode swaps them. */
+
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1d1d1b;
+  --muted: #5f5f5a;
+  --border: #dcdad3;
+  --accent: #2b5fae;
+  --accent-contrast: #ffffff;
+  --focus: #c2410c;
+  --radius: 8px;
+  --gap: 1rem;
+  --gutter: 16px;
+  --measure: 46rem;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412;
+    --surface: #1d1d1a;
+    --text: #ecebe6;
+    --muted: #a6a59e;
+    --border: #3a3935;
+    --accent: #8cb4ff;
+    --accent-contrast: #0d1a33;
+    --focus: #fb923c;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.5 var(--font);
+}
+
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+code { font-family: var(--mono); font-size: 0.9em; }
+
+/* ── Tab row ─────────────────────────────────────────────────────────── */
+
+.site {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs ul {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0 var(--gutter);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.tabs ul::-webkit-scrollbar { display: none; }
+
+.tabs li { flex: none; scroll-snap-align: start; }
+
+.tabs a {
+  display: block;
+  padding: 0.75rem 0.75rem;
+  min-height: 44px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+.tabs a:hover { color: var(--text); }
+.tabs a[aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+/* ── Page ────────────────────────────────────────────────────────────── */
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--gap) var(--gutter) calc(var(--gap) * 3);
+}
+
+h1 { font-size: 1.5rem; line-height: 1.2; margin: 0.5rem 0 1rem; }
+.lede { font-size: 1.1rem; }
+.muted { color: var(--muted); }
+small, .meta { color: var(--muted); font-size: 0.875rem; }
+
+/* ── Forms ───────────────────────────────────────────────────────────── */
+
+.search {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: var(--gap);
+}
+
+input[type="search"], input[type="text"], select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+button {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+@media (min-width: 40rem) {
+  .search { grid-template-columns: 1fr auto auto; align-items: center; }
+  .search select { width: auto; }
+}
+
+/* ── Result cards ────────────────────────────────────────────────────── */
+
+.results { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+
+.card {
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
+.card h2 { font-size: 1rem; margin: 0 0 0.25rem; }
+.card p { margin: 0.25rem 0 0; }
+.card .meta a { color: inherit; }
+
+.status { margin: 0 0 var(--gap); }
+
+.foot { margin-top: calc(var(--gap) * 2); }

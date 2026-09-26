@@ -71,7 +71,7 @@ docker compose up -d --build app
 docker compose exec app node -e "fetch('http://localhost:4110/health').then(r=>r.text()).then(console.log)"
 ```
 
-`/health` reports the corpus and index sizes. Both are zero until the
+`/health` reports per-facet status; `facets.gnamgnam` has the corpus and index sizes. Both are zero until the
 first ingest.
 
 ## Harvesting and enriching

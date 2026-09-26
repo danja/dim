@@ -6,16 +6,19 @@ import { iri } from '../../common/store/SPARQLHelper.js'
 
 export const BOOKMARK_PREFIX = `${NAMESPACES.dim}bookmark/`
 
+/** Where the GnamGnam facet is mounted. */
+export const BASE_PATH = '/gnamgnam'
+
 export function bookmarkSlug (bookmarkIri) {
   return String(bookmarkIri ?? '').startsWith(BOOKMARK_PREFIX)
     ? String(bookmarkIri).slice(BOOKMARK_PREFIX.length)
     : null
 }
 
-/** Public Turtle URL for a search-result document, e.g. /bookmark/foo-12345678.ttl */
+/** Public Turtle URL for a search-result document, e.g. /gnamgnam/bookmark/foo-12345678.ttl */
 export function bookmarkDataUrl (doc) {
   const slug = bookmarkSlug(doc?.iri)
-  return slug ? `/bookmark/${slug}.ttl` : null
+  return slug ? `${BASE_PATH}/bookmark/${slug}.ttl` : null
 }
 
 /** Minimal hand-built description, used when the store cannot answer. */

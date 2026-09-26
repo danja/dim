@@ -7,6 +7,7 @@ import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
 import SearchService from '../src/common/search/SearchService.js'
 import { bookmarkSearchAdapter } from '../src/gnamgnam/BookmarkSearch.js'
 import { createServer } from '../src/server.js'
+import { createFacets } from '../src/facets.js'
 
 logger.setLevel('info')
 
@@ -30,15 +31,18 @@ const loaded = await search.loadDocuments()
 
 console.log(`Loaded ${loaded} bookmarks, ${index.size} vectors from ${index.path}`)
 
-const server = createServer({ search, config, projectRoot: Config.projectRoot })
+const facets = createFacets({ search })
+const server = createServer({ facets, config, projectRoot: Config.projectRoot })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)
-  console.log('  GET /health           service status')
-  console.log('  GET /search?q=...     hybrid search, with optional bookmarkType/domain')
-  console.log('  GET /facets           facet values and counts')
-  console.log('  GET /bookmarks        browse')
-  console.log('  GET /bookmark/<slug>  one bookmark')
-  console.log('  GET /ns/<name>.ttl    the vocabularies the data refers to')
+  console.log(`  facets: ${facets.map(f => `/${f.id}/`).join('  ')}`)
+  console.log('  GET /gnamgnam/?q=...            bookmark search page')
+  console.log('  GET /gnamgnam/search?q=...      hybrid search JSON, optional bookmarkType/domain')
+  console.log('  GET /gnamgnam/facets            facet values and counts')
+  console.log('  GET /gnamgnam/bookmarks         browse')
+  console.log('  GET /gnamgnam/bookmark/<slug>   one bookmark (.ttl for Turtle)')
+  console.log('  GET /health                     per-facet status')
+  console.log('  GET /ns/<name>.ttl              the vocabularies the data refers to')
 })
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
