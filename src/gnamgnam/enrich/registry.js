@@ -29,26 +29,32 @@ export const SUMMARISER_CHOICES = Object.freeze(['ollama', 'remote', 'extractive
  *                then the offline chain
  *   extractive — offline only: mechanical (keywords + markdown, no network)
  *                then extractive sentences
- * An LLM is always optional: when it fails, the offline chain answers.
+ * By default an LLM is optional: when it fails, the offline chain answers.
+ * llmOnly drops the offline chain, so an LLM failure leaves the bookmark
+ * unsummarised (and uncached) for a later run instead.
  */
-export function defaultSummarisers (preference = ENRICH_CONFIG.summariser, { ollamaBaseUrl, env = process.env } = {}) {
+export function defaultSummarisers (preference = ENRICH_CONFIG.summariser, { ollamaBaseUrl, env = process.env, llmOnly = false } = {}) {
   const chain = [new MechanicalSummariser(), new ExtractiveSummariser()]
-  if (preference === 'extractive') return chain
-  if (preference === 'remote') return [RemoteSummariser.fromEnv(env), ...chain]
-  const baseUrl = ollamaBaseUrl ?? env.OLLAMA_URL ?? 'http://localhost:11434'
-  return [new OllamaSummariser({ baseUrl }), ...chain]
+  if (preference === 'extractive') {
+    if (llmOnly) throw new Error('--llm-only needs an LLM summariser (ollama or remote)')
+    return chain
+  }
+  const llm = preference === 'remote'
+    ? RemoteSummariser.fromEnv(env)
+    : new OllamaSummariser({ baseUrl: ollamaBaseUrl ?? env.OLLAMA_URL ?? 'http://localhost:11434' })
+  return llmOnly ? [llm] : [llm, ...chain]
 }
 
 export function defaultCache ({ cachePath } = {}) {
   return new CacheWriter(cachePath ? { cachePath } : {})
 }
 
-export function createEnricher (client, { summariser = ENRICH_CONFIG.summariser, cachePath, ollamaBaseUrl } = {}) {
+export function createEnricher (client, { summariser = ENRICH_CONFIG.summariser, cachePath, ollamaBaseUrl, llmOnly = false } = {}) {
   const cache = defaultCache({ cachePath })
   return new Enricher({
     fetchers: defaultFetchers(),
     extractors: defaultExtractors(),
-    summarisers: defaultSummarisers(summariser, { ollamaBaseUrl }),
+    summarisers: defaultSummarisers(summariser, { ollamaBaseUrl, llmOnly }),
     writers: [new SparqlPatchWriter(client), cache],
     cache
   })

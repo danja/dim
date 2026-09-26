@@ -16,10 +16,13 @@ import { ENRICH_CONFIG } from '../config/preferences.js'
  *
  * Usage:
  *   node bin/enrich.js [--limit N] [--only-new] [--force] [--quiet]
- *     [--summariser ollama|remote|extractive] [--reembed]
+ *     [--summariser ollama|remote|extractive] [--llm-only] [--reembed]
  *
  * --only-new skips bookmarks that already have dim:summary. --force ignores
  * the enrichment cache. --quiet collapses per-bookmark lines to progress.
+ * --llm-only drops the offline summarisers: a bookmark the LLM cannot
+ * summarise is left for a later run, and the run stops once the LLM has
+ * failed ENRICH_CONFIG.llmFailureLimit times in a row (e.g. a spent quota).
  * --reembed re-embeds patched bookmarks into the FAISS index (needs Ollama
  * embedding model). Writes checkpoint the index every
  * ENRICH_CONFIG.checkpointEvery embeds.
@@ -34,6 +37,7 @@ const onlyNew = args.includes('--only-new')
 const force = args.includes('--force')
 const quiet = args.includes('--quiet')
 const reembed = args.includes('--reembed')
+const llmOnly = args.includes('--llm-only')
 const summariserIdx = args.indexOf('--summariser')
 const summariser = summariserIdx === -1 ? ENRICH_CONFIG.summariser : args[summariserIdx + 1]
 if (!SUMMARISER_CHOICES.includes(summariser)) {
@@ -82,7 +86,8 @@ let enricher
 try {
   enricher = createEnricher(client, {
     summariser,
-    ollamaBaseUrl: config.has('enrichment.ollamaBaseUrl') ? config.get('enrichment.ollamaBaseUrl') : undefined
+    ollamaBaseUrl: config.has('enrichment.ollamaBaseUrl') ? config.get('enrichment.ollamaBaseUrl') : undefined,
+    llmOnly
   })
 } catch (error) {
   console.error(error.message)
@@ -120,6 +125,13 @@ for (const row of candidates) {
     const rate = n / Math.max(elapsed / 1000, 0.001)
     const eta = fmtEta((candidates.length - n) / Math.max(rate, 0.001) * 1000)
     logger.info(`[enrich] ${n}/${candidates.length} ${rate.toFixed(1)}/s ETA ${eta} ${JSON.stringify(counts)}`)
+  }
+  // --llm-only: once the LLM has given up (quota spent, endpoint down), the
+  // rest would only fail — stop, and let a later run carry on.
+  if (llmOnly && enricher.summarisers[0].breaker?.open) {
+    console.log(`\nStopping after ${n}/${candidates.length}: the LLM summariser failed ${enricher.summarisers[0].breaker.limit} times in a row.`)
+    console.log('Unsummarised bookmarks were not written or cached; re-run later with --only-new to continue.')
+    break
   }
 }
 

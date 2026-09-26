@@ -219,7 +219,15 @@ the first 401/403. Page text is sent to the provider.
 Both share the prompt and reply parsing (`summarise/llm.js`) and a circuit
 breaker: after `llmFailureLimit` consecutive failures (timeouts, errors,
 empty replies) the LLM is skipped for the rest of the run and the offline
-chain answers, instead of every bookmark waiting out a timeout. Input size,
+chain answers, instead of every bookmark waiting out a timeout.
+`--llm-only` drops the offline chain: an LLM failure leaves the bookmark
+unwritten and uncached, and the run stops once the breaker opens — suited
+to free tiers with a daily quota (re-run with `--only-new` the next day).
+
+Gemini: `LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`,
+`LLM_MODEL=gemini-flash-latest`. Flash "thinks", and its reasoning counts
+against the reply budget; a reply cut off at `max_tokens` is reported as
+such — raise `LLM_MAX_TOKENS` (e.g. 2048). Input size,
 reply budget and timeouts are in `ENRICH_CONFIG` (`llmInputChars`,
 `llmMaxTokens`, `ollamaTimeoutMs`, `remoteTimeoutMs`).
 

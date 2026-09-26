@@ -9,6 +9,11 @@ import { buildPrompt, resultFromReply, CircuitBreaker } from './llm.js'
  *   LLM_BASE_URL  e.g. https://…/v1   (POST {base}/chat/completions)
  *   LLM_API_KEY   sent as a Bearer token
  *   LLM_MODEL     the provider's model id
+ *   LLM_MAX_TOKENS optional reply budget (default ENRICH_CONFIG.llmMaxTokens);
+ *                 raise it for "thinking" models, whose reasoning counts
+ *                 against it — e.g. Gemini Flash
+ *
+ * Gemini: LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
  *
  * Page text leaves the machine: only public pages are fetched, but which
  * pages you bookmarked is itself information. Check the provider's terms
@@ -68,7 +73,11 @@ export class RemoteSummariser extends Summariser {
   }
 
   static fromEnv (env = process.env, options = {}) {
-    return new RemoteSummariser({ baseUrl: env.LLM_BASE_URL, apiKey: env.LLM_API_KEY, model: env.LLM_MODEL, ...options })
+    const maxTokens = env.LLM_MAX_TOKENS ? Number(env.LLM_MAX_TOKENS) : undefined
+    if (maxTokens !== undefined && !(Number.isInteger(maxTokens) && maxTokens > 0)) {
+      throw new SummariseError(`LLM_MAX_TOKENS must be a positive integer, got ${JSON.stringify(env.LLM_MAX_TOKENS)}`)
+    }
+    return new RemoteSummariser({ baseUrl: env.LLM_BASE_URL, apiKey: env.LLM_API_KEY, model: env.LLM_MODEL, maxTokens, ...options })
   }
 
   get id () { return `remote/${hostOf(this.baseUrl)}/${this.model}-${this.promptVersion}` }
@@ -119,15 +128,16 @@ export class RemoteSummariser extends Summariser {
       this.breaker.failure(`HTTP ${response.status} ${detail}`)
       return null
     }
-    let reply
+    let choice
     try {
-      reply = (await response.json())?.choices?.[0]?.message?.content ?? null
+      choice = (await response.json())?.choices?.[0] ?? null
     } catch (error) {
       this.breaker.failure(`unreadable reply: ${error.message}`)
       return null
     }
-    const result = resultFromReply(reply, { text, ctx, maxChars: this.maxChars, keywordMax: this.keywordMax, id: this.id })
+    const result = resultFromReply(choice?.message?.content ?? null, { text, ctx, maxChars: this.maxChars, keywordMax: this.keywordMax, id: this.id })
     if (result) this.breaker.success()
+    else if (choice?.finish_reason === 'length') this.breaker.failure(`reply cut off at ${this.maxTokens} tokens — a thinking model? raise LLM_MAX_TOKENS`)
     else this.breaker.failure('empty reply')
     return result
   }

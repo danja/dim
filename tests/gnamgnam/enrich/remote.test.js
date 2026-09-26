@@ -71,6 +71,28 @@ describe('RemoteSummariser', () => {
     expect(s.breaker.open).toBe(true)
   })
 
+  it('reads LLM_MAX_TOKENS and rejects nonsense', async () => {
+    const { s, calls } = summariser([reply('SUMMARY: Ok.')])
+    expect(s.maxTokens).toBe(300)
+    const big = RemoteSummariser.fromEnv({ ...ENV, LLM_MAX_TOKENS: '2048' }, { fetchImpl: async () => reply('SUMMARY: Ok.'), requestIntervalMs: 0 })
+    expect(big.maxTokens).toBe(2048)
+    expect(() => RemoteSummariser.fromEnv({ ...ENV, LLM_MAX_TOKENS: 'lots' })).toThrow(/LLM_MAX_TOKENS/)
+    await s.summarise(TEXT)
+    expect(calls[0].body.max_tokens).toBe(300)
+  })
+
+  it('treats a reply cut off by the token budget as a failure', async () => {
+    const cut = new Response(JSON.stringify({ choices: [{ message: { content: '' }, finish_reason: 'length' }] }), { status: 200 })
+    const { s } = summariser([cut])
+    expect(await s.summarise(TEXT)).toBeNull()
+    expect(s.breaker.failures).toBe(1)
+  })
+
+  it('--llm-only keeps just the LLM in the chain', () => {
+    expect(defaultSummarisers('remote', { env: ENV, llmOnly: true }).map(x => x.id)).toEqual(['remote/llm.example/free-model-summary-v1'])
+    expect(() => defaultSummarisers('extractive', { llmOnly: true })).toThrow(/needs an LLM/)
+  })
+
   it('the remote chain falls back to the offline summarisers', () => {
     expect(defaultSummarisers('remote', { env: ENV }).map(x => x.id)).toEqual([
       'remote/llm.example/free-model-summary-v1', 'mechanical-v1', 'extractive-v1'
