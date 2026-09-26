@@ -34,3 +34,25 @@ ${status}
 <div class="groups">${sections}</div>`
   return renderPage({ title: query ? `${query} — Find` : 'Find', tabs, active: null, session, body })
 }
+
+/** Every tag in use, across facets, biggest first. */
+export function renderTagsPage ({ tags, tabs, session }) {
+  const items = tags.map(t => `<li><a href="/tags/${encodeURIComponent(t.tag)}">${esc(t.tag)}</a> <small class="meta">${t.count} · ${esc(t.facets.join(', '))}</small></li>`).join('')
+  const body = `<h1>Tags</h1>
+<p class="meta">Tags on bookmarks, tasks, wiki pages, feeds and published posts. Pick one to see everything that has it.</p>
+${items ? `<ul class="tag-cloud">${items}</ul>` : '<p class="muted">No tags yet.</p>'}`
+  return renderPage({ title: 'Tags', tabs, active: null, session, body })
+}
+
+/** Everything with one tag, grouped by facet. */
+export function renderTagPage ({ tag, groups, tabs, session }) {
+  const sections = groups.map(g => `<section>
+<h2>${esc(g.label)}</h2>
+<ul class="results">${g.results.map(r => `<li class="card"><h3><a href="${esc(r.href)}">${esc(r.label)}</a></h3>${r.snippet ? `<p class="meta">${esc(r.snippet)}</p>` : ''}</li>`).join('')}</ul>
+</section>`).join('\n')
+  const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/tags">Tags</a></nav>
+<h1>Tagged “${esc(tag)}”</h1>
+${sections || '<p class="muted">Nothing has this tag.</p>'}
+<p class="meta"><a href="/find?q=${encodeURIComponent(tag)}">Search everything for “${esc(tag)}”</a></p>`
+  return renderPage({ title: `Tagged ${tag}`, tabs, active: null, session, body })
+}

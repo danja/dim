@@ -4,6 +4,7 @@ import QueryService from '../common/store/QueryService.js'
 import { NAMESPACES } from '../common/rdf/NamespaceManager.js'
 import { FEED_PREDICATES, POLL_PREDICATES, feedTriples, pollTriples, itemTriples, feedSlug, feedIri, itemId, itemIri } from './rdf.js'
 import { loadNews } from './load.js'
+import { listItems, countItems } from './itemViews.js'
 import { absoluteUrl } from './formats/feed.js'
 
 /**
@@ -34,7 +35,6 @@ export function cleanTags (value) {
   return [...new Set(raw.map(t => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, MAX_TAGS)
 }
 
-const itemDate = item => item.published ?? item.firstSeen
 
 export class NewsStore {
   constructor ({ client, repository, links = null, queries = new QueryService(), now = () => new Date() }) {
@@ -104,35 +104,16 @@ export class NewsStore {
     return row?.text ?? null
   }
 
-  /**
-   * Items newest first. view: unread | all | starred; feed: slug; tag: a
-   * feed tag; before: ISO date (paging); q: words in title/snippet.
-   */
-  async itemList ({ view = 'unread', feed = null, tag = null, before = null, limit = 50 } = {}) {
+  /** Items newest first; see listItems (./itemViews.js) for the options. */
+  async itemList (options = {}) {
     await this.#load()
-    const feedIris = tag ? new Set([...this.feeds.values()].filter(f => f.tags.includes(tag)).map(f => f.iri)) : null
-    const wanted = feed ? this.feeds.get(feed)?.iri ?? '-' : null
-    const matches = [...this.items.values()].filter(i =>
-      (view === 'all' || (view === 'starred' ? i.starred : !i.read)) &&
-      (!wanted || i.feed === wanted) &&
-      (!feedIris || feedIris.has(i.feed)) &&
-      (!before || itemDate(i) < before))
-    matches.sort((a, b) => itemDate(b).localeCompare(itemDate(a)))
-    return { items: matches.slice(0, limit), more: matches.length > limit }
+    return listItems(this.items, this.feeds, options)
   }
 
   /** feed iri → { total, unread, starred } */
   async counts () {
     await this.#load()
-    const out = new Map()
-    for (const i of this.items.values()) {
-      const c = out.get(i.feed) ?? { total: 0, unread: 0, starred: 0 }
-      c.total++
-      if (!i.read) c.unread++
-      if (i.starred) c.starred++
-      out.set(i.feed, c)
-    }
-    return out
+    return countItems(this.items.values())
   }
 
   // ── Feeds ────────────────────────────────────────────────────────────

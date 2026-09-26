@@ -5,7 +5,7 @@ import { LICENCE, send, sendText, sendHtml, redirect } from './respond.js'
 import { readBody } from './body.js'
 import { registerStatic } from './staticFiles.js'
 import { writeRoute, safeReturn } from './write.js'
-import { renderLoginPage, renderFindPage } from '../ui/pages.js'
+import { renderLoginPage, renderFindPage, renderTagsPage, renderTagPage } from '../ui/pages.js'
 import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
 
@@ -99,6 +99,18 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     const { q, groups } = await find(url)
     return sendHtml(response, 200, renderFindPage({ tabs, session, query: q, groups }))
   })
+  // Tags across facets: /tags (all), /tags/<tag> (everything with it); .json too.
+  router.get(/^\/tags(\.json)?$/, async ({ response, match, tabs, session }) => {
+    const tags = await registry.tags()
+    return match[1] ? send(response, 200, { tags }) : sendHtml(response, 200, renderTagsPage({ tags, tabs, session }))
+  })
+  router.get(/^\/tags\/([^/]+?)(\.json)?$/, async ({ response, match, tabs, session }) => {
+    let tag
+    try { tag = decodeURIComponent(match[1]).trim().toLowerCase() } catch { return send(response, 400, { error: 'Bad tag' }) }
+    const groups = await registry.tagged(tag)
+    return match[2] ? send(response, 200, { tag, groups }) : sendHtml(response, 200, renderTagPage({ tag, groups, tabs, session }))
+  })
+
   router.get('/find.json', async ({ response, url }) => {
     const { q, groups } = await find(url)
     return send(response, 200, { query: q, groups })

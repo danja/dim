@@ -25,7 +25,7 @@ export function renderIndex ({ pages, tag, tabs, session }) {
   const items = shown.map(p => `<li><a href="${pagePath(p)}">${esc(p.title)}</a>${p.tags.length ? ` <small class="meta">${esc(p.tags.join(', '))}</small>` : ''}</li>`).join('')
   const body = `<h1>${tag ? `Wiki pages tagged “${esc(tag)}”` : 'Wiki'}</h1>
 ${newPageForm(session)}
-${tag ? '<p><a href="/wiki/">All pages</a></p>' : ''}
+${tag ? `<p><a href="/wiki/">All pages</a> · <a href="/tags/${encodeURIComponent(tag)}">everything tagged “${esc(tag)}”</a></p>` : ''}
 ${items ? `<ul class="wiki-index">${items}</ul>` : '<p class="muted">No pages yet. Create one above, follow a <code>[[Title]]</code> link, or import with <code>node bin/wiki-import.js</code>.</p>'}
 ${!tag && recent.length ? `<h2>Recently changed</h2><ul>${recent.map(p => `<li><a href="${pagePath(p)}">${esc(p.title)}</a> <small class="meta">r${p.revision} · ${when(p.modified ?? p.created)}</small></li>`).join('')}</ul>` : ''}
 ${allTags.length ? `<h2>Tags</h2><p>${tagLinks(allTags)}</p>` : ''}`
@@ -42,9 +42,7 @@ function pageActions ({ page, session }) {
 }
 
 export function renderView ({ page, pages, links, tabs, session }) {
-  const linksHtml = links?.error
-    ? `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
-    : links ? renderLinksPanel(links, { subject: page.iri, session, returnPath: pagePath(page) }) : ''
+  const linksHtml = renderLinksPanel(links, { subject: page.iri, session, returnPath: pagePath(page) })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/wiki/">Wiki</a></nav>
 <h1>${esc(page.title)}</h1>
 ${page.tags.length ? `<p>${tagLinks(page.tags)}</p>` : ''}

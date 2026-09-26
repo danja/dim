@@ -56,9 +56,7 @@ export function renderTaskPage ({ task, tasks, links, historyEntries, tabs, sess
   const index = byIri(tasks)
   const waiting = pendingDependencies(task, index).length > 0
   const children = tasks.filter(t => t.project === task.iri)
-  const linksHtml = links?.error
-    ? `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
-    : links ? renderLinksPanel(links, { subject: task.iri, session, returnPath: taskPath(task) }) : ''
+  const linksHtml = renderLinksPanel(links, { subject: task.iri, session, returnPath: taskPath(task) })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/farelo/">Tasks</a>${task.project && index.get(task.project) ? ` › <a href="${taskPath(index.get(task.project))}">${esc(index.get(task.project).title)}</a>` : ''}</nav>
 <h1>${titleHtml(task)}</h1>
 <p>${stateBadge(task.status)} <span class="meta">${metaLine(task, { index, projects: false })}</span>${waiting ? ' <span class="waits">⏳ waiting</span>' : ''}</p>

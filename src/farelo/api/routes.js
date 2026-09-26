@@ -8,22 +8,13 @@ import { renderDicePage } from './dicePage.js'
 import { taskPath } from './common.js'
 import { rankForDice } from '../tasks.js'
 import { diceList, pick, nextState, POLICIES } from '../dice.js'
+import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 
 /** Farelo HTTP routes, mounted at /farelo. */
 
 const ID = '(t[a-f0-9]+)'
 const list = value => [].concat(value ?? []).map(String).filter(Boolean)
 const notFound = () => Object.assign(new Error('No such task'), { status: 404 })
-
-async function linksFor ({ services, registry }, resourceIri) {
-  if (!services?.links) return null
-  try {
-    const links = await services.links.linksOf(resourceIri)
-    return Promise.all(links.map(async l => ({ ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
-  } catch (error) {
-    return { error: error.message }
-  }
-}
 
 export function registerRoutes (router, { store, rolls, rng = Math.random, tabs, services, registry, origin }) {
   const find = async id => (await store.get(id)) ?? Promise.reject(notFound())
@@ -46,7 +37,7 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
     const task = await store.get(match[1])
     if (!task) return send(response, 404, { error: 'No such task', id: match[1] })
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, task)
-    const [links, historyEntries] = await Promise.all([linksFor({ services, registry }, task.iri), store.history(task).catch(() => [])])
+    const [links, historyEntries] = await Promise.all([resolvedLinks({ services, registry }, task.iri), store.history(task).catch(() => [])])
     return sendHtml(response, 200, renderTaskPage({ task, tasks: await store.list(), links, historyEntries, tabs, session }))
   })
 

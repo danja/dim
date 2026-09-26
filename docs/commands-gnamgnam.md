@@ -145,6 +145,29 @@ Check a provider by hand without leaking `.env` into your shell:
     -d '{"model":"openai/gpt-oss-20b","messages":[{"role":"user","content":"Say hi"}],"max_tokens":200}' | head -c 400 )
 ```
 
+## topics — a topic filter from what enrichment learnt
+
+```sh
+node bin/topics.js --dry-run          # the topics it would make, biggest first, with ⊂ nesting
+node bin/topics.js                    # write them (graph:alignment/bookmark-topics); restart the server
+node bin/topics.js --min-docs 5 --max-topics 120 --per-bookmark 2
+```
+
+Topics come from enrichment keywords (run `enrich` first; without keywords
+there's little to go on), GitHub topics, arXiv categories and your tags:
+
+- **Kept:** terms used by at least `--min-docs` bookmarks (8) and at most a
+  quarter of them. Domains never count; they have their own filter.
+- **Merged:** spellings merge (`knowledge-graphs` = `knowledge graph`),
+  and a plural joins its singular when both are used.
+- **Nested:** a topic whose bookmarks are 80% inside a bigger one becomes
+  narrower than it (SKOS `broader`).
+- **Assigned:** each bookmark gets its most specific topics.
+
+It is rebuilt from scratch each run, so rerun it after more enrichment.
+GnamGnam's search then has a **Topic** filter (`?topic=`), and bookmark
+pages link their topics.
+
 ## deadlinks — link health and archived copies
 
 ```sh

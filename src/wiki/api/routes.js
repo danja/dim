@@ -9,6 +9,7 @@ import { mentionSync } from '../mentionSync.js'
 import { pagePath, contentHtml } from './common.js'
 import { renderIndex, renderView, renderMissing, renderHistory, renderRevision, renderDiffPage } from './view.js'
 import { renderEdit, renderConflict } from './edit.js'
+import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 
 /** Wiki HTTP routes, mounted at /wiki. */
 
@@ -17,16 +18,6 @@ const PAGE = new RegExp(`^/wiki/page/${SLUG}(\\.md|\\.ttl|\\.json)?$`)
 
 function notFound (what) {
   return Object.assign(new Error(`No such ${what}`), { status: 404 })
-}
-
-async function linksFor ({ services, registry }, resourceIri) {
-  if (!services?.links) return null
-  try {
-    const links = await services.links.linksOf(resourceIri)
-    return Promise.all(links.map(async l => ({ ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
-  } catch (error) {
-    return { error: error.message }
-  }
 }
 
 export function registerRoutes (router, { store, tabs, services, registry, origin }) {
@@ -57,7 +48,7 @@ export function registerRoutes (router, { store, tabs, services, registry, origi
     if (match[2] === '.md') return sendText(response, 200, page.content, 'text/markdown; charset=utf-8')
     if (match[2] === '.ttl') return sendText(response, 200, await store.turtle(page), 'text/turtle; charset=utf-8')
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, page)
-    return sendHtml(response, 200, renderView({ page, pages: await store.list(), links: await linksFor({ services, registry }, page.iri), tabs, session }))
+    return sendHtml(response, 200, renderView({ page, pages: await store.list(), links: await resolvedLinks({ services, registry }, page.iri), tabs, session }))
   })
 
   router.get(new RegExp(`^/wiki/page/${SLUG}/edit$`), async ({ response, url, match, session }) => {

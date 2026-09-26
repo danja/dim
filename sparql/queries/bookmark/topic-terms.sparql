@@ -1,0 +1,7 @@
+# Every term said about a bookmark that could make a topic — enrichment
+# keywords, GitHub topics, arXiv categories, tags (yours and the source's).
+SELECT DISTINCT ?bookmark ?term
+WHERE {
+  GRAPH ?g { ?bookmark a dim:Bookmark }
+  GRAPH ?h { ?bookmark dim:keyword|dim:githubTopic|dim:arxivCategory|dim:tag ?term }
+}

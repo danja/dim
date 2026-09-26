@@ -38,7 +38,7 @@ export function renderSearchPage ({ query, selected = {}, results, total, corpus
 <form class="search" method="get" action="${BASE_PATH}/" role="search">
 <input type="search" name="q" value="${esc(query ?? '')}" placeholder="search bookmarks…" aria-label="Search bookmarks">
 <select name="bookmarkType" aria-label="Bookmark type"><option value="">all types</option>${renderOptions(facetValues.bookmarkType, selected.bookmarkType)}</select>
-<select name="linkStatus" aria-label="Link status"><option value="">any link status</option>${renderOptions(facetValues.linkStatus, selected.linkStatus)}</select>${selected.domain ? `\n<input type="hidden" name="domain" value="${esc(selected.domain)}">` : ''}
+<select name="linkStatus" aria-label="Link status"><option value="">any link status</option>${renderOptions(facetValues.linkStatus, selected.linkStatus)}</select>${facetValues.topic?.length ? `\n<select name="topic" aria-label="Topic"><option value="">any topic</option>${renderOptions(facetValues.topic, selected.topic)}</select>` : ''}${selected.domain ? `\n<input type="hidden" name="domain" value="${esc(selected.domain)}">` : ''}
 <button>Search</button>
 </form>
 <p class="status muted">${status}</p>

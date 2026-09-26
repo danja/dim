@@ -1,0 +1,3 @@
+# Every bookmark domain (bin/topics.js keeps them out of the topics).
+SELECT DISTINCT ?d
+WHERE { GRAPH ?g { ?b dim:domain ?d } }

@@ -16,6 +16,8 @@
  *     lookupTitle (title),   // optional: exact title → IRI | null
  *     refresh (iri),         // optional: a resource it shows changed elsewhere
  *     recent ({ limit }),    // optional: → [{ iri, label, href, at, action }] not in the change log
+ *     tags (),               // optional: → Map tag → count
+ *     tagged (tag),          // optional: → [{ iri, label, href, snippet }]
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
  *   }
  *
@@ -118,6 +120,34 @@ export class FacetRegistry {
       } catch { /* one facet's failure must not hide the others */ }
     }
     return out
+  }
+
+  /** Every tag in use, across facets. → [{ tag, count, facets: [label] }] by count */
+  async tags () {
+    const all = new Map()
+    for (const facet of this.facets) {
+      let counts
+      try { counts = await facet.tags?.() } catch { counts = null }
+      for (const [tag, n] of counts ?? []) {
+        const entry = all.get(tag) ?? { tag, count: 0, facets: [] }
+        entry.count += n
+        entry.facets.push(facet.label)
+        all.set(tag, entry)
+      }
+    }
+    return [...all.values()].sort((a, b) => (b.count - a.count) || a.tag.localeCompare(b.tag))
+  }
+
+  /** Everything with a tag. → [{ facet, label, results }] */
+  async tagged (tag) {
+    const groups = []
+    for (const facet of this.facets) {
+      try {
+        const results = (await facet.tagged?.(tag)) ?? []
+        if (results.length) groups.push({ facet: facet.id, label: facet.label, results })
+      } catch { /* one facet failing must not hide the others */ }
+    }
+    return groups
   }
 
   /** Tell every facet that caches resources that this one changed. */

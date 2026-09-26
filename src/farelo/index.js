@@ -1,8 +1,9 @@
 import { registerRoutes } from './api/routes.js'
 import { registerAdvisorRoutes } from '../advisor/api/routes.js'
 import { taskPath } from './api/common.js'
-import { STATES } from './tasks.js'
+import { STATES, STATE_LABELS } from './tasks.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
+import { countTags } from '../common/facets/tags.js'
 import { plainText } from '../common/outline/OutlineParser.js'
 
 /**
@@ -30,6 +31,16 @@ export function createFareloFacet ({ store, rolls = null, rng, advisor = null })
     async health () {
       const tasks = await store.list()
       return { status: 'ok', tasks: tasks.length, ...Object.fromEntries(STATES.map(s => [s, tasks.filter(t => t.status === s).length])) }
+    },
+
+    async tags () {
+      return countTags((await store.list()).filter(t => t.status !== 'done').map(t => t.tags))
+    },
+
+    async tagged (tag) {
+      return (await store.list()).filter(t => t.tags?.includes(tag))
+        .sort((a, b) => (a.status === 'done') - (b.status === 'done') || label(a).localeCompare(label(b)))
+        .map(t => ({ iri: t.iri, label: label(t), href: taskPath(t), snippet: STATE_LABELS[t.status] ?? t.status }))
     },
 
     async lookup (resourceIri) {

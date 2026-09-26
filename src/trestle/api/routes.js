@@ -5,6 +5,7 @@ import { renderIndex, renderOutlinePage, renderNodePage, outlinePath } from './p
 import { visibleNodes, titleHtml, nodePath, renderTree } from './treeView.js'
 import { ancestors, childrenOf, toMarkdown } from '../tree.js'
 import { resolveMentions } from '../../common/links/mentions.js'
+import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 
 /** Trestle HTTP routes, mounted at /trestle. */
 
@@ -27,16 +28,6 @@ export function nodeJson (outline, node) {
     collapsed: node.collapsed,
     children: childrenOf(outline, node.iri).length,
     href: nodePath(node)
-  }
-}
-
-async function linksFor ({ services, registry }, resourceIri) {
-  if (!services?.links) return null
-  try {
-    const links = await services.links.linksOf(resourceIri)
-    return Promise.all(links.map(async l => ({ ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
-  } catch (error) {
-    return { error: error.message }
   }
 }
 
@@ -77,7 +68,7 @@ export function registerRoutes (router, { store, tabs, services, registry, origi
       tabs,
       session,
       treeCtx: await treeCtx(outline, node.iri),
-      links: await linksFor({ services, registry }, node.iri)
+      links: await resolvedLinks({ services, registry }, node.iri)
     }))
   })
 

@@ -6,6 +6,7 @@ import { negotiate } from '../../common/http/negotiate.js'
 import { BASE_PATH, BOOKMARK_PREFIX, bookmarkDataUrl, savedTurtle } from './bookmarkData.js'
 import { renderSearchPage } from './searchPage.js'
 import { renderBookmarkPage } from './bookmarkPage.js'
+import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 
 /**
  * GnamGnam HTTP routes, mounted at /gnamgnam: search page, search/facets/
@@ -19,23 +20,13 @@ function facetParams (params) {
   return {
     bookmarkType: params.get('bookmarkType') || params.get('type') || null,
     domain: params.get('domain') || null,
-    linkStatus: params.get('linkStatus') || null
+    linkStatus: params.get('linkStatus') || null,
+    topic: params.get('topic') || null
   }
 }
 
 function pageSize (params, fallback) {
   return Math.min(Number(params.get('limit')) || fallback, RETRIEVAL_CONFIG.maxPageSize)
-}
-
-/** Links touching one resource, each resolved to a label and page. null if unavailable. */
-async function resolvedLinks ({ services, registry }, resourceIri) {
-  if (!services?.links) return null
-  try {
-    const links = await services.links.linksOf(resourceIri)
-    return Promise.all(links.map(async l => ({ ...l, ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
-  } catch (error) {
-    return { error: error.message }
-  }
 }
 
 export function registerRoutes (router, { search, tabs, services, registry, origin }) {
@@ -64,7 +55,7 @@ export function registerRoutes (router, { search, tabs, services, registry, orig
     const facets = facetParams(url.searchParams)
     const limit = pageSize(url.searchParams, RETRIEVAL_CONFIG.defaultPageSize)
     if (!q && !Object.values(facets).some(Boolean)) {
-      return send(response, 400, { error: 'Provide q, or at least one of bookmarkType, domain, linkStatus' })
+      return send(response, 400, { error: 'Provide q, or at least one of bookmarkType, domain, linkStatus, topic' })
     }
     const outcome = q
       ? await search.search(q, { facets, limit })

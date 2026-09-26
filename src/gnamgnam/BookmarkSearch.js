@@ -1,6 +1,6 @@
 import { iri, literal } from '../common/store/SPARQLHelper.js'
 import { NAMESPACES } from '../common/rdf/NamespaceManager.js'
-import { catalogueFromRow } from './Catalogue.js'
+import { catalogueFromRow, LIST_SEPARATOR } from './Catalogue.js'
 import { linkStatus, LINK_STATUSES } from './LinkStatus.js'
 
 /**
@@ -28,13 +28,14 @@ export const bookmarkSearchAdapter = Object.freeze({
   },
   /** Variable bound to the document IRI in the text-view and filter queries. */
   subject: 'bookmark',
-  facetNames: ['bookmarkType', 'domain', 'linkStatus'],
+  facetNames: ['bookmarkType', 'domain', 'linkStatus', 'topic'],
 
   toDocument (row, provenance) {
     const bookmarkTypes = list(row.bookmarkTypes)
     const catalogue = catalogueFromRow(row)
     const sourceTags = list(row.tags)
     const userTags = list(row.userTags)
+    const topics = row.topics ? String(row.topics).split(LIST_SEPARATOR).filter(Boolean) : []
     const httpStatus = int(row.httpStatus)
     const fetchStatus = int(row.fetchStatus)
     return {
@@ -63,8 +64,10 @@ export const bookmarkSearchAdapter = Object.freeze({
       // categories and language as body text.
       vendor: (catalogue.arxivAuthor ?? []).join(' '),
       roles: bookmarkTypes,
+      topics,
       categories: [
         ...bookmarkTypes,
+        ...topics,
         ...(catalogue.githubTopic ?? []),
         ...(catalogue.arxivCategory ?? []),
         ...(catalogue.githubLanguage ? [catalogue.githubLanguage] : [])
@@ -87,18 +90,25 @@ export const bookmarkSearchAdapter = Object.freeze({
   },
 
   /** Filters on derived fields, applied in memory. → predicate or null. */
-  documentFilter ({ linkStatus: wanted } = {}) {
-    if (!wanted) return null
-    return doc => doc.linkStatus === wanted
+  documentFilter ({ linkStatus: wanted, topic } = {}) {
+    if (!wanted && !topic) return null
+    return doc => (!wanted || doc.linkStatus === wanted) && (!topic || doc.topics.includes(topic))
   },
 
   /** Facet counts for derived fields, in the same shape as the SPARQL facets. */
   documentFacets (documents) {
     const counts = new Map(LINK_STATUSES.map(s => [s, 0]))
-    for (const doc of documents) counts.set(doc.linkStatus, (counts.get(doc.linkStatus) ?? 0) + 1)
+    const topics = new Map()
+    for (const doc of documents) {
+      counts.set(doc.linkStatus, (counts.get(doc.linkStatus) ?? 0) + 1)
+      for (const t of doc.topics ?? []) topics.set(t, (topics.get(t) ?? 0) + 1)
+    }
     return {
       linkStatus: [...counts]
         .filter(([, count]) => count > 0)
+        .map(([value, count]) => ({ value, count })),
+      topic: [...topics]
+        .sort(([a, x], [b, y]) => (y - x) || a.localeCompare(b))
         .map(([value, count]) => ({ value, count }))
     }
   }

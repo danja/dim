@@ -279,13 +279,17 @@ done locally.
     text only when present (unchanged text for everything else).
   - `GITHUB_TOKEN` (optional) lifts the GitHub API limit from 60 to 5000
     requests/hour — needed for the ~1k repos.
-- [~] Topic concepts (`dim:bookmark-topics` SKOS scheme + facet) —
-      **deferred until 3b's enrichment has produced keywords.** The
-      outline contexts were the obvious offline source but are too noisy:
-      `WorkflowyParser` treats wrapped link-title lines and `[` fragments
-      as headings (e.g. "Scopus - Welcome to Scopus / [ / TPU – Gateworks").
-      Decide between keyword clustering, vector clustering and LLM tagging
-      once real keywords exist. The parser fix belongs with Phase 5.
+- [x] Topic concepts (`dim:bookmark-topics` SKOS scheme + facet) — built
+      2026-09-26 (after Phase 12): `bin/topics.js` clusters enrichment
+      keywords, GitHub topics, arXiv categories and tags (the outline
+      contexts stay out: the Workflowy file nests links under links, not
+      under topic headings). Terms on ≥ 8 bookmarks and ≤ 25% of them,
+      spellings merged, plurals merged only when the singular is used too,
+      domains excluded, nesting by 80% containment, most specific topics per
+      bookmark; `--dry-run` to review; GnamGnam **Topic** filter and topic
+      links on bookmark pages. Checked in the sandbox with synthetic
+      keywords (30 topics, 22% of bookmarks). **Run it locally on the real
+      keywords.**
 - [x] Dead-link handling:
   - Link status derived, not stored (`src/gnamgnam/LinkStatus.js`):
     last status seen (enrichment fetch, else first-pass probe) →
@@ -343,7 +347,7 @@ done locally.
       record the nonsense-query score used to justify the new value.
 - [ ] `bin/deadlinks.js` report: record dead/blocked/error counts; run
       `--wayback` over the dead ones.
-- [ ] Topic concepts (see 3a).
+- [ ] Topic concepts: run `node bin/topics.js --dry-run`, then write (see 3a).
 
 ### Acceptance
 
@@ -1013,3 +1017,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 10 | Squirt: search-first phone page, capture routed to task / bookmark / wiki Inbox, timeline from the change log + facet `recent()`, manifest + icons, service worker (network first, offline copies, cleared on logout), share target + bookmarklet. Chrome reports it installable; offline verified with the server stopped. 259 core + 12 store tests; Playwright + axe. | 5793270 |
 | 2026-09-26 | 11 | What next? advisor: transparent weighted scoring with reasons, time/@context inputs, skip penalty, learning from accepts, related resources, close-call dice, optional LLM second opinion; on /farelo/next and Squirt. 272 core + 13 store tests; Playwright + axe. | c9cfdfd |
 | 2026-09-26 | 12 | Operations: backup/restore (drill: identical counts across 17 graphs), app healthcheck + degraded /health, JSON logging, CI workflow, security review (private mode, CSP, cache headers, Secure cookie, link fix), deployment/security docs; CI workflow. 276 core + 13 store tests. | fbd08b6 |
+| 2026-09-26 | 3 | Topics from keywords (`bin/topics.js`, GnamGnam Topic filter); tags across facets (`/tags`, `/tags/<tag>`); links helper and panel shared by every facet; news item views split out. 282 core tests. | |

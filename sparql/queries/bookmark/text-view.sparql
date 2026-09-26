@@ -5,7 +5,7 @@
 SELECT ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
        ?fetchStatus ?context ?sourceLine ?archivedAt
        ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
-       ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags
+       ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags ?topics
        (GROUP_CONCAT(DISTINCT ?typeLabel; separator=", ") AS ?bookmarkTypes)
        (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
        (GROUP_CONCAT(DISTINCT ?kw; separator=", ") AS ?keywords)
@@ -52,6 +52,11 @@ WHERE {
     GROUP BY ?bookmark
   }
   OPTIONAL {
+    SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?topicLabel; separator=" | ") AS ?topics)
+    WHERE { GRAPH <graph:alignment/bookmark-topics> { ?bookmark dcterms:subject ?topic . ?topic skos:prefLabel ?topicLabel } }
+    GROUP BY ?bookmark
+  }
+  OPTIONAL {
     SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?category; separator=" | ") AS ?arxivCategory)
     WHERE { GRAPH ?cg { ?bookmark dim:arxivCategory ?category } }
     GROUP BY ?bookmark
@@ -60,5 +65,5 @@ WHERE {
 GROUP BY ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
          ?fetchStatus ?context ?sourceLine ?archivedAt
          ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
-         ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags
+         ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags ?topics
 ORDER BY ?linkText

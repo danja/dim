@@ -77,8 +77,6 @@ function renderAnnotations (doc, { session, slug }) {
 }
 
 function renderLinks (doc, { links, session, slug }) {
-  if (links === null || links === undefined) return ''
-  if (links.error) return `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
   return renderLinksPanel(links, { subject: doc.iri, session, returnPath: `${BASE_PATH}/bookmark/${slug}` })
 }
 
@@ -95,6 +93,7 @@ export function renderBookmarkPage (doc, { tabs, session = null, links = null })
 ${renderLinkStatus(doc)}
 ${facts ? `<p class="meta">${facts}</p>` : ''}
 ${text ? `<p>${esc(text)}</p>` : '<p class="muted">No summary yet.</p>'}
+${(doc.topics ?? []).length ? `<p class="meta">topics: ${doc.topics.map(t => `<a href="${BASE_PATH}/?topic=${encodeURIComponent(t)}">${esc(t)}</a>`).join(', ')}</p>` : ''}
 ${(doc.keywords ?? []).length ? `<p class="meta">key terms: ${esc(doc.keywords.join(', '))}</p>` : ''}
 ${renderAnnotations(doc, { session, slug })}
 ${renderLinks(doc, { links, session, slug })}

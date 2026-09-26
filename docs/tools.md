@@ -23,6 +23,7 @@ service topology (ports, datasets) lives in `docker-compose.yml` and `.env`.
 | `node bin/wiki-import.js` | Import wiki pages from a foowiki Turtle dump (`--turtle <file>`) or a folder of Markdown files (`--dir <folder>`); `--dry-run` to preview. See `docs/commands-wiki.md`. |
 | `node bin/news.js …` | Feed reader: `add <url>`, `import <opml or list>`, `export`, `list`, `poll [--all]`, `prune`, `remove <slug>`. See `docs/commands-news.md`. |
 | `node bin/blog-export.js` | Published blog posts → a static site with Atom feed (`--out`, `--base-url`, `--title`, `--author`). See `docs/commands-blog.md`. |
+| `node bin/topics.js` | Derive bookmark topics (SKOS) from enrichment keywords, GitHub topics, arXiv categories and tags; `--dry-run` to review. See `docs/commands-gnamgnam.md`. |
 | `node bin/backup.js` / `node bin/restore.js` | Back up the store (all graphs, TriG) + vector index (+ caches with `--with-cache`); restore one (`--list`, `<dir> --yes`, `--store-only`). See `docs/deployment.md`. |
 | `node bin/deadlinks.js` | Link-status report (`--status dead\|blocked\|error\|ok\|unchecked`, default `dead`; `--json`, `--limit N`). `--wayback` looks up Wayback Machine snapshots for the listed bookmarks (1 req/s, cached in `data/cache/wayback.json`) and writes `schema:archivedAt`; re-run after a re-ingest to restore them from the cache. |
 | `bin/pipeline.sh [--limit N]` | The whole run in one go: retrieve → ingest → enrich (+re-embed) → index → validate. Re-runs resume via caches. `--live` probes URLs at ingest, `--summariser ollama` for LLM summaries, `--no-reembed` / `--skip-validate` to trim stages. |
@@ -73,6 +74,7 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | `GET /farelo/…` | Farelo board, tasks and dice — see `docs/commands-farelo.md`. |
 | `GET /wiki/…` | Wiki pages, history, diffs — see `docs/commands-wiki.md`. |
 | `GET /news/…` | News river, items, feeds, OPML — see `docs/commands-news.md`. |
+| `GET /tags`, `/tags/<tag>` | Every tag in use, and everything with one tag, across facets (`.json` too). |
 | `GET /blog/…` | Blog posts, tags, Atom feed — see `docs/commands-blog.md`. |
 | `GET /squirt/…` | Phone front page, capture, share target, manifest, service worker — see `docs/commands-squirt.md`. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |

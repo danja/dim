@@ -84,9 +84,7 @@ export function renderNodePage ({ outline, node, crumbs, tabs, session, treeCtx,
   const parentPath = parent ? nodePath(parent) : outlinePath(outline)
   const trail = ['<a href="/trestle/">Outlines</a>', `<a href="${outlinePath(outline)}">${esc(outline.title)}</a>`,
     ...crumbs.map(c => `<a href="${nodePath(c)}">${esc(plainText(c.title) || '(untitled)')}</a>`)].join(' <span aria-hidden="true">›</span> ')
-  const linksHtml = links?.error
-    ? `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
-    : links ? renderLinksPanel(links, { subject: node.iri, session, returnPath }) : ''
+  const linksHtml = renderLinksPanel(links, { subject: node.iri, session, returnPath })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs">${trail}</nav>
 <h1 class="node-title">${titleHtml(node)}</h1>
 ${node.note ? `<div class="note">${renderMarkdown(node.note)}</div>` : ''}

@@ -72,9 +72,7 @@ function paragraphs (text) {
 
 export function renderItemPage ({ item, feed, text, links, tabs, session }) {
   const path = itemPath(item)
-  const linksHtml = links?.error
-    ? `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
-    : links ? renderLinksPanel(links, { subject: item.iri, session, returnPath: path }) : ''
+  const linksHtml = renderLinksPanel(links, { subject: item.iri, session, returnPath: path })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/news/">News</a>${feed ? ` <span aria-hidden="true">›</span> <a href="${feedPath(feed)}">${esc(feed.title)}</a>` : ''}</nav>
 <h1>${esc(item.title)}</h1>
 <p class="meta">${[when(item.published ?? item.firstSeen), item.author ? esc(item.author) : '', item.categories.length ? esc(item.categories.join(', ')) : ''].filter(Boolean).join(' · ')}</p>

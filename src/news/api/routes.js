@@ -8,6 +8,7 @@ import { saveAsBookmark, makeTask } from '../saveAs.js'
 import { itemPath, feedPath } from './common.js'
 import { renderRiver, renderItemPage, riverQuery } from './river.js'
 import { renderFeedsPage, renderFeedPage } from './feedsPage.js'
+import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 
 /** News HTTP routes, mounted at /news. */
 
@@ -17,16 +18,6 @@ const flag = v => v === undefined ? undefined : v === true || v === 'true' || v 
 
 function notFound (what) {
   return Object.assign(new Error(`No such ${what}`), { status: 404 })
-}
-
-async function linksFor ({ services, registry }, resourceIri) {
-  if (!services?.links) return null
-  try {
-    const links = await services.links.linksOf(resourceIri)
-    return Promise.all(links.map(async l => ({ ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
-  } catch (error) {
-    return { error: error.message }
-  }
 }
 
 function queryOf (url) {
@@ -59,7 +50,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     const it = await item(match[1])
     const text = await store.itemText(it)
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, { ...it, text })
-    return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await linksFor({ services, registry }, it.iri), tabs, session }))
+    return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), tabs, session }))
   })
 
   router.get('/news/feeds', async ({ response, url, session }) =>

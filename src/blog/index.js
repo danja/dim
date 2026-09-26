@@ -1,6 +1,7 @@
 import { registerRoutes } from './api/routes.js'
 import { appPath, excerpt } from './render.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
+import { countTags } from '../common/facets/tags.js'
 
 /**
  * Blog — posts written here or started from a wiki page or outline item,
@@ -25,6 +26,15 @@ export function createBlogFacet ({ store, wiki = null, outlines = null, title = 
     async health () {
       const all = await store.list({ drafts: true })
       return { status: 'ok', published: all.filter(p => p.status === 'published').length, drafts: all.filter(p => p.status === 'draft').length }
+    },
+
+    /** Published posts only, like find. */
+    async tags () {
+      return countTags((await store.list()).map(p => p.tags))
+    },
+
+    async tagged (tag) {
+      return (await store.list({ tag })).map(p => ({ iri: p.iri, label: p.title, href: appPath(p), snippet: excerpt(p, 160) }))
     },
 
     async lookup (resourceIri) {

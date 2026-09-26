@@ -1,6 +1,7 @@
 import { registerRoutes } from './api/routes.js'
 import { pagePath } from './api/common.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
+import { countTags } from '../common/facets/tags.js'
 
 /**
  * Wiki — Markdown pages with full revision history, in graph:facet/wiki.
@@ -30,6 +31,16 @@ export function createWikiFacet ({ store }) {
 
     async health () {
       return { status: 'ok', pages: (await store.list()).length }
+    },
+
+    async tags () {
+      return countTags((await store.list()).map(p => p.tags))
+    },
+
+    async tagged (tag) {
+      return (await store.list()).filter(p => p.tags.includes(tag))
+        .sort((a, b) => a.title.localeCompare(b.title))
+        .map(p => ({ iri: p.iri, label: p.title, href: pagePath(p), snippet: snippet(p.content, []) }))
     },
 
     async lookup (resourceIri) {

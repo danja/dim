@@ -1,6 +1,7 @@
 import { registerRoutes } from './api/routes.js'
 import { itemPath, feedPath } from './api/common.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
+import { countTags } from '../common/facets/tags.js'
 
 /**
  * News — the feed reader, after danja/NewsMonitor. Feeds and your
@@ -33,6 +34,15 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
         unread: counts.reduce((n, c) => n + c.unread, 0),
         polling: Boolean(poller.running)
       }
+    },
+
+    /** Feed tags. */
+    async tags () {
+      return countTags((await store.feedList()).map(f => f.tags))
+    },
+
+    async tagged (tag) {
+      return (await store.feedList()).filter(f => f.tags.includes(tag)).map(f => ({ iri: f.iri, label: f.title, href: feedPath(f), snippet: 'feed' }))
     },
 
     async lookup (resourceIri) {

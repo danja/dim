@@ -39,7 +39,8 @@ ${postList(published, at)}
 export function renderTag ({ tag, posts, tabs, session }) {
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/blog/">Blog</a></nav>
 <h1>Tagged “${esc(tag)}”</h1>
-${postList(posts, at)}`
+${postList(posts, at)}
+<p class="meta"><a href="/tags/${encodeURIComponent(tag)}">Everything tagged “${esc(tag)}”</a></p>`
   return blogPage({ title: `Tagged ${tag}`, body, tabs, session })
 }
 
@@ -57,9 +58,7 @@ ${publish}
 }
 
 export function renderPost ({ post, posts, published, source, links, tabs, session }) {
-  const linksHtml = links?.error
-    ? `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
-    : links ? renderLinksPanel(links, { subject: post.iri, session, returnPath: appPath(post) }) : ''
+  const linksHtml = renderLinksPanel(links, { subject: post.iri, session, returnPath: appPath(post) })
   const from = source ? `<p class="meta">Started from <a href="${esc(source.href)}">${esc(source.label)}</a> (${esc(source.facetLabel ?? '')})</p>` : ''
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/blog/">Blog</a></nav>
 ${ownerControls(post, session)}

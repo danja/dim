@@ -49,6 +49,18 @@ export function createGnamgnamFacet ({ search }) {
       return { status: 'ok', bookmarks: search.documents.size, index: search.index.size }
     },
 
+    /** Your own tags on bookmarks (the source's tags are mostly domains). */
+    tags () {
+      const out = new Map()
+      for (const doc of search.documents.values()) for (const t of doc.userTags ?? []) out.set(t, (out.get(t) ?? 0) + 1)
+      return out
+    },
+
+    tagged (tag) {
+      return [...search.documents.values()].filter(d => (d.userTags ?? []).includes(tag))
+        .map(d => ({ iri: d.iri, label: d.name, href: href(d), snippet: snippet(d) }))
+    },
+
     /** A bookmark was written elsewhere (e.g. saved from News): load it now. */
     async refresh (resourceIri) {
       return search.loadDocument?.(resourceIri) ?? null

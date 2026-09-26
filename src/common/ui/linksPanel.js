@@ -35,7 +35,10 @@ function addForm ({ subject, session, returnPath }) {
 </form>`
 }
 
+/** links: a resolved list, { error } when the store couldn't answer, or null (no links service). */
 export function renderLinksPanel (links, { subject, session, returnPath }) {
+  if (!links) return ''
+  if (links.error) return `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
   const groups = new Map()
   for (const link of links) {
     const spec = LINK_KINDS[link.kind]

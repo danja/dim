@@ -14,7 +14,8 @@ function squirtPage ({ title, body, tabs, session }) {
 const searchForm = `<form class="search squirt-search" method="get" action="/find" role="search">
 <input type="search" name="q" placeholder="Search everything…" aria-label="Search everything" enterkeyhint="search">
 <button>Find</button>
-</form>`
+</form>
+<p class="meta"><a href="/tags">Browse by tag</a></p>`
 
 export function captureForm ({ session, values = {}, guess = null }) {
   if (!session?.user) {

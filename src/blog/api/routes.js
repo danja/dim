@@ -7,6 +7,7 @@ import { draftFrom } from '../sources.js'
 import { appPath, datedPath, atomFeed, postHtml } from '../render.js'
 import { renderIndex, renderTag, renderPost } from './pages.js'
 import { renderEdit } from './edit.js'
+import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 
 /**
  * Blog HTTP routes, mounted at /blog. Drafts exist only for the logged-in
@@ -19,16 +20,6 @@ function notFound (what) {
   return Object.assign(new Error(`No such ${what}`), { status: 404 })
 }
 
-async function linksFor ({ services, registry }, resourceIri) {
-  if (!services?.links) return null
-  try {
-    const links = await services.links.linksOf(resourceIri)
-    return Promise.all(links.map(async l => ({ ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
-  } catch (error) {
-    return { error: error.message }
-  }
-}
-
 export function registerRoutes (router, { store, wiki, outlines, blogTitle, blogAuthor, tabs, services, registry, origin }) {
   const visible = async (slug, session) => {
     const post = await store.get(slug)
@@ -38,7 +29,7 @@ export function registerRoutes (router, { store, wiki, outlines, blogTitle, blog
   const showPost = async ({ response, post, session }) => {
     const published = await store.list()
     const source = post.derivedFrom ? await registry.lookup(post.derivedFrom) : null
-    return sendHtml(response, 200, renderPost({ post, posts: await store.list({ drafts: true }), published, source, links: await linksFor({ services, registry }, post.iri), tabs, session }))
+    return sendHtml(response, 200, renderPost({ post, posts: await store.list({ drafts: true }), published, source, links: await resolvedLinks({ services, registry }, post.iri), tabs, session }))
   }
 
   router.get('/blog', async ({ response, session }) => {

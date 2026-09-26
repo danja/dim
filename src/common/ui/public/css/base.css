@@ -422,3 +422,7 @@ main:has(.board) { max-width: 90rem; }
   body { background: #fff; color: #000; }
   .dice-list a { color: #000; text-decoration: none; }
 }
+
+/* ── Tags across facets (/tags) ─────────────────────────────────────── */
+.tag-cloud { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.tag-cloud li { min-height: 44px; display: inline-flex; align-items: center; gap: 0.35rem; }

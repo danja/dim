@@ -26,6 +26,7 @@
     "wiki-import": "node bin/wiki-import.js",
     "news": "node bin/news.js",
     "blog-export": "node bin/blog-export.js",
+    "topics": "node bin/topics.js",
     "backup": "node bin/backup.js",
     "restore": "node bin/restore.js"
   },
