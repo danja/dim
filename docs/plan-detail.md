@@ -671,4 +671,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 2 | Live check: shell, search, `/health` and redirects work against the live store. Phase 2 done. | |
 | 2026-09-26 | — | Found the Phase 2 "done" commit missing from `main` (pushed after the merge); re-applied. | |
 | 2026-09-26 | 3 | 3a: catalogue details, link status + `bin/deadlinks.js` (Wayback), bookmark detail page, fix for re-ingest losing enrichment, query-parse tests. 114/114 tests; verified on a local Fuseki 5.6 (ingest 5,121, SHACL clean). Topics deferred. | 52ca784 |
-| 2026-09-26 | 3 | 3b: `retrieve --live` ran locally (118 min). Ingest then halted on LinkedIn's HTTP 999 (SHACL max 599); fixed — any three-digit status recorded, ≥600 = blocked. 116/116 tests. | |
+| 2026-09-26 | 3 | 3b: `retrieve --live` ran locally (118 min). Ingest then halted on LinkedIn's HTTP 999 (SHACL max 599); fixed — any three-digit status recorded, ≥600 = blocked. 116/116 tests. | 7aa6657 |
