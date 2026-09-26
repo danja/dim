@@ -51,6 +51,19 @@ describe('TaskStore against the store', () => {
     expect((await store.get(b.id)).dependsOn).toEqual([])
   })
 
+  it('places cards in Done as they appear on screen (newest first)', async () => {
+    const shown = async () => columns(await store.list()).done.filter(t => t.title.startsWith('D')).map(t => t.title)
+    const d1 = await store.create({ title: 'D1', status: 'done' }, 'test')
+    const d2 = await store.create({ title: 'D2', status: 'done' }, 'test')
+    const d3 = await store.create({ title: 'D3', status: 'done' }, 'test')
+    expect(await shown()).toEqual(['D3', 'D2', 'D1']) // new ones on top
+    await store.move(d1, { status: 'done', after: d3.id }, 'test') // dropped just below D3
+    expect(await shown()).toEqual(['D3', 'D1', 'D2'])
+    await store.move(await store.get(d2.id), { status: 'done', before: d3.id }, 'test') // just above D3
+    expect(await shown()).toEqual(['D2', 'D3', 'D1'])
+    for (const t of [d1, d2, d3]) await store.delete(await store.get(t.id), 'test')
+  })
+
   it('refuses bad input', async () => {
     await expect(store.create({ title: '' }, 'test')).rejects.toThrow(/title/)
     await expect(store.create({ title: 'x', priority: '0' }, 'test')).rejects.toThrow(/Priority/)

@@ -34,7 +34,12 @@ export function parseCookies (header = '') {
     const eq = part.indexOf('=')
     if (eq === -1) continue
     const key = part.slice(0, eq).trim()
-    if (key) out[key] = decodeURIComponent(part.slice(eq + 1).trim())
+    if (!key) continue
+    // Any site on this host can set cookies we receive; a malformed one is
+    // skipped, never allowed to throw.
+    try {
+      out[key] = decodeURIComponent(part.slice(eq + 1).trim())
+    } catch { /* not ours to fix */ }
   }
   return out
 }

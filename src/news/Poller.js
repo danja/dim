@@ -71,11 +71,17 @@ export class Poller {
       .slice().sort((a, b) => (b.published ?? '').localeCompare(a.published ?? ''))
       .slice(0, this.config.maxItemsPerPoll)
     const first = !feed.lastPolled
-    const fresh = await this.store.addItems(feed, newest)
-    if (first && fresh.length) {
-      // Subscribing shouldn't bury you: older items start as read.
-      const cutoff = new Date(this.now().getTime() - this.config.firstPollUnreadDays * 86400000).toISOString()
-      await this.store.setFlags(fresh.filter(i => (i.published ?? i.firstSeen) < cutoff), { read: true })
+    let fresh
+    try {
+      fresh = await this.store.addItems(feed, newest)
+      if (first && fresh.length) {
+        // Subscribing shouldn't bury you: older items start as read.
+        const cutoff = new Date(this.now().getTime() - this.config.firstPollUnreadDays * 86400000).toISOString()
+        await this.store.setFlags(fresh.filter(i => (i.published ?? i.firstSeen) < cutoff), { read: true })
+      }
+    } catch (error) {
+      // Recorded, so the feed backs off instead of failing on every tick.
+      return fail('error', `storing items failed: ${error.message}`, code)
     }
     const learnt = {}
     if (feed.title === feed.url && parsed.title) learnt.title = parsed.title

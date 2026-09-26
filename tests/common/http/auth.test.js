@@ -80,4 +80,10 @@ describe('request bodies', () => {
       expect(safeReturn(bad, '/home'), String(bad)).toBe('/home')
     }
   })
+
+  it('ignores a malformed cookie rather than throwing', () => {
+    const auth = new Auth({ token: 'test-token-0123456789abcdef' })
+    expect(parseCookies('other=%E0%A4%A; dim_session=abc')).toEqual({ dim_session: 'abc' })
+    expect(auth.identify({ headers: { cookie: 'other=%E0%A4%A' } })).toMatchObject({ user: null })
+  })
 })

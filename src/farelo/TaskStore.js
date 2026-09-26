@@ -95,7 +95,13 @@ export class TaskStore {
   /** The end of a column (or a spot after/before a task in it). */
   async #place (status, { before = null, after = null } = {}) {
     const column = columns(await this.list())[status]
-    if (status === 'done') column.reverse()
+    // Done is shown newest (highest position) first: work in ascending order,
+    // so what's "after" on screen is before in position — and a task with no
+    // anchor lands at the top.
+    if (status === 'done') {
+      column.reverse()
+      ;[before, after] = [after, before]
+    }
     if (after || before) {
       const anchorId = after ?? before
       const i = column.findIndex(t => t.id === anchorId)

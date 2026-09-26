@@ -81,4 +81,14 @@ describe('Poller', () => {
     expect(await poller.pollDue()).toMatchObject({ polled: 0 })
     expect(await poller.pollDue({ force: true })).toMatchObject({ polled: 2, fresh: 0 })
   })
+
+  it('records a failure to store items, so the feed backs off', async () => {
+    const { store, poller } = await setup({ 'https://e.org/f': { body: rss } })
+    const feed = await store.addFeed({ url: 'https://e.org/f', title: 'E' }, 'test')
+    store.addItems = async () => { throw new Error('store down') }
+    expect(await poller.pollFeed(feed)).toMatchObject({ status: 'error', error: 'storing items failed: store down' })
+    expect(feed.failures).toBe(1)
+    expect(poller.isDue(feed)).toBe(false)
+  })
 })
+
