@@ -12,8 +12,13 @@ catalogues it in a SKOS concept scheme (`dim:bookmark-types`).
 
 ## Status
 
-Core port complete: 5,121 bookmarks in the store, SHACL-validated, hybrid
-(lexical + vector) search over them, read-only API + search UI.
+All facets in the plan are built (docs/plan-detail.md): GnamGnam
+(bookmarks, hybrid search, enrichment), Trestle (outliner), Farelo (tasks,
+Getting Things Diced, "What next?"), Wiki, News, Blog and Squirt (phone view,
+installable). Everything is in one SPARQL store, SHACL-validated, one named
+graph per facet, cross-linked. Runs on localhost; see
+[`docs/deployment.md`](docs/deployment.md) for Docker, backups and reaching
+it from a phone, and [`docs/security.md`](docs/security.md) before doing so.
 
 ## Requirements
 

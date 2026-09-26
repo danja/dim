@@ -131,6 +131,18 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       HF_TOKEN: ${HF_TOKEN:-}
       NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      # Where DIM is reached (https://… when behind a proxy for the phone);
+      # makes the session cookie https-only. DIM_PRIVATE=1: every page needs
+      # a login — set it whenever DIM is reachable from anything but this host.
+      DIM_ORIGIN: ${DIM_ORIGIN:-}
+      DIM_PRIVATE: ${DIM_PRIVATE:-}
+      NEWS_POLL_MINUTES: ${NEWS_POLL_MINUTES:-}
+      BLOG_TITLE: ${BLOG_TITLE:-}
+      BLOG_AUTHOR: ${BLOG_AUTHOR:-}
+      BLOG_BASE_URL: ${BLOG_BASE_URL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-}
+      LOG_REQUESTS: ${LOG_REQUESTS:-}
       PORT: "4110"
       # Modest by default and overridden from compose. The working set is the
       # document map and a few megabytes of vector index, not gigabytes.
@@ -144,6 +156,16 @@ services:
       # The vector index and the harvest caches are state. They survive a
       # rebuild, and `docker compose run` shares them with the running service.
       - app-data:/app/data
+      # Backups land on the host (bin/backup.js). The directory must be
+      # writable by the app user (uid 1001): see docs/deployment.md.
+      - ${BACKUP_HOST_DIR:-./backups}:/app/data/backups
+    healthcheck:
+      # /health answers 503 when the store or a facet is failing.
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4110/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
     depends_on:
       fuseki:
         condition: service_healthy

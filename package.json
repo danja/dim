@@ -25,7 +25,9 @@
     "farelo-import": "node bin/farelo-import.js",
     "wiki-import": "node bin/wiki-import.js",
     "news": "node bin/news.js",
-    "blog-export": "node bin/blog-export.js"
+    "blog-export": "node bin/blog-export.js",
+    "backup": "node bin/backup.js",
+    "restore": "node bin/restore.js"
   },
   "dependencies": {
     "@rdfjs/namespace": "^2.0.0",

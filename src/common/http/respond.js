@@ -1,13 +1,39 @@
 /**
  * Response helpers shared by every facet. Dependency-free node:http,
- * CORS-open (CC0 catalogue data).
+ * CORS-open for reading (cookies are SameSite=Strict, so other sites never
+ * read as the owner). Nothing is cacheable by shared caches: much of what
+ * DIM serves is personal (docs/security.md).
  */
 
 export const JSON_HEADERS = Object.freeze({
   'Content-Type': 'application/json; charset=utf-8',
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Cache-Control': 'public, max-age=60'
+  'Cache-Control': 'private, no-cache',
+  'X-Content-Type-Options': 'nosniff'
+})
+
+/** Pages load scripts, styles and fonts from DIM only, and can't be framed. */
+export const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' data: https:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "manifest-src 'self'",
+  "worker-src 'self'"
+].join('; ')
+
+export const HTML_HEADERS = Object.freeze({
+  'Content-Security-Policy': CSP,
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'same-origin',
+  'Cache-Control': 'private, no-cache'
 })
 
 export const LICENCE = Object.freeze({
@@ -22,17 +48,21 @@ export function send (response, status, body) {
   response.end(payload)
 }
 
-export function sendText (response, status, body, contentType) {
+export function sendText (response, status, body, contentType, extra = {}, { cors = true } = {}) {
   response.writeHead(status, {
     'Content-Type': contentType,
-    'Access-Control-Allow-Origin': '*',
-    'Content-Length': Buffer.byteLength(body)
+    ...(cors ? { 'Access-Control-Allow-Origin': '*' } : {}),
+    'Cache-Control': 'private, no-cache',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Length': Buffer.byteLength(body),
+    ...extra
   })
   response.end(body)
 }
 
+/** Pages are for this origin only: no CORS, and the security headers. */
 export function sendHtml (response, status, body) {
-  sendText(response, status, body, 'text/html; charset=utf-8')
+  sendText(response, status, body, 'text/html; charset=utf-8', HTML_HEADERS, { cors: false })
 }
 
 /** Escape text for HTML element content and double-quoted attributes. */

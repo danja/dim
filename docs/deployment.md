@@ -121,18 +121,104 @@ Validate every registered graph against `vocabs/shapes.ttl`:
 docker compose run --rm app node bin/validate.js
 ```
 
-## Backups
+## Settings
 
-Harvested graphs are reproducible from source, so they are not what
-needs backing up. What is irreplaceable is curation and any enrichment
-cache you would rather not re-fetch:
+Beyond the store and model settings above, all optional (`.env`):
+
+| Variable | Does |
+|---|---|
+| `DIM_WRITE_TOKEN` | 16+ characters; enables logging in and every write |
+| `DIM_PRIVATE=1` | every page needs a login (not just writes). **Set it whenever DIM is reachable from anything but this machine.** |
+| `DIM_ORIGIN` | the address DIM is reached at, e.g. `https://dim.example.ts.net`; used in feeds and the bookmarklet, and makes the session cookie https-only |
+| `NEWS_POLL_MINUTES` | poll due feeds from the server every N minutes |
+| `BLOG_TITLE`, `BLOG_AUTHOR`, `BLOG_BASE_URL` | blog name, author, public URL of the static export |
+| `LOG_LEVEL`, `LOG_FORMAT=json`, `LOG_REQUESTS=1` | logging (below) |
+| `BACKUP_DIR` (tools), `BACKUP_HOST_DIR` (compose) | where backups go |
+
+## Reaching DIM from your phone (https)
+
+DIM listens on loopback only. To use it from a phone, put an https proxy in
+front of it. Browsers only install the app, run its service worker and share
+into it over https.
+
+**Tailscale** (simplest; only your own devices can reach it):
 
 ```sh
-docker compose exec fuseki /jena-fuseki/bin/tdb2.tdbdump \
-  --loc /fuseki-base/databases/dim > backup-$(date +%F).nq
+tailscale serve --bg 4110          # https://<machine>.<tailnet>.ts.net → localhost:4110
 ```
 
-A weekly dump is ample.
+**Caddy**, on a host with a public name:
+
+```
+dim.example.org {
+    reverse_proxy 127.0.0.1:4110
+}
+```
+
+Either way, set these in `.env` and restart:
+
+```sh
+DIM_ORIGIN=https://<machine>.<tailnet>.ts.net
+DIM_PRIVATE=1
+```
+
+Never publish Fuseki (`:3031`) or Ollama. Only the app goes through the
+proxy. See `docs/security.md`.
+
+## Backups
+
+The store holds work that exists nowhere else: the wiki, tasks, outlines as
+edited, notes, links, news subscriptions, blog posts. Back it up.
+
+```sh
+node bin/backup.js                         # store (all graphs, TriG, gzipped) + vector index → data/backups/<time>/
+node bin/backup.js --with-cache            # …and data/cache (enrichment/retrieval caches)
+node bin/backup.js --keep 30               # keep the newest 30 (default 14)
+node bin/restore.js --list
+node bin/restore.js <backup> --yes         # REPLACES the store; saves the current state first
+node bin/restore.js <backup> --yes --store-only
+```
+
+With Docker, backups go to `./backups` on the host (`BACKUP_HOST_DIR`). The
+directory must be writable by the container's user:
+
+```sh
+mkdir -p backups && sudo chown 1001:1001 backups
+docker compose run --rm app node bin/backup.js
+```
+
+Nightly, from the host's crontab (`crontab -e`):
+
+```
+17 3 * * *  cd /path/to/dim && docker compose run --rm app node bin/backup.js >> backups/backup.log 2>&1
+```
+
+Each backup has a `manifest.json` with a checksum. Restore refuses a store
+file that doesn't match it.
+
+**Restore drill.** Rehearse this once, and again after upgrades:
+
+1. `node bin/backup.js`.
+2. Count triples per graph:
+   `curl -s -u admin:$SPARQL_PASSWORD localhost:3031/dim/query --data-urlencode 'query=SELECT ?g (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s ?p ?o } } GROUP BY ?g ORDER BY ?g' -H 'Accept: text/csv' > before.csv`
+3. Break something, for example
+   `curl -s -u admin:$SPARQL_PASSWORD localhost:3031/dim/update --data-urlencode 'update=DROP GRAPH <graph:facet/wiki>'`.
+4. `node bin/restore.js <that backup> --yes`, then count again into
+   `after.csv` and `diff before.csv after.csv` — no difference.
+5. Restart the app (it caches in memory).
+
+(Rehearsed 2026-09-26 on a 17-graph store: identical counts; the restore
+took about 11 s.)
+
+## Health and logs
+
+- **`/health`** returns 200 `ok`, or 503 `degraded` when the store is
+  unreachable or a facet fails. It gives per-facet counts; with
+  `DIM_PRIVATE`, strangers see only the status. Compose checks it every 30 s.
+- **Logs** go to the console, which is Docker's log. `LOG_FORMAT=json`
+  writes one JSON object per line, for a log collector. `LOG_REQUESTS=1`
+  adds a line per request (method, path, status, time).
+  `LOG_LEVEL=debug` shows more.
 
 ## Operating notes
 

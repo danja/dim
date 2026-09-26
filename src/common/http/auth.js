@@ -40,18 +40,29 @@ export function parseCookies (header = '') {
 }
 
 export class Auth {
-  constructor ({ token = null, now = () => Date.now(), secureCookie = false } = {}) {
+  /**
+   * privateReads: every page needs a login, not only writes (DIM_PRIVATE=1;
+   * for anything beyond localhost). secureCookie: the session cookie is
+   * https-only (set when DIM_ORIGIN is https).
+   */
+  constructor ({ token = null, now = () => Date.now(), secureCookie = false, privateReads = false } = {}) {
     if (token && token.length < MIN_TOKEN_LENGTH) {
       throw new Error(`DIM_WRITE_TOKEN must be at least ${MIN_TOKEN_LENGTH} characters`)
     }
+    if (privateReads && !token) throw new Error('DIM_PRIVATE needs DIM_WRITE_TOKEN: otherwise nobody could log in')
     this.token = token || null
     this.now = now
     this.secureCookie = secureCookie
+    this.privateReads = privateReads
     this.sessions = new Map()
   }
 
   static fromEnv (env = process.env) {
-    return new Auth({ token: env.DIM_WRITE_TOKEN || null })
+    return new Auth({
+      token: env.DIM_WRITE_TOKEN || null,
+      secureCookie: /^https:/i.test(env.DIM_ORIGIN ?? ''),
+      privateReads: /^(1|true|yes)$/i.test(env.DIM_PRIVATE ?? '')
+    })
   }
 
   get writesEnabled () {

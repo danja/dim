@@ -156,7 +156,11 @@ export class FacetRegistry {
   async health () {
     const out = {}
     for (const facet of this.facets) {
-      out[facet.id] = typeof facet.health === 'function' ? await facet.health() : { status: 'ok' }
+      try {
+        out[facet.id] = typeof facet.health === 'function' ? await facet.health() : { status: 'ok' }
+      } catch (error) {
+        out[facet.id] = { status: 'error', error: error.message }
+      }
     }
     return out
   }

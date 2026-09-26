@@ -1,6 +1,6 @@
 import { esc } from '../../common/http/respond.js'
 import { renderPage } from '../../common/ui/layout.js'
-import { formFields } from '../../common/http/write.js'
+import { formFields, safeReturn } from '../../common/http/write.js'
 import { nextCard } from '../../advisor/api/page.js'
 
 /** Squirt: search, capture, and what happened lately — for the phone. */
@@ -55,7 +55,7 @@ function extras (origin) {
 }
 
 export function renderHome ({ items, next = null, captured, origin, tabs, session }) {
-  const done = captured?.href?.startsWith('/') ? `<p role="status" class="captured">Saved: <a href="${esc(captured.href)}">${esc(captured.label || captured.href)}</a></p>` : ''
+  const done = safeReturn(captured?.href, null) ? `<p role="status" class="captured">Saved: <a href="${esc(captured.href)}">${esc(captured.label || captured.href)}</a></p>` : ''
   const body = `<h1 class="visually-hidden">Squirt</h1>
 ${searchForm}
 ${done}

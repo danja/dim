@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import logger from 'loglevel'
 import Config from '../src/common/Config.js'
 import SPARQLClient from '../src/common/store/SPARQLClient.js'
 import VectorIndex from '../src/common/vectors/VectorIndex.js'
@@ -24,8 +23,9 @@ import AdviceStore from '../src/advisor/AdviceStore.js'
 import Poller from '../src/news/Poller.js'
 import { NEWS_CONFIG } from '../config/preferences.js'
 import RollLog from '../src/farelo/RollLog.js'
+import { configureLogging } from '../src/common/logging.js'
 
-logger.setLevel('info')
+const logging = configureLogging()
 
 const config = Config.load()
 const port = Number(process.env.PORT) || 4110
@@ -68,12 +68,13 @@ const advisor = new Advisor({ tasks, advice: new AdviceStore({ client, repositor
 const blog = { store: posts, title: process.env.BLOG_TITLE || 'Blog', author: process.env.BLOG_AUTHOR || 'owner' }
 const rolls = new RollLog({ client, registry })
 const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller }, blog, client, advisor })
-const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
+const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links }, logRequests: logging.requests })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)
   console.log(auth.writesEnabled
     ? '  writes: enabled — log in at /login with DIM_WRITE_TOKEN'
     : '  writes: disabled — set DIM_WRITE_TOKEN (16+ chars) in .env to enable notes, tags and links')
+  if (auth.privateReads) console.log('  reads: private — every page needs a login (DIM_PRIVATE)')
   console.log(`  facets: ${facets.map(f => `/${f.id}/`).join('  ')}`)
   console.log('  GET /gnamgnam/?q=...            bookmark search page')
   console.log('  GET /gnamgnam/search?q=...      hybrid search JSON, optional bookmarkType/domain')

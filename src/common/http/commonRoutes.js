@@ -30,13 +30,25 @@ function clampLimit (value, fallback, max = 50) {
 export function registerCommonRoutes (router, { registry, services, config, defaultFacet, projectRoot, origin }) {
   router.get('/', ({ response, url }) => redirect(response, 302, `/${defaultFacet}/${url.search}`))
 
-  router.get('/health', async ({ response }) => send(response, 200, {
-    status: 'ok',
-    facets: await registry.health(),
-    writes: services.auth.writesEnabled ? 'enabled' : 'disabled',
-    embeddingModel: config?.get('embedding.model') ?? null,
-    licence: LICENCE
-  }))
+  // 200 when every facet is fine (or only planned), 503 "degraded" when one
+  // fails — e.g. the store is down. Strangers get only the status when
+  // reads are private.
+  router.get('/health', async ({ response, session }) => {
+    const facets = await registry.health()
+    const client = services.repository?.client
+    if (client?.isReachable) facets.store = (await client.isReachable().catch(() => false)) ? { status: 'ok' } : { status: 'error', error: 'SPARQL endpoint not reachable' }
+    const status = Object.values(facets).every(f => ['ok', 'planned'].includes(f.status)) ? 'ok' : 'degraded'
+    const code = status === 'ok' ? 200 : 503
+    if (services.auth.privateReads && !session?.user) return send(response, code, { status })
+    return send(response, code, {
+      status,
+      facets,
+      writes: services.auth.writesEnabled ? 'enabled' : 'disabled',
+      private: Boolean(services.auth.privateReads),
+      embeddingModel: config?.get('embedding.model') ?? null,
+      licence: LICENCE
+    })
+  })
 
   router.get('/ns', ({ response }) => send(response, 200, {
     vocabularies: Object.keys(VOCABULARIES).map(name => ({ name, url: `/ns/${name}.ttl` })),

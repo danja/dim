@@ -58,7 +58,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 9 | Blog engine | 7 | `[x]` (local check pending) |
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[x]` (phone check needs https) |
 | 11 | "What next?" advisor | 6, 3, 4 | `[x]` (local check pending) |
-| 12 | Operations: backup, auth, deploy hardening | runs alongside | `[ ]` |
+| 12 | Operations: backup, auth, deploy hardening | runs alongside | `[x]` (CI's first run to watch) |
 
 Phases 5–8 are independent of each other once Phase 4 is done and can be
 taken in any order; the order above puts the todo graph (Farelo) and the
@@ -940,16 +940,30 @@ time/resources.
 
 ## Phase 12 — Operations (ongoing)
 
-- [ ] Backups: scheduled Fuseki dump (TriG) + FAISS index + `data/cache`
-      to a host directory; restore drill documented.
-- [ ] Healthchecks for all compose services; `/health` reports per facet.
-- [ ] Structured logging (loglevel → JSON option).
-- [ ] CI: GitHub Actions running `npm test` (core, offline) on push.
-- [ ] Security review before anything leaves loopback (write auth,
-      Fuseki update endpoint never exposed).
-- [ ] Keep `docs/tools.md` and `docs/deployment.md` in step with each phase.
-
----
+- [x] Backups (`bin/backup.js`): the whole store as gzipped TriG from the
+      Graph Store endpoint, the vector index, optionally `data/cache`;
+      timestamped directories with a checksummed manifest; keeps the newest
+      14. `bin/restore.js` verifies the checksum, saves the current state
+      first, replaces the dataset. Nightly via host cron (compose bind-mounts
+      `./backups`). **Restore drill done** on the sandbox store: dropped a
+      graph, restored, per-graph triple counts identical (17 graphs).
+- [x] Healthchecks: Fuseki, Ollama and now the app in compose; `/health`
+      checks the store and every facet, answering 503 "degraded" on a
+      failure (verified with the store stopped).
+- [x] Structured logging: `LOG_FORMAT=json` (one object per line, fields +
+      stack), `LOG_LEVEL`, `LOG_REQUESTS=1` for an access line per request.
+- [x] CI: `.github/workflows/ci.yml` runs `npm test` (offline suite) on
+      push and pull request.
+- [x] Security review (`docs/security.md`): added `DIM_PRIVATE=1`
+      (owner-only reads), strict CSP + framing/sniffing/referrer headers
+      (checked against every page in a browser), `private, no-cache` on all
+      responses, `Secure` cookie behind https, a link-injection fix in
+      Squirt, status-only health for strangers. Fuseki stays on loopback;
+      no raw SPARQL from requests.
+- [x] Docs in step: `docs/deployment.md` (settings, https for the phone via
+      Tailscale or Caddy, backups and the drill, health and logs),
+      `docs/tools.md`, README status.
+- [ ] Watch CI's first run on GitHub (native `faiss-node` build).
 
 ## Open questions
 
@@ -957,7 +971,7 @@ time/resources.
 |---|---|---|---|
 | Q1 | Links in a shared `graph:facet/links` or in the owning facet's graph? | Phase 4 | Shared `graph:facet/links` (2026-09-26). |
 | Q2 | Outline ordering: `dim:position` numbers or `rdf:List`? | Phase 5 | Fractional `xsd:decimal` `dim:position`; renumber a sibling list only when a gap < 1e-6 (2026-09-26). |
-| Q3 | Source repos (trestle, NewsMonitor, foowiki, squirt) are not in this sandbox — add them to the session / vendor snapshots when those phases start. | 2026-09-26 | |
+| Q3 | Source repos (trestle, NewsMonitor, foowiki, squirt) are not in this sandbox — add them to the session / vendor snapshots when those phases start. | 2026-09-26 | Resolved: read-only clones of the public repos for each review. |
 | Q4 | Getting Things Diced method — needs a local copy of the post. | 2026-09-26 | Resolved: copy in `docs/`, method in 6.1. |
 | Q5 | Write auth model for localhost: token vs Basic vs none-on-loopback. | Phase 4 | `DIM_WRITE_TOKEN` as Bearer/Basic; browser session + CSRF (2026-09-26). |
 
@@ -998,3 +1012,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 9 | Blog: posts (drafts owner-only), drafts from wiki pages / outline items, dated URLs, tags, Atom, static export with relative links; Markdown renderer gains local-link mapping + relative hrefs; thrown 4xx keep their status. 252 core + 12 store tests; exported site browsed; Playwright + axe. | 3b32548 |
 | 2026-09-26 | 10 | Squirt: search-first phone page, capture routed to task / bookmark / wiki Inbox, timeline from the change log + facet `recent()`, manifest + icons, service worker (network first, offline copies, cleared on logout), share target + bookmarklet. Chrome reports it installable; offline verified with the server stopped. 259 core + 12 store tests; Playwright + axe. | 5793270 |
 | 2026-09-26 | 11 | What next? advisor: transparent weighted scoring with reasons, time/@context inputs, skip penalty, learning from accepts, related resources, close-call dice, optional LLM second opinion; on /farelo/next and Squirt. 272 core + 13 store tests; Playwright + axe. | c9cfdfd |
+| 2026-09-26 | 12 | Operations: backup/restore (drill: identical counts across 17 graphs), app healthcheck + degraded /health, JSON logging, CI workflow, security review (private mode, CSP, cache headers, Secure cookie, link fix), deployment/security docs. 276 core + 13 store tests. | |
