@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import logger from 'loglevel'
-import Config from '../src/Config.js'
-import SPARQLClient from '../src/store/SPARQLClient.js'
-import QueryService from '../src/store/QueryService.js'
-import EmbeddingService, { composeText } from '../src/embeddings/EmbeddingService.js'
-import VectorIndex from '../src/vectors/VectorIndex.js'
-import { createEnricher } from '../src/enrich/registry.js'
+import Config from '../src/common/Config.js'
+import SPARQLClient from '../src/common/store/SPARQLClient.js'
+import QueryService from '../src/common/store/QueryService.js'
+import EmbeddingService, { composeText } from '../src/common/embeddings/EmbeddingService.js'
+import VectorIndex from '../src/common/vectors/VectorIndex.js'
+import { createEnricher } from '../src/gnamgnam/enrich/registry.js'
 import { ENRICH_CONFIG } from '../config/preferences.js'
 
 /**

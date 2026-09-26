@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import logger from 'loglevel'
-import Config from '../src/Config.js'
-import SPARQLClient from '../src/store/SPARQLClient.js'
-import IngestPipeline from '../src/harvest/IngestPipeline.js'
-import BookmarkHarvester from '../src/harvest/BookmarkHarvester.js'
-import ShapeValidator from '../src/store/ShapeValidator.js'
-import EmbeddingService from '../src/embeddings/EmbeddingService.js'
-import VectorIndex from '../src/vectors/VectorIndex.js'
-import SearchService from '../src/search/SearchService.js'
-import { composeText, textHash } from '../src/embeddings/EmbeddingService.js'
+import Config from '../src/common/Config.js'
+import SPARQLClient from '../src/common/store/SPARQLClient.js'
+import IngestPipeline from '../src/gnamgnam/harvest/IngestPipeline.js'
+import BookmarkHarvester from '../src/gnamgnam/harvest/BookmarkHarvester.js'
+import ShapeValidator from '../src/common/store/ShapeValidator.js'
+import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
+import VectorIndex from '../src/common/vectors/VectorIndex.js'
+import SearchService from '../src/common/search/SearchService.js'
+import { composeText, textHash } from '../src/common/embeddings/EmbeddingService.js'
 
 /**
  * Harvest workflowy bookmarks, write them to the store, build the vector index.

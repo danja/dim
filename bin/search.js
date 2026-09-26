@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import Config from '../src/Config.js'
-import SPARQLClient from '../src/store/SPARQLClient.js'
-import VectorIndex from '../src/vectors/VectorIndex.js'
-import EmbeddingService from '../src/embeddings/EmbeddingService.js'
-import SearchService from '../src/search/SearchService.js'
+import Config from '../src/common/Config.js'
+import SPARQLClient from '../src/common/store/SPARQLClient.js'
+import VectorIndex from '../src/common/vectors/VectorIndex.js'
+import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
+import SearchService from '../src/common/search/SearchService.js'
 
 /**
  * Search DIM bookmarks from the command line.

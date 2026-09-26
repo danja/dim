@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import Config from '../src/Config.js'
-import SPARQLClient from '../src/store/SPARQLClient.js'
-import GraphRegistry from '../src/store/GraphRegistry.js'
-import ShapeValidator, { summarise } from '../src/store/ShapeValidator.js'
+import Config from '../src/common/Config.js'
+import SPARQLClient from '../src/common/store/SPARQLClient.js'
+import GraphRegistry from '../src/common/store/GraphRegistry.js'
+import ShapeValidator, { summarise } from '../src/common/store/ShapeValidator.js'
 
 /**
  * Validate the store against vocabs/shapes.ttl, graph by graph.

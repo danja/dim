@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import Config from '../src/Config.js'
-import BookmarkHarvester from '../src/harvest/BookmarkHarvester.js'
-import { parseWorkflowyFile, deduplicate } from '../src/harvest/WorkflowyParser.js'
+import Config from '../src/common/Config.js'
+import BookmarkHarvester from '../src/gnamgnam/harvest/BookmarkHarvester.js'
+import { parseWorkflowyFile, deduplicate } from '../src/gnamgnam/harvest/WorkflowyParser.js'
 
 /**
  * First-pass retrieval agent (offline report): parse workflowy.md, classify
