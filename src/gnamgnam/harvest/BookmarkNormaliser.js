@@ -1,4 +1,5 @@
 import { NAMESPACES } from '../../common/rdf/NamespaceManager.js'
+import { catalogueFromUrl, cleanCatalogue } from '../Catalogue.js'
 
 /**
  * First-pass bookmark classification. Pure heuristics over URL + headers, no
@@ -109,7 +110,9 @@ export function normaliseBookmark (raw) {
     sourceLine: raw.sourceLine ?? null,
     bookmarkTypes,
     tags: [...new Set((raw.tags ?? []).map(t => String(t).trim().toLowerCase()).filter(Boolean))].sort(),
-    concepts: [...new Set(raw.concepts ?? [])]
+    concepts: [...new Set(raw.concepts ?? [])],
+    // URL-derived details first; anything the caller already knows wins.
+    catalogue: { ...catalogueFromUrl(url), ...cleanCatalogue(raw.catalogue) }
   }
 }
 

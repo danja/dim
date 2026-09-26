@@ -114,6 +114,9 @@ services:
       SPARQL_USER: ${SPARQL_USER:?SPARQL_USER must be set}
       SPARQL_PASSWORD: ${SPARQL_PASSWORD:?SPARQL_PASSWORD must be set}
       OLLAMA_URL: http://ollama:11434
+      # Optional: lifts the GitHub API limit for enrichment from 60 to 5000
+      # requests an hour. Empty means unauthenticated.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       PORT: "4110"
       # Modest by default and overridden from compose. The working set is the
       # document map and a few megabytes of vector index, not gigabytes.

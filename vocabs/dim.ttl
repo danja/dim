@@ -50,6 +50,36 @@ dim:contentLength a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range
 dim:fetchStatus a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer ;
     rdfs:comment "HTTP status of the enrichment fetch; a refusal (401/403/404/410/429/451) is recorded, not retried." .
 
+## ── Catalogue details per type (src/gnamgnam/Catalogue.js) ─────────────
+## URL-derived at ingest: githubOwner, githubRepo, arxivId, wikipediaLanguage,
+## wikipediaTitle. API-reported at enrichment (replaced on each patch):
+## githubLanguage, githubStars, githubTopic, arxivAuthor, arxivCategory.
+dim:githubOwner a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Owner (user or organisation) of a GitHub repository bookmark, from the URL." .
+dim:githubRepo a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Repository name of a GitHub repository bookmark, from the URL." .
+dim:githubLanguage a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Primary language reported by the GitHub API." .
+dim:githubStars a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:integer ;
+    rdfs:comment "Stargazer count reported by the GitHub API when enriched." .
+dim:githubTopic a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Repository topic reported by the GitHub API. Repeatable." .
+dim:arxivId a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "arXiv identifier without version, from the URL." .
+dim:arxivAuthor a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Author name reported by the arXiv API. Repeatable." .
+dim:arxivCategory a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "arXiv subject category (e.g. cs.AI) reported by the arXiv API. Repeatable." .
+dim:wikipediaLanguage a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Language code of a Wikipedia article bookmark, from the URL." .
+dim:wikipediaTitle a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:range xsd:string ;
+    rdfs:comment "Article title of a Wikipedia bookmark, from the URL." .
+
+## ── Dead links ───────────────────────────────────────────────────────────
+## Link status (ok / dead / error / unchecked) is derived from dim:httpStatus
+## and dim:fetchStatus, not stored. schema:archivedAt holds a Wayback Machine
+## snapshot found by bin/deadlinks.js --wayback.
+
 ## ── Catalogue administration (mirrors plugin-universe, dim: namespace) ────
 dim:SourceGraph a owl:Class ; rdfs:label "Source Graph" .
 dim:graphKind a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:string .

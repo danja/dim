@@ -1,5 +1,10 @@
 # Everything retrieval and the UI need for one bookmark row per bookmark.
+# Repeatable catalogue fields are aggregated in their own sub-selects so they
+# do not multiply against types/tags/keywords. Lists use " | " (Catalogue.js).
 SELECT ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
+       ?fetchStatus ?context ?sourceLine ?archivedAt
+       ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
+       ?githubTopic ?arxivAuthor ?arxivCategory
        (GROUP_CONCAT(DISTINCT ?typeLabel; separator=", ") AS ?bookmarkTypes)
        (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
        (GROUP_CONCAT(DISTINCT ?kw; separator=", ") AS ?keywords)
@@ -14,10 +19,39 @@ WHERE {
     OPTIONAL { ?bookmark dim:domain ?domain }
     OPTIONAL { ?bookmark dim:contentType ?contentType }
     OPTIONAL { ?bookmark dim:httpStatus ?httpStatus }
+    OPTIONAL { ?bookmark dim:fetchStatus ?fetchStatus }
+    OPTIONAL { ?bookmark dim:context ?context }
+    OPTIONAL { ?bookmark dim:sourceLine ?sourceLine }
+    OPTIONAL { ?bookmark schema:archivedAt ?archivedAt }
+    OPTIONAL { ?bookmark dim:githubOwner ?githubOwner }
+    OPTIONAL { ?bookmark dim:githubRepo ?githubRepo }
+    OPTIONAL { ?bookmark dim:githubLanguage ?githubLanguage }
+    OPTIONAL { ?bookmark dim:githubStars ?githubStars }
+    OPTIONAL { ?bookmark dim:arxivId ?arxivId }
+    OPTIONAL { ?bookmark dim:wikipediaLanguage ?wikipediaLanguage }
+    OPTIONAL { ?bookmark dim:wikipediaTitle ?wikipediaTitle }
     OPTIONAL { ?bookmark dim:bookmarkType ?t  BIND(REPLACE(STR(?t), "^.*/", "") AS ?typeLabel) }
     OPTIONAL { ?bookmark dim:tag ?tag }
     OPTIONAL { ?bookmark dim:keyword ?kw }
   }
+  OPTIONAL {
+    SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?topic; separator=" | ") AS ?githubTopic)
+    WHERE { GRAPH ?tg { ?bookmark dim:githubTopic ?topic } }
+    GROUP BY ?bookmark
+  }
+  OPTIONAL {
+    SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?author; separator=" | ") AS ?arxivAuthor)
+    WHERE { GRAPH ?ag { ?bookmark dim:arxivAuthor ?author } }
+    GROUP BY ?bookmark
+  }
+  OPTIONAL {
+    SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?category; separator=" | ") AS ?arxivCategory)
+    WHERE { GRAPH ?cg { ?bookmark dim:arxivCategory ?category } }
+    GROUP BY ?bookmark
+  }
 }
 GROUP BY ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
+         ?fetchStatus ?context ?sourceLine ?archivedAt
+         ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
+         ?githubTopic ?arxivAuthor ?arxivCategory
 ORDER BY ?linkText

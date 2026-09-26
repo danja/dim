@@ -1,0 +1,12 @@
+# Last-seen HTTP statuses per bookmark, for link-status reports (bin/deadlinks.js).
+SELECT ?bookmark ?g ?url ?linkText ?httpStatus ?fetchStatus ?archivedAt
+WHERE {
+  GRAPH ?g {
+    ?bookmark a dim:Bookmark ; dim:url ?url .
+    OPTIONAL { ?bookmark dim:linkText ?linkText }
+    OPTIONAL { ?bookmark dim:httpStatus ?httpStatus }
+    OPTIONAL { ?bookmark dim:fetchStatus ?fetchStatus }
+    OPTIONAL { ?bookmark schema:archivedAt ?archivedAt }
+  }
+}
+ORDER BY ?url

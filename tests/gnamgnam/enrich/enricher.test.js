@@ -128,6 +128,34 @@ describe('enricher orchestration (stubbed network)', () => {
     expect(third.status).toBe('unchanged')
   })
 
+  it('restores cached enrichment when the store has lost it', async () => {
+    const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'dim-enrich-'))
+    const cachePath = path.join(dir, 'enrichment.json')
+    const html = '<html><head><title>T</title></head><body><p>Alpha beta gamma delta. Epsilon zeta eta theta.</p></body></html>'
+    const bookmark = { iri: 'http://purl.org/stuff/dim/bookmark/x', graph: 'http://example.com/g', url: 'https://example.com/x', bookmarkTypes: [] }
+    expect((await stubStack(html, cachePath).run(bookmark)).status).toBe('enriched')
+
+    const written = []
+    const cache = new CacheWriter({ cachePath })
+    const enricher = new Enricher({
+      fetchers: [stubFetcher(html)],
+      extractors: defaultExtractors(),
+      summarisers: defaultSummarisers('extractive'),
+      writers: [{ write: async (args) => { written.push(args) } }],
+      cache
+    })
+    // Store still has it: a cache hit writes nothing.
+    expect((await enricher.run({ ...bookmark, hasEnrichment: true })).status).toBe('fresh')
+    expect(written).toHaveLength(0)
+    // Store lost it (re-ingest dropped the graph): the cache hit writes it back.
+    const restored = await enricher.run({ ...bookmark, hasEnrichment: false })
+    expect(restored.status).toBe('restored')
+    expect(written).toHaveLength(1)
+    expect(written[0].enrichment.summary).toBe(restored.enrichment.summary)
+    expect(written[0].enrichment.url).toBeUndefined()
+    expect(written[0].rawText).toBeNull()
+  })
+
   it('records refusals without a summary', async () => {
     const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'dim-enrich-'))
     const cache = new CacheWriter({ cachePath: path.join(dir, 'enrichment.json') })

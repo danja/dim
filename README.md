@@ -39,6 +39,7 @@ node bin/ingest.js                # full: probe, store, embed
 node bin/search.js "modular synth DIY"
 node bin/search.js --facets
 node bin/validate.js              # SHACL, graph by graph
+node bin/deadlinks.js --wayback   # dead links, with Wayback Machine copies
 node bin/serve.js                 # search UI + JSON API on :4110
 ```
 
@@ -49,7 +50,7 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /gnamgnam/search?q=&bookmarkType=&domain=` | hybrid search results as JSON |
 | `GET /gnamgnam/facets` | facet values and counts |
 | `GET /gnamgnam/bookmarks` | browse |
-| `GET /gnamgnam/bookmark/<slug>` | one bookmark — JSON, or Turtle by `Accept`/`.ttl` |
+| `GET /gnamgnam/bookmark/<slug>` | one bookmark — HTML detail page, JSON by `.json`, Turtle by `.ttl` |
 | `GET /<facet>/` | Trestle, Farelo, Wiki, News, Blog, Squirt — placeholder pages until built |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
 
@@ -87,6 +88,9 @@ GnamGnam (bookmarks) is the first facet.
     `fetch/` and `summarise/`
   - `BookmarkText.js` — composed text view for embeddings
   - `BookmarkSearch.js` — search adapter
+  - `Catalogue.js` — per-type catalogue details (GitHub, arXiv, Wikipedia)
+  - `LinkStatus.js` — ok / dead / blocked / error / unchecked
+  - `deadlinks/` — Wayback Machine lookups
   - `api/` — routes (under `/gnamgnam`), search page, bookmark Turtle
   - `index.js` — the facet object
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL

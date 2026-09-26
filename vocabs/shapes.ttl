@@ -7,6 +7,7 @@
 @prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix schema:  <https://schema.org/> .
 
 dim:shapes a owl:Ontology ;
     rdfs:label "DIM validation shapes" ;
@@ -88,6 +89,60 @@ dim:BookmarkShape a sh:NodeShape ;
         sh:maxCount 1 ;
         sh:datatype xsd:integer ;
         sh:minInclusive 100 ; sh:maxInclusive 599 ;
+    ] ;
+    sh:property [
+        sh:path dim:githubOwner ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:githubRepo ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:githubLanguage ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:arxivId ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:wikipediaLanguage ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:wikipediaTitle ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:githubTopic ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:arxivAuthor ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:arxivCategory ;
+        sh:datatype xsd:string ; sh:minLength 1 ;
+    ] ;
+    sh:property [
+        sh:path dim:githubStars ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ; sh:minInclusive 0 ;
+    ] ;
+    sh:property [
+        sh:path schema:archivedAt ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:pattern "^https://web\\.archive\\.org/" ;
+        sh:message "schema:archivedAt is one Wayback Machine snapshot URL." ;
     ] .
 
 dim:ConceptShape a sh:NodeShape ;

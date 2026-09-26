@@ -1,5 +1,6 @@
 import { NAMESPACES } from '../../common/rdf/NamespaceManager.js'
 import { iri, literal, typedLiteral } from '../../common/store/SPARQLHelper.js'
+import { catalogueTriples } from '../Catalogue.js'
 
 /**
  * Normalised bookmark records to triples.
@@ -49,6 +50,7 @@ export function serialiseBookmark (bookmark, bookmarkIri) {
   for (const t of bookmark.bookmarkTypes ?? []) add(dim + 'bookmarkType', iri(t))
   for (const tag of bookmark.tags ?? []) add(dim + 'tag', literal(tag))
   for (const concept of bookmark.concepts ?? []) add(dcterms + 'subject', iri(concept))
+  triples.push(...catalogueTriples(bookmarkIri, bookmark.catalogue ?? {}))
 
   return triples
 }

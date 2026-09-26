@@ -35,7 +35,10 @@ export function textView (bookmark) {
     summary: bookmark.summary ?? null,
     keywords: bookmark.keywords ?? [],
     bookmarkTypes: (bookmark.bookmarkTypes ?? []).map(localName),
-    tags: bookmark.tags ?? []
+    tags: bookmark.tags ?? [],
+    language: bookmark.catalogue?.githubLanguage ?? null,
+    topics: [...(bookmark.catalogue?.githubTopic ?? []), ...(bookmark.catalogue?.arxivCategory ?? [])],
+    authors: bookmark.catalogue?.arxivAuthor ?? []
   }
 }
 
@@ -50,6 +53,11 @@ export function composeText (bookmark) {
   if (view.summary && view.summary !== view.description) parts.push(view.summary)
   if (view.keywords.length) parts.push(view.keywords.join(', '))
   if (view.tags.length) parts.push(view.tags.join(', '))
+  // Catalogue details only when present, so bookmarks without them keep
+  // the same text (and text hash) as before.
+  if (view.language) parts.push(view.language)
+  if (view.topics.length) parts.push(view.topics.join(', '))
+  if (view.authors.length) parts.push(`by ${view.authors.join(', ')}`)
   parts.push(view.url)
   return parts.join('. ')
 }

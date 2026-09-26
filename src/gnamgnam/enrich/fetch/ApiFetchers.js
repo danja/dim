@@ -3,12 +3,17 @@ import { Fetcher, FetchError, REFUSALS, fetchJson } from './Fetcher.js'
 
 /** Site-specific fetchers that use a public API instead of scraping HTML. */
 
-/** github.com/<owner>/<repo> → repo metadata + topics as plain text. */
+/**
+ * github.com/<owner>/<repo> → repo metadata + topics as plain text.
+ * Unauthenticated, the GitHub API allows 60 requests an hour; set
+ * GITHUB_TOKEN (any read-only token) for 5000.
+ */
 export class GithubApiFetcher extends Fetcher {
-  constructor ({ userAgent = HARVEST_CONFIG.userAgent, timeoutMs = 15000 } = {}) {
+  constructor ({ userAgent = HARVEST_CONFIG.userAgent, timeoutMs = 15000, token = process.env.GITHUB_TOKEN || null } = {}) {
     super()
     this.userAgent = userAgent
     this.timeoutMs = timeoutMs
+    this.token = token
   }
 
   canHandle ({ url }) {
@@ -17,9 +22,11 @@ export class GithubApiFetcher extends Fetcher {
 
   async fetch (url) {
     const api = url.replace(/\/$/, '').replace('https://github.com/', 'https://api.github.com/repos/')
+    const headers = { Accept: 'application/vnd.github+json' }
+    if (this.token) headers.Authorization = `Bearer ${this.token}`
     let result
     try {
-      result = await fetchJson(api, { userAgent: this.userAgent, timeoutMs: this.timeoutMs, headers: { Accept: 'application/vnd.github+json' } })
+      result = await fetchJson(api, { userAgent: this.userAgent, timeoutMs: this.timeoutMs, headers })
     } catch (error) {
       throw new FetchError(`GitHub API failed: ${error.message}`, { url, cause: error })
     }
@@ -39,7 +46,12 @@ export class GithubApiFetcher extends Fetcher {
       httpStatus: 200,
       refused: false,
       title: j.full_name ?? null,
-      description: j.description ?? null
+      description: j.description ?? null,
+      catalogue: {
+        githubLanguage: j.language ?? null,
+        githubStars: j.stargazers_count ?? null,
+        githubTopic: j.topics ?? []
+      }
     }
   }
 }
@@ -73,9 +85,19 @@ export class ArxivFetcher extends Fetcher {
     const title = xml.match(/<title>([\s\S]*?)<\/title>\s*<id>/)?.[1]?.replace(/\s+/g, ' ').trim() ?? null
     const summary = xml.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.replace(/\s+/g, ' ').trim() ?? null
     const authors = [...xml.matchAll(/<author>\s*<name>([^<]+)<\/name>/g)].map(m => m[1].trim())
+    const categories = [...xml.matchAll(/<category[^>]*\bterm="([^"]+)"/g)].map(m => m[1].trim())
     if (!title && !summary) return { url, body: null, contentType: null, httpStatus: response.status, refused: false }
     const body = [`${title ?? 'arXiv paper'}${authors.length ? ` — ${authors.join(', ')}` : ''}`, summary].filter(Boolean).join('\n\n')
-    return { url, body, contentType: 'text/plain', httpStatus: 200, refused: false, title, description: summary }
+    return {
+      url,
+      body,
+      contentType: 'text/plain',
+      httpStatus: 200,
+      refused: false,
+      title,
+      description: summary,
+      catalogue: { arxivAuthor: authors, arxivCategory: categories }
+    }
   }
 }
 

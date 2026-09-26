@@ -10,6 +10,9 @@
   --accent: #2b5fae;
   --accent-contrast: #ffffff;
   --focus: #c2410c;
+  --ok: #1f7a3d;
+  --bad: #b42318;
+  --warn: #8a5a00;
   --radius: 8px;
   --gap: 1rem;
   --gutter: 16px;
@@ -29,6 +32,9 @@
     --accent: #8cb4ff;
     --accent-contrast: #0d1a33;
     --focus: #fb923c;
+    --ok: #6fd28f;
+    --bad: #ff8a80;
+    --warn: #f5c451;
   }
 }
 
@@ -100,6 +106,8 @@ main {
 }
 
 h1 { font-size: 1.5rem; line-height: 1.2; margin: 0.5rem 0 1rem; }
+/* Long unbroken titles (file names, URLs) must wrap, not widen the page. */
+h1, h2, p, dd, li { overflow-wrap: anywhere; }
 .lede { font-size: 1.1rem; }
 .muted { color: var(--muted); }
 small, .meta { color: var(--muted); font-size: 0.875rem; }
@@ -136,7 +144,7 @@ button {
 }
 
 @media (min-width: 40rem) {
-  .search { grid-template-columns: 1fr auto auto; align-items: center; }
+  .search { grid-template-columns: 1fr auto auto auto; align-items: center; }
   .search select { width: auto; }
 }
 
@@ -158,3 +166,32 @@ button {
 .status { margin: 0 0 var(--gap); }
 
 .foot { margin-top: calc(var(--gap) * 2); }
+
+/* ── Detail pages ────────────────────────────────────────────────────── */
+
+h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+.url { overflow-wrap: anywhere; margin-top: -0.5rem; }
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: middle;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.badge-ok { color: var(--ok); border-color: currentColor; }
+.badge-dead, .badge-error { color: var(--bad); border-color: currentColor; }
+.badge-blocked { color: var(--warn); border-color: currentColor; }

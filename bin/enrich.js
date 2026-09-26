@@ -5,6 +5,7 @@ import SPARQLClient from '../src/common/store/SPARQLClient.js'
 import QueryService from '../src/common/store/QueryService.js'
 import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
 import { composeText } from '../src/gnamgnam/BookmarkText.js'
+import { catalogueFromUrl } from '../src/gnamgnam/Catalogue.js'
 import VectorIndex from '../src/common/vectors/VectorIndex.js'
 import { createEnricher } from '../src/gnamgnam/enrich/registry.js'
 import { ENRICH_CONFIG } from '../config/preferences.js'
@@ -101,7 +102,8 @@ for (const row of candidates) {
     url: row.url,
     linkText: row.linkText ?? null,
     bookmarkTypes: row.bookmarkTypes ? row.bookmarkTypes.split(', ').filter(Boolean) : [],
-    contentType: row.contentType ?? null
+    contentType: row.contentType ?? null,
+    hasEnrichment: Boolean(row.summary || row.fetchStatus)
   }, { force })
   counts[result.status] = (counts[result.status] ?? 0) + 1
   if (result.status === 'enriched') enrichedRows.push({ row, enrichment: result.enrichment })
@@ -127,6 +129,8 @@ function describeResult (result) {
     }
     case 'unchanged':
       return ` — same content ${e?.contentHash ?? ''}`
+    case 'restored':
+      return ' — store had lost it (re-ingest?), written back from cache'
     case 'refused':
       return e?.fetchStatus ? ` — HTTP ${e.fetchStatus}` : ''
     case 'failed':
@@ -168,7 +172,8 @@ for (const { row, enrichment } of enrichedRows) {
     summary: enrichment.summary ?? null,
     keywords: enrichment.keywords ?? [],
     bookmarkTypes: row.bookmarkTypes ? row.bookmarkTypes.split(', ').filter(Boolean) : [],
-    tags: row.tags ? row.tags.split(', ').filter(Boolean) : []
+    tags: row.tags ? row.tags.split(', ').filter(Boolean) : [],
+    catalogue: { ...catalogueFromUrl(row.url), ...(enrichment.catalogue ?? {}) }
   }
   try {
     const vector = await embeddings.embed(composeText(bookmark))

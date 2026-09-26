@@ -172,3 +172,47 @@ describe('facet shell', () => {
     }
   })
 })
+
+describe('bookmark detail page', () => {
+  const RICH = {
+    ...DOC,
+    linkStatus: 'dead',
+    httpStatus: 404,
+    archivedAt: 'https://web.archive.org/web/1/https://example.com/foo',
+    context: 'Inbox / Synths',
+    sourceLine: 42,
+    catalogue: { githubOwner: 'o', githubTopic: ['dsp', 'audio'] },
+    keywords: ['foo']
+  }
+
+  it('serves HTML by default with status, catalogue and outline', async () => {
+    const base = await listen(stubSearch([RICH]))
+    const response = await fetch(`${base}/gnamgnam/bookmark/foo-12345678`, { headers: { Accept: 'text/html' } })
+    expect(response.headers.get('content-type')).toMatch('text/html')
+    const html = await response.text()
+    expect(html).toMatch('<h1>Foo</h1>')
+    expect(html).toMatch('badge-dead')
+    expect(html).toMatch('HTTP 404')
+    expect(html).toMatch('<a href="https://web.archive.org/web/1/https://example.com/foo">archived copy</a>')
+    expect(html).toMatch('<dt>GitHub owner</dt><dd>o</dd>')
+    expect(html).toMatch('<dt>Topics</dt><dd>dsp, audio</dd>')
+    expect(html).toMatch('<dt>Context</dt><dd>Inbox / Synths</dd>')
+    expect(html).toMatch('line 42')
+    expect(html).toMatch('aria-current="page">GnamGnam')
+  })
+
+  it('still serves JSON by suffix or Accept', async () => {
+    const base = await listen(stubSearch([RICH]))
+    const bySuffix = await (await fetch(`${base}/gnamgnam/bookmark/foo-12345678.json`)).json()
+    expect(bySuffix.linkStatus).toBe('dead')
+    const byAccept = await fetch(`${base}/gnamgnam/bookmark/foo-12345678`, { headers: { Accept: 'application/json' } })
+    expect(byAccept.headers.get('content-type')).toMatch('application/json')
+  })
+
+  it('search results link to details and flag dead links', async () => {
+    const base = await listen(stubSearch([RICH]))
+    const html = await (await fetch(`${base}/gnamgnam/?q=foo`)).text()
+    expect(html).toMatch('<a href="/gnamgnam/bookmark/foo-12345678">details</a>')
+    expect(html).toMatch('badge-dead')
+  })
+})

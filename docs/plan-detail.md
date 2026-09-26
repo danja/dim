@@ -49,7 +49,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 0 | Starter: core port + first dataset | — | `[~]` mostly done |
 | 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` |
 | 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[x]` |
-| 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[ ]` |
+| 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[~]` 3a code done; 3b local runs |
 | 4 | Write path & cross-linking foundation | 2 | `[ ]` |
 | 5 | Trestle outliner | 4 | `[ ]` |
 | 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[ ]` |
@@ -255,34 +255,101 @@ real facet needs them (Phase 4+), rather than being guessed now.
 **Goal:** finish the Phase 0 leftovers so bookmarks are genuinely
 useful: real titles, summaries, complete vectors.
 
-### Tasks
+Split in two: **3a** is code, built and tested in the cloud sandbox
+(which cannot reach the web — its proxy refuses GitHub, arXiv, Wikipedia,
+archive.org and ordinary sites); **3b** is the long network/Ollama runs,
+done locally.
 
-- [ ] Run `bin/retrieve.js --live` over the full set (1s pacing ≈ 1.5h);
-      record status distribution (2xx/3xx/4xx/5xx/timeouts) in the log.
-- [ ] Re-ingest with live data; titles/descriptions populated.
+### 3a Tasks (code)
+
+- [x] Richer cataloguing: auxiliary info per type, one table in
+      `src/gnamgnam/Catalogue.js` driving serialisation, enrichment patch,
+      text view, lexical search and the detail page.
+  - URL-derived at ingest: `dim:githubOwner`, `dim:githubRepo`,
+    `dim:arxivId`, `dim:wikipediaLanguage`, `dim:wikipediaTitle`.
+    On the real corpus: 991 GitHub repos, 169/170 arXiv, 397/398 Wikipedia.
+  - API-derived at enrichment (enricher-owned, replaced on each patch):
+    `dim:githubLanguage`, `dim:githubStars`, `dim:githubTopic`,
+    `dim:arxivAuthor`, `dim:arxivCategory`.
+  - Terms went into `vocabs/dim.ttl` rather than a separate
+    `vocabs/gnamgnam.ttl` (the vocabulary is still small and shared);
+    SHACL constraints in `vocabs/shapes.ttl`.
+  - Authors score like a vendor name in lexical search; topics,
+    categories and language as body text; all added to the embedding
+    text only when present (unchanged text for everything else).
+  - `GITHUB_TOKEN` (optional) lifts the GitHub API limit from 60 to 5000
+    requests/hour — needed for the ~1k repos.
+- [~] Topic concepts (`dim:bookmark-topics` SKOS scheme + facet) —
+      **deferred until 3b's enrichment has produced keywords.** The
+      outline contexts were the obvious offline source but are too noisy:
+      `WorkflowyParser` treats wrapped link-title lines and `[` fragments
+      as headings (e.g. "Scopus - Welcome to Scopus / [ / TPU – Gateworks").
+      Decide between keyword clustering, vector clustering and LLM tagging
+      once real keywords exist. The parser fix belongs with Phase 5.
+- [x] Dead-link handling:
+  - Link status derived, not stored (`src/gnamgnam/LinkStatus.js`):
+    last status seen (enrichment fetch, else first-pass probe) →
+    `ok` / `dead` (404, 410) / `blocked` (401, 403, 429, 451) / `error` /
+    `unchecked`. A search facet and filter (`?linkStatus=`), computed in
+    memory via new optional adapter hooks `documentFilter` /
+    `documentFacets` on `SearchService`.
+  - `bin/deadlinks.js`: report by status; `--wayback` looks up the
+    Wayback Machine availability API (1 req/s, answers cached in
+    `data/cache/wayback.json`) and writes `schema:archivedAt`.
+- [x] Bookmark detail page (`/gnamgnam/bookmark/<slug>`, HTML by default,
+      JSON/Turtle by suffix or Accept): title, URL, link-status badge with
+      HTTP code and archived copy, domain/type links into search, summary,
+      key terms, catalogue table, outline context and source line.
+      Search cards link to it and flag dead/blocked/error links.
+      Inbound cross-links wait for Phase 4.
+- [x] **Bug fix — re-ingest lost all enrichment.** `ingest` drops and
+      reloads the source graph; `enrich` then found its cache "fresh" /
+      "unchanged" and wrote nothing, so `bin/pipeline.sh` silently
+      removed every summary for up to 30 days. The enricher now restores
+      a cache hit when the store row has no enrichment (status
+      `restored`). Reproduced and verified against a real Fuseki: 6
+      fetch statuses → 0 after re-ingest → 6 after enrich.
+- [x] Every named SPARQL query is now parsed in a test (`sparqljs` as a
+      dev dependency).
+- [x] Shared CSS: long unbroken titles wrap instead of widening the page.
+
+### 3b Tasks (local runs)
+
+- [ ] Set `GITHUB_TOKEN`, then run `bin/retrieve.js --live` over the full
+      set (1s pacing ≈ 1.5h); record status distribution
+      (2xx/3xx/4xx/5xx/timeouts) in the log.
+- [ ] Re-ingest with live data; titles/descriptions and URL catalogue
+      details populated. Then `bin/enrich.js` (restores any earlier
+      enrichment from cache) and `bin/deadlinks.js --wayback` (restores
+      archived copies from cache).
 - [ ] Enricher: `--limit 50` sample → manual review (manual gate from
       docs/enricher.md) → full run with `--summariser ollama` + `--reembed`.
 - [ ] Vector index complete (`index.size` == bookmark count, minus logged
       embed timeouts).
 - [ ] Re-evaluate `minSimilarity` (currently 0.58) once summaries exist;
       record the nonsense-query score used to justify the new value.
-- [ ] Richer SKOS cataloguing: auxiliary info per type (github: owner,
-      repo, stars/language if cheap; arxiv: id, authors, categories;
-      wikipedia: language, article title). Terms in `vocabs/gnamgnam.ttl`,
-      shapes updated.
-- [ ] Topic concepts: cluster or LLM-tag bookmarks into a
-      `dim:bookmark-topics` SKOS scheme (`skos:broader` hierarchy); expose as
-      a facet filter.
-- [ ] Dead-link handling: flag 404/410 bookmarks, optional Wayback lookup.
-- [ ] Bookmark detail page (`/gnamgnam/bookmark/<slug>`) shows summary,
-      type, topics, context from the outline, and inbound cross-links
-      (after Phase 4).
+- [ ] `bin/deadlinks.js` report: record dead/blocked/error counts; run
+      `--wayback` over the dead ones.
+- [ ] Topic concepts (see 3a).
 
 ### Acceptance
 
-- ≥ 90% of reachable bookmarks have `dim:summary`.
-- 10 hand-picked queries: relevant result in top 5 for ≥ 8 (record them).
-- `bin/validate.js` clean on all graphs.
+- [ ] ≥ 90% of reachable bookmarks have `dim:summary`. (3b)
+- [ ] 10 hand-picked queries: relevant result in top 5 for ≥ 8 (record them). (3b)
+- [x] `bin/validate.js` clean on all graphs — verified on a real Fuseki
+      5.6 in the sandbox after ingest, enrichment and a Wayback patch;
+      re-check after 3b.
+- [x] Code: 15 test files, 114 tests; detail page, dead-link search and
+      a GitHub detail page at 375px (light/dark) with no horizontal scroll
+      and no axe violations.
+
+### Notes
+
+- `bin/pipeline.sh` does not run `deadlinks --wayback`; after a
+  pipeline re-ingest, run it once to restore archived copies.
+- Real Fuseki in the sandbox: Apache Jena Fuseki 5.6 with the project's
+  own assembler (`config/fuseki/assembler-tdb2.ttl`), started from the
+  scratchpad — useful for future store-level checks.
 
 ---
 
@@ -593,3 +660,5 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 1 | Live check: search on the restructured branch works as before. Phase 1 done. | |
 | 2026-09-26 | 2 | Facet registry, shared shell with tabs, `/static`, GnamGnam at `/gnamgnam/` with redirects, stub facets. 76/76 tests; 375px screenshots and axe clean. Live check pending. | f96f490 |
 | 2026-09-26 | 2 | Live check: shell, search, `/health` and redirects work against the live store. Phase 2 done. | |
+| 2026-09-26 | — | Found the Phase 2 "done" commit missing from `main` (pushed after the merge); re-applied. | |
+| 2026-09-26 | 3 | 3a: catalogue details, link status + `bin/deadlinks.js` (Wayback), bookmark detail page, fix for re-ingest losing enrichment, query-parse tests. 114/114 tests; verified on a local Fuseki 5.6 (ingest 5,121, SHACL clean). Topics deferred. | |

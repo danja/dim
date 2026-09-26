@@ -17,8 +17,12 @@ export { tokenise }
  *     subject,                            // SPARQL variable holding the IRI
  *     facetNames,                         // filter keys the adapter accepts
  *     toDocument (row, provenance),       // text-view row → document
- *     filterConditions (facets)           // → SPARQL patterns ([] = none)
+ *     filterConditions (facets),          // → SPARQL patterns ([] = none)
+ *     documentFilter (facets),            // optional: in-memory predicate | null
+ *     documentFacets (documents)          // optional: { facet: [{ value, count }] }
  *   }
+ *
+ * The optional pair covers facets derived in code rather than stored.
  *
  * A document needs at least { iri, name }; LexicalIndex reads the rest.
  */
@@ -84,12 +88,17 @@ export class SearchService {
     return new Set(rows.map(row => row[this.adapter.subject]))
   }
 
+  #documentFilter (facets) {
+    return this.adapter.documentFilter?.(facets) ?? null
+  }
+
   async search (queryText, { facets = {}, limit = RETRIEVAL_CONFIG.defaultPageSize } = {}) {
     if (typeof queryText !== 'string') {
       throw new SearchError('Search needs query text; use facets alone via browse()')
     }
     const pageSize = Math.min(limit, RETRIEVAL_CONFIG.maxPageSize)
     const allowed = await this.#filterSet(facets)
+    const keep = this.#documentFilter(facets)
     const queryTokens = tokenise(queryText)
 
     const vectorScores = new Map()
@@ -104,6 +113,7 @@ export class SearchService {
     const fused = []
     for (const [docIri, doc] of this.documents) {
       if (allowed && !allowed.has(docIri)) continue
+      if (keep && !keep(doc)) continue
       const lexical = this.lexicalScore(queryTokens, doc)
       const vector = vectorScores.get(docIri) ?? 0
       if (lexical === 0 && vector === 0) continue
@@ -124,8 +134,10 @@ export class SearchService {
 
   async browse ({ facets = {}, limit = RETRIEVAL_CONFIG.defaultPageSize } = {}) {
     const allowed = await this.#filterSet(facets)
+    const keep = this.#documentFilter(facets)
     const results = [...this.documents.values()]
       .filter(doc => !allowed || allowed.has(doc.iri))
+      .filter(doc => !keep || keep(doc))
       .sort((a, b) => a.name.localeCompare(b.name))
     return { results: results.slice(0, limit), total: results.length }
   }
@@ -137,7 +149,7 @@ export class SearchService {
       grouped[row.facet] ??= []
       grouped[row.facet].push({ value: row.value, count: Number(row.count) })
     }
-    return grouped
+    return { ...grouped, ...(this.adapter.documentFacets?.(this.documents.values()) ?? {}) }
   }
 
   async count () {

@@ -3,6 +3,7 @@ import { send, sendText, sendHtml, redirect, LICENCE } from '../../common/http/r
 import { negotiate } from '../../common/http/negotiate.js'
 import { BASE_PATH, BOOKMARK_PREFIX, bookmarkDataUrl, savedTurtle } from './bookmarkData.js'
 import { renderSearchPage } from './searchPage.js'
+import { renderBookmarkPage } from './bookmarkPage.js'
 
 /**
  * GnamGnam HTTP routes, mounted at /gnamgnam: search page, search/facets/
@@ -15,7 +16,8 @@ const LEGACY = ['/search', '/facets', '/bookmarks']
 function facetParams (params) {
   return {
     bookmarkType: params.get('bookmarkType') || params.get('type') || null,
-    domain: params.get('domain') || null
+    domain: params.get('domain') || null,
+    linkStatus: params.get('linkStatus') || null
   }
 }
 
@@ -33,7 +35,7 @@ export function registerRoutes (router, { search, tabs }) {
       : { results: [], total: 0 }
     return sendHtml(response, 200, renderSearchPage({
       query: q,
-      bookmarkType: facets.bookmarkType,
+      selected: facets,
       results: outcome.results,
       total: outcome.total,
       corpus: search.documents.size,
@@ -48,7 +50,7 @@ export function registerRoutes (router, { search, tabs }) {
     const facets = facetParams(url.searchParams)
     const limit = pageSize(url.searchParams, RETRIEVAL_CONFIG.defaultPageSize)
     if (!q && !Object.values(facets).some(Boolean)) {
-      return send(response, 400, { error: 'Provide q, or at least one of bookmarkType, domain' })
+      return send(response, 400, { error: 'Provide q, or at least one of bookmarkType, domain, linkStatus' })
     }
     const outcome = q
       ? await search.search(q, { facets, limit })
@@ -78,9 +80,11 @@ export function registerRoutes (router, { search, tabs }) {
     const bookmarkIri = `${BOOKMARK_PREFIX}${match[1]}`
     const doc = search.documents.get(bookmarkIri)
     if (!doc) return send(response, 404, { error: 'No such bookmark', iri: bookmarkIri })
-    if (negotiate(match[2], request.headers.accept) === 'turtle') {
+    const format = negotiate(match[2], request.headers.accept)
+    if (format === 'turtle') {
       return sendText(response, 200, await savedTurtle(search, bookmarkIri, doc), 'text/turtle; charset=utf-8')
     }
+    if (format === 'html') return sendHtml(response, 200, renderBookmarkPage(doc, { tabs }))
     return send(response, 200, { ...doc, data: bookmarkDataUrl(doc), licence: LICENCE })
   })
 

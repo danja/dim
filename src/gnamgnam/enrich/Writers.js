@@ -3,6 +3,7 @@ import path from 'path'
 import { NAMESPACES } from '../../common/rdf/NamespaceManager.js'
 import { iri, literal, typedLiteral } from '../../common/store/SPARQLHelper.js'
 import Config from '../../common/Config.js'
+import { catalogueTriples, ENRICH_CATALOGUE_PREDICATES } from '../Catalogue.js'
 
 /**
  * Pluggable writers for the second-pass enricher (docs/enricher.md).
@@ -22,7 +23,9 @@ export const ENRICHMENT_PREDICATES = Object.freeze([
   dim + 'summaryMarkdown',
   dim + 'contentHash',
   dim + 'contentLength',
-  dim + 'fetchStatus'
+  dim + 'fetchStatus',
+  // API-reported catalogue details (GitHub, arXiv); URL-derived ones are ingest's.
+  ...ENRICH_CATALOGUE_PREDICATES
 ])
 
 export function enrichmentTriples (bookmarkIri, enrichment) {
@@ -36,6 +39,7 @@ export function enrichmentTriples (bookmarkIri, enrichment) {
   if (enrichment.contentHash) triples.push(`${s} ${iri(dim + 'contentHash')} ${literal(enrichment.contentHash)} .`)
   if (typeof enrichment.contentLength === 'number') triples.push(`${s} ${iri(dim + 'contentLength')} ${typedLiteral(enrichment.contentLength)} .`)
   if (typeof enrichment.fetchStatus === 'number') triples.push(`${s} ${iri(dim + 'fetchStatus')} ${typedLiteral(enrichment.fetchStatus)} .`)
+  triples.push(...catalogueTriples(bookmarkIri, enrichment.catalogue ?? {}, { owner: 'enrich' }))
   return triples
 }
 

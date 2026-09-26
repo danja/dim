@@ -19,7 +19,8 @@
     "pipeline": "bin/pipeline.sh",
     "search": "node bin/search.js",
     "serve": "node bin/serve.js",
-    "validate": "node bin/validate.js"
+    "validate": "node bin/validate.js",
+    "deadlinks": "node bin/deadlinks.js"
   },
   "dependencies": {
     "@rdfjs/namespace": "^2.0.0",
@@ -31,6 +32,7 @@
     "rdf-validate-shacl": "^0.6.5"
   },
   "devDependencies": {
+    "sparqljs": "^3.7.4",
     "vitest": "^3.0.0"
   }
 }

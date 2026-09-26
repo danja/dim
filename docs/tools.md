@@ -17,7 +17,8 @@ service topology (ports, datasets) lives in `docker-compose.yml` and `.env`.
 | `node bin/ingest.js --limit N` | Embed at most N bookmarks. For bounded runs while embedding is slow. |
 | `node bin/validate.js` | SHACL-validate every registered graph, one report per graph. `--graph <iri>` for one graph, `--verbose` for offending triples. |
 | `node bin/search.js "query"` | Hybrid search from the CLI. `--bookmarkType <slug>`, `--domain <host>`, `--facets` for facet counts. |
-| `node bin/enrich.js --limit 50` | Second-pass enrichment (docs/enricher.md): GET targets, summarise, patch `dim:summary*` in place. `--only-new` skips summarised, `--force` ignores cache, `--summariser extractive` runs offline, `--reembed` re-embeds patched rows. |
+| `node bin/enrich.js --limit 50` | Second-pass enrichment (docs/enricher.md): GET targets, summarise, patch `dim:summary*` and API catalogue details (GitHub language/stars/topics, arXiv authors/categories) in place. `--only-new` skips summarised, `--force` ignores cache, `--summariser extractive` runs offline, `--reembed` re-embeds patched rows. After a re-ingest, cached results are written back (`restored`) without refetching. Set `GITHUB_TOKEN` for more than 60 GitHub API calls an hour. |
+| `node bin/deadlinks.js` | Link-status report (`--status dead\|blocked\|error\|ok\|unchecked`, default `dead`; `--json`, `--limit N`). `--wayback` looks up Wayback Machine snapshots for the listed bookmarks (1 req/s, cached in `data/cache/wayback.json`) and writes `schema:archivedAt`; re-run after a re-ingest to restore them from the cache. |
 | `bin/pipeline.sh [--limit N]` | The whole run in one go: retrieve → ingest → enrich (+re-embed) → index → validate. Re-runs resume via caches. `--live` probes URLs at ingest, `--summariser ollama` for LLM summaries, `--no-reembed` / `--skip-validate` to trim stages. |
 | `node bin/serve.js` | API + search UI (default `:4110`, override with `PORT`). Loads documents + index once at startup. |
 
@@ -57,11 +58,11 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | Endpoint | Returns |
 |---|---|
 | `GET /` | Redirects to the default facet (`app.defaultFacet` in `config/config.json`), keeping the query string. |
-| `GET /gnamgnam/?q=…&bookmarkType=…&domain=…` | Bookmark search page (HTML). |
+| `GET /gnamgnam/?q=…&bookmarkType=…&domain=…&linkStatus=…` | Bookmark search page (HTML). `linkStatus` is `ok`, `dead`, `blocked`, `error` or `unchecked`, derived from the last HTTP status seen. |
 | `GET /gnamgnam/search?q=…&bookmarkType=…&domain=…&limit=` | Hybrid results (JSON) with per-signal scores. Each result carries a `data` URL. |
-| `GET /gnamgnam/facets` | `bookmarkType` + `domain` values and counts. |
+| `GET /gnamgnam/facets` | `bookmarkType`, `domain` and `linkStatus` values and counts. |
 | `GET /gnamgnam/bookmarks?limit=` | Browse. |
-| `GET /gnamgnam/bookmark/<slug>[.ttl\|.json]` | One bookmark (content-negotiated). `.ttl` serves the saved triples from the store; search results link it as `data`. |
+| `GET /gnamgnam/bookmark/<slug>[.ttl\|.json]` | One bookmark (content-negotiated): an HTML detail page (summary, link status, archived copy, catalogue details, outline context) by default, JSON by `.json`/`Accept`, the saved triples by `.ttl`/`Accept`. |
 | `GET /<facet>/` | Other facets (`trestle`, `farelo`, `wiki`, `news`, `blog`, `squirt`): placeholder pages until their phase lands. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
 | `GET /static/…` | Shared UI kit (CSS, JS). |
@@ -74,10 +75,14 @@ Old URLs `/search`, `/facets`, `/bookmarks`, `/bookmark/<slug>` redirect (301) t
 - `graph/register`, `graph/deregister`, `graph/list`, `graph/is-registered`, `graph/cc0-dump-graphs` — provenance + licence registry; the CC0 dump is one query.
 - `bookmark/text-view` — one row per bookmark (backs search + embeddings).
 - `bookmark/count`, `bookmark/facets`, `bookmark/filter`, `bookmark/bookmark-types`, `bookmark/by-iri`.
+- `bookmark/statuses` — HTTP statuses + archived copy per bookmark (backs `bin/deadlinks.js`).
+
+Every named query is parsed by a test (`tests/common/store/queries.test.js`).
 
 ## Data & state
 
 - `data/workflowy.md` — source links (committed).
 - `data/cache/retrieval.json` — probe cache, 7-day TTL (gitignored).
 - `data/cache/enrichment.json` + `data/cache/enrichment/*.txt` — enrichment cache + raw extracted text, 30-day TTL (gitignored).
+- `data/cache/wayback.json` — Wayback Machine answers, including "no snapshot" (gitignored).
 - `data/dim.index` + `.json` — FAISS vectors + IRI sidecar (gitignored; rebuild with `--only-new`).

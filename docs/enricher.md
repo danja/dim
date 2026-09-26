@@ -196,7 +196,29 @@ against `VectorIndex.positionByIri`, `index.add()` replacements,
   re-embed replaces vector.
 * Manual gate: `--limit 50` reviewed before full 5k run.
 
+## Catalogue details
+
+Site fetchers also return a `catalogue` object (`src/gnamgnam/Catalogue.js`):
+GitHub → `githubLanguage`, `githubStars`, `githubTopic`; arXiv →
+`arxivAuthor`, `arxivCategory`. The patch writer owns these predicates and
+replaces them on every patch. URL-derivable details (`githubOwner`,
+`githubRepo`, `arxivId`, `wikipediaLanguage`, `wikipediaTitle`) are written
+at ingest instead, so enrichment never erases them.
+
+## Surviving a re-ingest
+
+`bin/ingest.js` drops and reloads the source graph, which removes enrichment
+triples. `bin/enrich.js` passes `hasEnrichment` (store row has a summary or
+fetch status); a cache hit on a row without it is written back to the store
+and reported as `restored`, with no refetch. Before this, a re-ingest
+followed by an enrich run silently lost every summary until the 30-day
+cache TTL expired.
+
 ## Known limits
+
+- The GitHub API allows 60 unauthenticated requests an hour; beyond that it
+  answers 403, which is recorded as a refusal (`blocked` link status). Set
+  `GITHUB_TOKEN` before a full run.
 
 - A few pages stall `nomic-embed-text` past the 60s request timeout
   (observed: CJK-heavy text, likely tokenizer blowup). `--reembed`

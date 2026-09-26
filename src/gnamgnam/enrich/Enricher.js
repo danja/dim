@@ -46,11 +46,14 @@ export class Enricher {
   }
 
   /**
-   * @param {{iri, graph, url, linkText?, bookmarkTypes?, contentType?}} bookmark
+   * @param {{iri, graph, url, linkText?, bookmarkTypes?, contentType?, hasEnrichment?}} bookmark
+   *   hasEnrichment: whether the store row already carries enrichment
+   *   (summary or fetch status). false lets a cache hit restore it — a
+   *   re-ingest drops the graph, and the cache would otherwise hide that.
    * @returns {Promise<{status, iri, url, enrichment?}>}
-   *   status: enriched | unchanged | fresh | refused | failed
+   *   status: enriched | restored | unchanged | fresh | refused | failed
    *   enrichment: { summary?, summaryModel?, summarisedAt, keywords?,
-   *     markdown?, contentHash?, contentLength?, fetchStatus? }
+   *     markdown?, contentHash?, contentLength?, fetchStatus?, catalogue? }
    */
   async run (bookmark, { force = false } = {}) {
     const { iri: bookmarkIri, graph, url } = bookmark
@@ -67,7 +70,7 @@ export class Enricher {
     if (!force && this.cache) {
       const cached = await this.cache.get(url)
       if (cached && this.cache.isFresh(cached, this.cacheTtlMs)) {
-        return { status: 'fresh', iri: bookmarkIri, url, enrichment: cached }
+        return this.#fromCache('fresh', bookmark, cached)
       }
     }
 
@@ -104,7 +107,7 @@ export class Enricher {
     if (!force && this.cache) {
       const cached = await this.cache.get(url)
       if (cached?.contentHash === hash && cached?.summary) {
-        return { status: 'unchanged', iri: bookmarkIri, url, enrichment: cached }
+        return this.#fromCache('unchanged', bookmark, cached)
       }
     }
 
@@ -130,10 +133,23 @@ export class Enricher {
       markdown: summarised.markdown ?? null,
       contentHash: hash,
       contentLength: extracted.text.length,
-      fetchStatus: fetched.httpStatus ?? null
+      fetchStatus: fetched.httpStatus ?? null,
+      catalogue: fetched.catalogue ?? null
     }
     await this.#write({ graph, bookmarkIri, url, enrichment, rawText: extracted.text })
     return { status: 'enriched', iri: bookmarkIri, url, enrichment }
+  }
+
+  /** A cache hit: restore it to the store if the store has lost it. */
+  async #fromCache (status, bookmark, cached) {
+    const { iri: bookmarkIri, graph, url } = bookmark
+    const restorable = cached.summary || typeof cached.fetchStatus === 'number'
+    if (bookmark.hasEnrichment === false && restorable) {
+      const { url: _url, cachedAt: _cachedAt, ...enrichment } = cached
+      await this.#write({ graph, bookmarkIri, url, enrichment, rawText: null })
+      return { status: 'restored', iri: bookmarkIri, url, enrichment: cached }
+    }
+    return { status, iri: bookmarkIri, url, enrichment: cached }
   }
 
   async #write ({ graph, bookmarkIri, url, enrichment, rawText }) {
