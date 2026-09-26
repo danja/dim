@@ -196,8 +196,17 @@ against `VectorIndex.positionByIri`, `index.add()` replacements,
   re-embed replaces vector.
 * Manual gate: `--limit 50` reviewed before full 5k run.
 
-## Build order
+## Known limits
 
+- A few pages stall `nomic-embed-text` past the 60s request timeout
+  (observed: CJK-heavy text, likely tokenizer blowup). `--reembed`
+  logs these per bookmark and continues; they keep their previous
+  vector. Re-running later retries them.
+- While a stalled request occupies the runner, other embeds queue
+  behind it — if many timeouts cluster, stop the run, let Ollama drain,
+  and re-run (caches make it cheap).
+
+## Build order
 1. `vocabs/dim.ttl` terms + SHACL shape + `text-view.sparql` optional.
 2. `src/enrich/{Enricher,Fetcher,Extractors,Summarisers,Writers,registry}.js` + `ENRICH_CONFIG`.
 3. `FallbackExtractor` + `ExtractiveSummariser` + `CacheWriter` (fully offline path works end-to-end).
