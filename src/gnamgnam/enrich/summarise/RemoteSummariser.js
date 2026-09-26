@@ -1,3 +1,4 @@
+import logger from 'loglevel'
 import { ENRICH_CONFIG } from '../../../../config/preferences.js'
 import { Summariser, SummariseError } from './Summariser.js'
 import { buildPrompt, resultFromReply, CircuitBreaker } from './llm.js'
@@ -19,21 +20,26 @@ import { buildPrompt, resultFromReply, CircuitBreaker } from './llm.js'
  * pages you bookmarked is itself information. Check the provider's terms
  * (free tiers often keep or train on prompts).
  *
- * Polite by default: one request per remoteRequestIntervalMs; a 429 waits
- * for Retry-After (capped at 60s) and retries once; 401/403 stops at once
- * since every later call would fail the same way. Like the Ollama
- * summariser it returns null on failure so the offline chain takes over.
+ * Polite by default: one request per remoteRequestIntervalMs. Transient
+ * failures — 429, 500, 502, 503 ("high demand"), 504 and network errors —
+ * are retried up to remoteMaxRetries times with exponential backoff
+ * (remoteRetryBaseMs doubling, capped at remoteRetryCapMs), or after the
+ * server's Retry-After when it sends one. 401/403 stops at once since
+ * every later call would fail the same way. Like the Ollama summariser it
+ * returns null on failure so the offline chain (unless --llm-only) takes over.
  */
 
-const RETRY_AFTER_CAP_MS = 60000
+export const TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504])
 
 function hostOf (url) {
   try { return new URL(url).host } catch { return 'remote' }
 }
 
-function retryAfterMs (response) {
-  const seconds = Number(response.headers.get('retry-after'))
-  return Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds * 1000, RETRY_AFTER_CAP_MS) : 10000
+/** Delay before retry number `attempt` (1-based): Retry-After if given, else exponential. */
+export function retryDelayMs (attempt, { response = null, baseMs, capMs }) {
+  const seconds = Number(response?.headers?.get?.('retry-after'))
+  if (Number.isFinite(seconds) && seconds > 0) return Math.min(seconds * 1000, capMs)
+  return Math.min(baseMs * 2 ** (attempt - 1), capMs)
 }
 
 export class RemoteSummariser extends Summariser {
@@ -49,6 +55,9 @@ export class RemoteSummariser extends Summariser {
     timeoutMs = ENRICH_CONFIG.remoteTimeoutMs,
     requestIntervalMs = ENRICH_CONFIG.remoteRequestIntervalMs,
     failureLimit = ENRICH_CONFIG.llmFailureLimit,
+    maxRetries = ENRICH_CONFIG.remoteMaxRetries,
+    retryBaseMs = ENRICH_CONFIG.remoteRetryBaseMs,
+    retryCapMs = ENRICH_CONFIG.remoteRetryCapMs,
     fetchImpl = fetch,
     sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
   } = {}) {
@@ -66,6 +75,9 @@ export class RemoteSummariser extends Summariser {
     this.maxTokens = maxTokens
     this.timeoutMs = timeoutMs
     this.requestIntervalMs = requestIntervalMs
+    this.maxRetries = maxRetries
+    this.retryBaseMs = retryBaseMs
+    this.retryCapMs = retryCapMs
     this.fetchImpl = fetchImpl
     this.sleep = sleep
     this.lastRequestAt = 0
@@ -107,15 +119,26 @@ export class RemoteSummariser extends Summariser {
   async summarise (text, ctx = {}) {
     if (!text || !text.trim() || this.breaker.open) return null
     const prompt = buildPrompt(text, this.inputChars)
-    let response
-    try {
-      response = await this.#post(prompt)
-      if (response.status === 429) {
-        await this.sleep(retryAfterMs(response))
-        response = await this.#post(prompt)
+    let response = null
+    let lastError = null
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      if (attempt > 0) {
+        const delay = retryDelayMs(attempt, { response, baseMs: this.retryBaseMs, capMs: this.retryCapMs })
+        logger.info(`[enrich] ${this.id}: ${lastError ?? `HTTP ${response.status}`} — retry ${attempt}/${this.maxRetries} in ${Math.round(delay / 1000)}s`)
+        await this.sleep(delay)
       }
-    } catch (error) {
-      this.breaker.failure(`request failed: ${error.message}`)
+      try {
+        response = await this.#post(prompt)
+        lastError = null
+      } catch (error) {
+        response = null
+        lastError = `request failed: ${error.message}`
+        continue
+      }
+      if (!TRANSIENT_STATUSES.has(response.status)) break
+    }
+    if (lastError) {
+      this.breaker.failure(`${lastError} (after ${this.maxRetries} retries)`)
       return null
     }
     if (response.status === 401 || response.status === 403) {
@@ -125,7 +148,8 @@ export class RemoteSummariser extends Summariser {
     }
     if (!response.ok) {
       const detail = (await response.text().catch(() => '')).slice(0, 200)
-      this.breaker.failure(`HTTP ${response.status} ${detail}`)
+      const retried = TRANSIENT_STATUSES.has(response.status) ? ` (after ${this.maxRetries} retries)` : ''
+      this.breaker.failure(`HTTP ${response.status}${retried} ${detail}`)
       return null
     }
     let choice

@@ -51,6 +51,11 @@ export const ENRICH_CONFIG = {
   llmFailureLimit: 5, // consecutive failures before the LLM is skipped for the rest of the run
   ollamaTimeoutMs: 120000,
   remoteTimeoutMs: 60000,
-  remoteRequestIntervalMs: 2000, // pacing for free tiers; 429s also honour Retry-After
+  remoteRequestIntervalMs: 2000, // pacing for free tiers
+  // Transient failures (429, 500, 502, 503, 504, network errors) are retried
+  // with exponential backoff: base, 2×base, 4×base … capped, or Retry-After.
+  remoteMaxRetries: 4,
+  remoteRetryBaseMs: 5000,
+  remoteRetryCapMs: 60000,
   checkpointEvery: 100
 }

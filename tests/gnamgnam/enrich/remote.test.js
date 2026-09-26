@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { RemoteSummariser } from '../../../src/gnamgnam/enrich/summarise/RemoteSummariser.js'
+import { RemoteSummariser, retryDelayMs } from '../../../src/gnamgnam/enrich/summarise/RemoteSummariser.js'
 import { OllamaSummariser } from '../../../src/gnamgnam/enrich/summarise/OllamaSummariser.js'
 import { CircuitBreaker } from '../../../src/gnamgnam/enrich/summarise/llm.js'
 import { defaultSummarisers } from '../../../src/gnamgnam/enrich/registry.js'
@@ -53,6 +53,38 @@ describe('RemoteSummariser', () => {
     expect(sleeps).toContain(7000)
   })
 
+  it('retries 503 "high demand" with exponential backoff', async () => {
+    const busy = () => new Response('{"error":{"code":503,"status":"UNAVAILABLE"}}', { status: 503 })
+    const { s, calls, sleeps } = summariser([busy(), busy(), reply('SUMMARY: Third time lucky.')])
+    expect((await s.summarise(TEXT)).summary).toBe('Third time lucky.')
+    expect(calls).toHaveLength(3)
+    expect(sleeps).toEqual([5000, 10000])
+    expect(s.breaker.failures).toBe(0)
+  })
+
+  it('gives up after the retry limit and counts one failure', async () => {
+    const busy = () => new Response('busy', { status: 503 })
+    const { s, calls } = summariser([busy(), busy(), busy()], { maxRetries: 2 })
+    expect(await s.summarise(TEXT)).toBeNull()
+    expect(calls).toHaveLength(3)
+    expect(s.breaker.failures).toBe(1)
+  })
+
+  it('retries network errors, but not client errors', async () => {
+    const flaky = summariser([new Error('ECONNRESET'), reply('SUMMARY: Back.')])
+    expect((await flaky.s.summarise(TEXT)).summary).toBe('Back.')
+    const bad = summariser([new Response('bad request', { status: 400 })])
+    expect(await bad.s.summarise(TEXT)).toBeNull()
+    expect(bad.calls).toHaveLength(1)
+  })
+
+  it('backoff doubles, is capped, and defers to Retry-After', () => {
+    const opts = { baseMs: 5000, capMs: 60000 }
+    expect([1, 2, 3, 4, 5].map(a => retryDelayMs(a, opts))).toEqual([5000, 10000, 20000, 40000, 60000])
+    const response = new Response('', { status: 429, headers: { 'retry-after': '3' } })
+    expect(retryDelayMs(4, { ...opts, response })).toBe(3000)
+  })
+
   it('stops calling after an auth failure', async () => {
     const { s, calls } = summariser([new Response('no', { status: 401 })])
     expect(await s.summarise(TEXT)).toBeNull()
@@ -63,7 +95,7 @@ describe('RemoteSummariser', () => {
   it('opens the circuit after repeated failures, and a success resets it', async () => {
     const { s, calls } = summariser([
       new Error('timeout'), reply('SUMMARY: Ok.'), new Error('t'), new Error('t'), new Error('t'), new Error('t'), new Error('t')
-    ], { failureLimit: 5 })
+    ], { failureLimit: 5, maxRetries: 0 })
     await s.summarise(TEXT)
     expect((await s.summarise(TEXT)).summary).toBe('Ok.')
     for (let i = 0; i < 6; i++) await s.summarise(TEXT)

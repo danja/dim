@@ -213,8 +213,11 @@ chat-completions API (`src/gnamgnam/enrich/summarise/RemoteSummariser.js`),
 configured by `LLM_BASE_URL` (e.g. `https://…/v1`), `LLM_API_KEY` and
 `LLM_MODEL`; `dim:summaryModel` records it as
 `remote/<host>/<model>-<promptVersion>`. It paces requests
-(`remoteRequestIntervalMs`), honours `Retry-After` on 429 once, and stops at
-the first 401/403. Page text is sent to the provider.
+(`remoteRequestIntervalMs`); retries transient failures (429, 500, 502,
+503 "high demand", 504, network errors) up to `remoteMaxRetries` times with
+exponential backoff (`remoteRetryBaseMs` doubling, capped at
+`remoteRetryCapMs`) or the server's `Retry-After`; and stops at the first
+401/403. A bookmark that still fails counts once towards the circuit breaker. Page text is sent to the provider.
 
 Both share the prompt and reply parsing (`summarise/llm.js`) and a circuit
 breaker: after `llmFailureLimit` consecutive failures (timeouts, errors,
