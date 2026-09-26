@@ -48,7 +48,7 @@ These apply to every phase; a task isn't done if it breaks one.
 |---|---|---|---|
 | 0 | Starter: core port + first dataset | — | `[~]` mostly done |
 | 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` |
-| 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[x]` (live check pending) |
+| 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[x]` |
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[ ]` |
 | 4 | Write path & cross-linking foundation | 2 | `[ ]` |
 | 5 | Trestle outliner | 4 | `[ ]` |
@@ -245,8 +245,8 @@ real facet needs them (Phase 4+), rather than being guessed now.
       all planned facets. Checked light and dark, and at 1024px.
 - [x] axe-core 4: no violations on the search page or a stub page, light
       and dark.
-- [ ] Re-check against the live store locally (search, `/health`, old
-      bookmark links redirecting).
+- [x] Re-checked against the live store locally on 2026-09-26: search,
+      `/health`, old bookmark links redirecting — all working.
 
 ---
 
@@ -592,3 +592,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 1 | SearchService adapter, server split + Router, GraphWriter, Summarisers/Fetchers split, `facet` graph kind, docs. 62/62 tests. Live-store check pending. | e93f90d |
 | 2026-09-26 | 1 | Live check: search on the restructured branch works as before. Phase 1 done. | |
 | 2026-09-26 | 2 | Facet registry, shared shell with tabs, `/static`, GnamGnam at `/gnamgnam/` with redirects, stub facets. 76/76 tests; 375px screenshots and axe clean. Live check pending. | f96f490 |
+| 2026-09-26 | 2 | Live check: shell, search, `/health` and redirects work against the live store. Phase 2 done. | |
