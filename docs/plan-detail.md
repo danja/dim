@@ -52,7 +52,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[~]` 3a code done; 3b local runs |
 | 4 | Write path & cross-linking foundation | 2 | `[x]` |
 | 5 | Trestle outliner | 4 | `[x]` (local check pending) |
-| 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[ ]` |
+| 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[x]` (local check pending) |
 | 7 | Wiki (from foowiki) | 4 | `[ ]` |
 | 8 | Newsmonitor (RSS) | 4 | `[ ]` |
 | 9 | Blog engine | 7 | `[ ]` |
@@ -577,40 +577,72 @@ target order works out to 7, then alternating either side of 7
 (6, 8, 5, 9, …), which gives each successive priority the same or a lower
 probability.
 
-- [ ] Model: `dim:Task` (title, Markdown notes, status as SKOS concept in
-      `dim:task-states`: backlog/todo/doing/blocked/done), `dim:dependsOn`,
-      `dim:partOf` (projects = tasks with children), estimate, due,
-      priority, contexts (SKOS), `dim:resource` links.
-- [ ] Kanban board UI: columns = states, drag/drop (pointer events,
-      keyboard fallback), swimlanes by project, mobile: one column at a
-      time with swipe/tab switch.
-- [ ] "Dice" mode implementing 6.1 in `src/farelo/dice.js`
-      (pure functions, no I/O):
-  - [ ] `diceList(tasks)` — the eligible tasks (not blocked, dependencies
-        met, not done), sorted by priority; the top 11 get priorities 1–11
-        and targets from the table. Ties are broken by due date, then age.
-  - [ ] `roll(rng)` → 2d6 sum; `pick(list, rng)` re-rolls on empty or
-        excluded targets. Injectable RNG so tests can use a seed.
-  - [ ] After-pick policies (user choice, remembered per board): *replace*
-        (refill the slot from the next unnumbered task), *skip target*
-        (exclude it for the next roll), *new list* (recompute).
-  - [ ] UI: a "Roll" button that animates two dice, shows the sum, target
-        and chosen task, plus the probability table for the current list.
-        Printable list view (the post's own "nice printable version" todo).
-  - [ ] Record each roll as a `prov:Activity` (sum, chosen task, policy)
-        so Phase 11 can learn from accept/skip.
-- [ ] Task detail page: resources one click away, "Linked from" panel,
-      history from change log.
-- [ ] Import: seed tasks from Trestle nodes tagged TODO / checkbox items.
-- [ ] Tests: state transitions, dependency eligibility; dice: target table
-      matches 6.1, the distribution over 36k seeded rolls is within 1% of
-      the P(target) row, the <11-task re-roll, and each after-pick policy.
+- [x] Model (`vocabs/dim.ttl`, `src/farelo/rdf.js`): `dim:Task`, `dim:Project`
+      (a task others are `dim:partOf`); `dcterms:title`, `dim:note`,
+      `dim:status` → SKOS concepts in `dim:task-states` (backlog, todo,
+      doing, blocked, done; written to `graph:alignment/task-states`),
+      `dim:priority` 1–5, `dim:due`, `dim:estimate` (minutes),
+      `dim:dependsOn`, `dim:position` (column order), `dim:doneAt`.
+      **Contexts are tags** (`dim:tag`, e.g. `@home`) rather than a
+      separate SKOS scheme — the same mechanism as bookmark tags.
+      `TaskShape` in SHACL. Every write rewrites the task's whole
+      description, so a task is always valid as a unit.
+- [x] Board (`/farelo/`): five columns; on a phone one column at a time
+      (scroll-snap + column chips); drag by the ⠿ grip (pointer events, so
+      touch works without hijacking scroll), Alt+←/→/↑/↓ on a focused card,
+      and a no-JS **Move** menu. **Projects are a filter, not swimlanes** —
+      swimlanes don't fit a phone. Moves into Doing/Done are refused while
+      a dependency is unfinished (409, message shown on the board).
+- [x] Dice (`src/farelo/dice.js`, pure; RNG injected):
+  - [x] `diceList` numbers up to 11 eligible tasks — To do or Doing, not a
+        project, no unfinished dependency — sorted by priority, due date,
+        age (`rankForDice` in `tasks.js`).
+  - [x] `roll`, `pick` (re-rolls empty or skipped numbers), `probability`,
+        and a seeded generator for tests.
+  - [x] After-pick policies *replace*, *skip*, *new* (`nextState`). The
+        round's state travels in the form, so the server stays stateless.
+  - [x] Page: numbered list with targets and chances, Roll (tumbling dice,
+        off under reduced motion), result with **Start it**, policy choice,
+        **Print the list** (print stylesheet).
+  - [x] Each roll recorded as a `dim:Roll` / `prov:Activity` in
+        `graph:system/rolls` (dice, sum, picked task, rank, policy, list
+        size). Rolling needs a login, since it writes.
+- [x] Task page: state buttons, meta, waits-on list, project's tasks, note,
+      links panel (resources one click away), edit form, delete, history
+      from the change log.
+- [x] Import (`bin/farelo-import.js`): items under TODO headings in the
+      outline → 144 tasks (40 projects) from the Workflowy outline, each
+      linked to its outline item; link-only items skipped; re-runs add only
+      new ones and relink by title (safe after `trestle-import --replace`).
+      Tasks start in Backlog (old to-dos are candidates; the dice draw from
+      To do and Doing).
+- [x] Also: the outline parser now treats a `# heading` between bullets as
+      a top-level item (the Workflowy file has two); ordering helpers moved
+      to `src/common/store/positions.js`, shared by Trestle and Farelo.
+- [x] Tests: target table and chances; **36,000 seeded rolls within 1% of
+      the 2d6 odds**; re-roll on empty/skipped; each policy; eligibility
+      (blocked, waiting, backlog, done, project never offered); transition
+      refusal; ordering; TODO-section planning; the dice route with a
+      seeded RNG; TaskStore round-trip against the store.
 
 ### Acceptance
 
-- Board usable on phone and desktop; moving a card persists.
-- Dice pick never returns a blocked or dependency-pending task.
-- Pick frequencies match the 2d6 distribution for the priority table in 6.1.
+- [x] Board usable on phone and desktop; moving a card persists (Playwright:
+      drag to Doing, Alt+→, refusal message, reload keeps the order; axe
+      clean, no horizontal page scroll at 375 px and 1280 px).
+- [x] Dice pick never returns a blocked or dependency-pending task (unit
+      tests + route test over 20 live rolls).
+- [x] Pick frequencies match the 2d6 distribution (36k rolls, all within 1%).
+- [x] `bin/validate.js` clean including `graph:facet/farelo`,
+      `graph:system/rolls`, `graph:alignment/task-states`.
+- [x] 208 core tests, 9 store tests.
+- [ ] Local check: `bin/farelo-import.js`, then the board and a few rolls.
+
+### Notes
+
+- `trestle-import --replace` drops links to the old outline items; run
+  `farelo-import` again to relink tasks.
+- Tasks are cached in memory by the server: restart after an import.
 
 ---
 
@@ -788,3 +820,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 4 | Write path (Repository + SHACL, token/session/CSRF auth, change log), links (shared graph, mentions, /r resolver, links panel, picker), /find, bookmark tags + notes. 174 core + 5 store tests; Playwright + axe; survives re-ingest. | 2672317 |
 | 2026-09-26 | 4 | Local check: writes, notes, tags and links work. Phase 4 done. | |
 | 2026-09-26 | 5 | Trestle: shared outline parser (fixes bookmark contexts), Workflowy import (8,118 items, 5,819 bookmark links), outliner UI with keys + touch toolbar, exports that round-trip. 190 core + 7 store tests; Playwright + axe. | e698cec |
+| 2026-09-26 | 6 | Farelo: tasks, board (drag, keys, no-JS menu), Getting Things Diced (pure dice, policies, roll log, print), task pages, outline TODO import (144 tasks); outline parser treats `#` headings as items. 208 core + 9 store tests; 36k-roll distribution; Playwright + axe. | |

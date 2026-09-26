@@ -15,6 +15,8 @@ import ChangeLog from '../src/common/store/ChangeLog.js'
 import Repository from '../src/common/store/Repository.js'
 import LinkStore from '../src/common/links/LinkStore.js'
 import OutlineStore from '../src/trestle/OutlineStore.js'
+import TaskStore from '../src/farelo/TaskStore.js'
+import RollLog from '../src/farelo/RollLog.js'
 
 logger.setLevel('info')
 
@@ -50,7 +52,9 @@ const repository = new Repository({
 const links = new LinkStore({ client, repository })
 
 const outlines = new OutlineStore({ client, repository, links })
-const facets = createFacets({ search, outlines })
+const tasks = new TaskStore({ client, repository, links })
+const rolls = new RollLog({ client, registry })
+const facets = createFacets({ search, outlines, tasks, rolls })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)

@@ -216,6 +216,35 @@ dim:OutlineNodeShape a sh:NodeShape ;
         sh:datatype xsd:boolean ;
     ] .
 
+## Tasks (Farelo).
+dim:TaskShape a sh:NodeShape ;
+    sh:targetClass dim:Task ;
+    sh:property [
+        sh:path dcterms:title ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 500 ;
+        sh:message "A task has one title of 1–500 characters." ;
+    ] ;
+    sh:property [
+        sh:path dim:status ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:pattern "^http://purl\\.org/stuff/dim/task-state/(backlog|todo|doing|blocked|done)$" ;
+        sh:message "A task has one state: backlog, todo, doing, blocked or done." ;
+    ] ;
+    sh:property [
+        sh:path dim:priority ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ; sh:minInclusive 1 ; sh:maxInclusive 5 ;
+        sh:message "Priority is 1 (highest) to 5 (lowest)." ;
+    ] ;
+    sh:property [ sh:path dim:due ; sh:maxCount 1 ; sh:datatype xsd:date ; sh:message "One due date (YYYY-MM-DD)." ] ;
+    sh:property [ sh:path dim:estimate ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ; sh:message "Estimate is whole minutes." ] ;
+    sh:property [ sh:path dim:dependsOn ; sh:nodeKind sh:IRI ; sh:pattern "^http://purl\\.org/stuff/dim/task/" ; sh:message "A task depends on other tasks." ] ;
+    sh:property [ sh:path dim:partOf ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:message "A task is part of at most one project." ] ;
+    sh:property [ sh:path dim:position ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ] ;
+    sh:property [ sh:path dim:doneAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
+
 dim:ConceptShape a sh:NodeShape ;
     sh:targetClass skos:Concept ;
     sh:property [

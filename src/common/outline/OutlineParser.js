@@ -15,6 +15,8 @@
  */
 
 const BULLET = /^([ \t]*)-(?:[ \t]+(.*))?$/
+// A Markdown heading between bullets is an item of its own at the top level.
+const HEADING = /^#{1,6}[ \t]+(.*)$/
 const MD_LINK = /\[([^\]]*)\]\((https?:[^)\s]+)\)/g
 const BARE_URL = /(https?:\/\/[^\s)>\]]+)/g
 
@@ -75,7 +77,8 @@ export function parseOutline (source) {
   let last = null
 
   lines.forEach((line, i) => {
-    const bullet = line.match(BULLET)
+    const heading = last && line.match(HEADING)
+    const bullet = heading ? ['', '', heading[1]] : line.match(BULLET)
     if (bullet) {
       const indent = indentOf(bullet[1])
       while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop()

@@ -56,6 +56,12 @@ describe('OutlineParser', () => {
     walkOutline(items, (item, ancestors) => seen.push(`${ancestors.length}:${plainText(item.text).slice(0, 8)}`))
     expect(seen).toEqual(['0:Inbox', '1:Roland -', '1:plain no', '2:odd inde', '0:#bass #t', '1:https://', '0:Projects', '1:Seki', '2:see http'])
   })
+
+  it('treats a heading between bullets as a top-level item', () => {
+    const { items: parsed } = parseOutline('- one\n  - child\n# **Section** two\n- three\n')
+    expect(parsed.map(i => i.text)).toEqual(['one', '**Section** two', 'three'])
+    expect(parsed[0].children.map(i => i.text)).toEqual(['child'])
+  })
 })
 
 describe('parseWorkflowy on the outline parser', () => {

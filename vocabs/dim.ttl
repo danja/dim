@@ -108,6 +108,32 @@ dim:position a owl:DatatypeProperty ; rdfs:domain dim:OutlineNode ; rdfs:range x
 dim:collapsed a owl:DatatypeProperty ; rdfs:domain dim:OutlineNode ; rdfs:range xsd:boolean ;
     rdfs:comment "Children hidden in the outline view. Absent means expanded." .
 
+## ── Tasks (Farelo, graph:facet/farelo) ─────────────────────────────────
+## A task's state is a concept in dim:task-states. A project is a task that
+## others are dim:partOf. Getting Things Diced rolls are dim:Roll activities.
+dim:Task a owl:Class ; rdfs:label "Task" .
+dim:Project a owl:Class ; rdfs:subClassOf dim:Task ; rdfs:label "Project" ;
+    rdfs:comment "A task other tasks are part of; the board can be filtered by project." .
+dim:status a owl:ObjectProperty ; rdfs:domain dim:Task ; rdfs:range skos:Concept ;
+    rdfs:comment "backlog, todo, doing, blocked or done — concepts in dim:task-states." .
+dim:priority a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:integer ;
+    rdfs:comment "1 (highest) to 5 (lowest). Orders the Getting Things Diced list." .
+dim:due a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:date .
+dim:estimate a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:integer ;
+    rdfs:comment "Expected effort in minutes." .
+dim:dependsOn a owl:ObjectProperty ; rdfs:domain dim:Task ; rdfs:range dim:Task ;
+    rdfs:comment "Must be done first. A task with an unfinished dependency is not in the dice list." .
+dim:doneAt a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:dateTime .
+dim:Roll a owl:Class ; rdfs:subClassOf prov:Activity ; rdfs:label "Dice roll" ;
+    rdfs:comment "One Getting Things Diced roll: the dice, the target hit, the task picked." .
+dim:diceSum a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer .
+dim:picked a owl:ObjectProperty ; rdfs:domain dim:Roll ; rdfs:range dim:Task .
+dim:die a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer ; rdfs:comment "One die's face, 1–6 (two per roll)." .
+dim:rank a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer ; rdfs:comment "The picked task's place in the numbered list (1 = highest priority)." .
+dim:listSize a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer ; rdfs:comment "How many tasks were numbered (at most 11)." .
+dim:rollPolicy a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:string ;
+    rdfs:comment "replace, skip or new: how the list was treated after the previous pick." .
+
 ## ── Change log (graph:system/changes) ─────────────────────────────────
 ## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,
 ## prov:used (the resource), plus these.

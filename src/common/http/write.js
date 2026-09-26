@@ -8,7 +8,7 @@ import { renderPage } from '../ui/layout.js'
  * run it, and answer a form with a 303 back to a page or a script with JSON.
  *
  * The handler receives the usual route context plus { body, identity } and
- * returns { redirect?, json?, status? }. Errors carrying a .status (4xx)
+ * returns { redirect?, json?, html?, status? }. Errors carrying a .status (4xx)
  * are the client's; anything else is logged as a 500.
  */
 
@@ -50,6 +50,8 @@ export function writeRoute (handler) {
     try {
       const result = (await handler({ ...ctx, body, identity: check.identity })) ?? {}
       if (wantsJson(request)) return send(response, result.status ?? 200, result.json ?? { ok: true })
+      // A write whose answer is a page of its own (e.g. a dice roll).
+      if (result.html) return sendHtml(response, result.status ?? 200, result.html)
       return redirect(response, 303, safeReturn(body._return, result.redirect ?? '/'))
     } catch (error) {
       const status = Number.isInteger(error.status) && error.status < 500 ? error.status : 500

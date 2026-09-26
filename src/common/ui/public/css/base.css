@@ -342,3 +342,83 @@ textarea {
 .keys { margin: 0 0 0.5rem; font-size: 0.875rem; }
 kbd { font-family: var(--mono); font-size: 0.8em; padding: 0 0.3em; border: 1px solid var(--border); border-radius: 3px; }
 .outline[data-busy] { cursor: progress; opacity: 0.85; }
+
+/* ── Farelo board, tasks and dice ────────────────────────────────────── */
+
+main:has(.board) { max-width: 90rem; }
+.board-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.dice-link { font-weight: 600; }
+.filter { display: flex; gap: 0.5rem; margin: 0 0 0.5rem; }
+.filter select { width: auto; flex: 1; max-width: 24rem; }
+.new-task { display: grid; grid-template-columns: 1fr auto auto; gap: 0.5rem; margin-bottom: 0.75rem; }
+.new-task input { grid-column: 1 / -1; }
+@media (min-width: 40rem) { .new-task { grid-template-columns: 1fr auto auto auto; } .new-task input { grid-column: auto; } }
+.new-task select { width: auto; }
+
+.col-tabs { display: flex; gap: 0.25rem; overflow-x: auto; margin: 0 0 0.5rem; font-size: 0.875rem; }
+.col-tabs a { flex: none; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 999px; color: var(--text); text-decoration: none; }
+.count { color: var(--muted); font-weight: normal; font-size: 0.85em; }
+
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 85%;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.5rem;
+}
+.column { scroll-snap-align: start; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem; min-height: 8rem; }
+.column h2 { margin: 0.25rem 0 0.5rem; font-size: 1rem; }
+@media (min-width: 64rem) {
+  .col-tabs { display: none; }
+  .board { grid-auto-flow: row; grid-template-columns: repeat(5, 1fr); overflow: visible; }
+}
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; min-height: 3rem; border-radius: var(--radius); }
+.cards.drop-here { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.task-card { display: flex; gap: 0.25rem; padding: 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.task-card:focus { outline: 3px solid var(--focus); outline-offset: 1px; }
+.task-card.dragging { opacity: 0.85; box-shadow: 0 6px 18px rgb(0 0 0 / 0.2); position: relative; z-index: 30; }
+.grip { flex: none; cursor: grab; color: var(--muted); touch-action: none; user-select: none; padding: 0 0.25rem; line-height: 1.5; }
+.card-body { flex: 1; min-width: 0; }
+.card-title { font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.task-card .meta { margin-top: 0.15rem; }
+.card-move summary { font-size: 0.8rem; color: var(--muted); cursor: pointer; }
+.card-move form { display: flex; gap: 0.35rem; margin-top: 0.25rem; }
+.card-move select { width: auto; min-height: 36px; }
+.card-move button { min-height: 36px; padding: 0 0.6rem; }
+.waits { color: var(--warn); }
+.prio { font-weight: 700; }
+.prio-1 { color: var(--bad); }
+.prio-2 { color: var(--warn); }
+.tag { font-size: 0.8rem; }
+.board-status:empty { display: none; }
+.board-status { color: var(--bad); }
+.state-doing { color: var(--accent); border-color: currentColor; }
+.state-done { color: var(--ok); border-color: currentColor; }
+.state-blocked { color: var(--warn); border-color: currentColor; }
+.deps { list-style: none; padding: 0; display: grid; gap: 0.35rem; }
+.history ol { padding-left: 1.25rem; font-size: 0.875rem; }
+.edit select[multiple] { min-height: 6rem; }
+
+.dice-list { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.dice-list caption { text-align: left; color: var(--muted); font-size: 0.875rem; padding-bottom: 0.5rem; }
+.dice-list th, .dice-list td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.dice-list td.target { font-weight: 700; font-size: 1.1rem; }
+.dice-list tr.picked td { background: var(--surface); box-shadow: inset 3px 0 0 var(--accent); }
+.roll { display: grid; gap: 0.75rem; margin: 1rem 0; }
+.roll-button { justify-self: start; font-size: 1.1rem; }
+.policy { display: grid; gap: 0.35rem; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.75rem; }
+.policy label { font-size: 0.9rem; }
+.roll-result { padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.dice { font-size: 3.5rem; line-height: 1; margin: 0; }
+.dice span { display: inline-block; animation: dice-tumble 0.6s ease-out; }
+.dice span + span { animation-duration: 0.75s; }
+@keyframes dice-tumble { 0% { transform: rotate(-200deg) scale(0.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dice span { animation: none; } }
+
+@media print {
+  .site, .roll, .roll-result, .noprint, .crumbs, .outliner-toolbar { display: none !important; }
+  body { background: #fff; color: #000; }
+  .dice-list a { color: #000; text-decoration: none; }
+}

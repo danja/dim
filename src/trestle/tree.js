@@ -6,11 +6,12 @@
  *
  * Order among siblings is by `position`, a decimal: inserting between two
  * siblings takes the midpoint, so a move or insert rewrites one node, not
- * the whole sibling list. When two neighbours get too close, `renumber`
- * spreads a sibling list back out (rare).
+ * the whole sibling list (src/common/store/positions.js).
  */
 
-export const MIN_GAP = 1e-6
+import { positionBetween, needsRenumber, renumber, MIN_GAP } from '../common/store/positions.js'
+
+export { positionBetween, needsRenumber, renumber, MIN_GAP }
 
 export class TreeError extends Error {
   constructor (message) {
@@ -24,23 +25,6 @@ export function childrenOf (outline, parentIri) {
   const out = []
   for (const node of outline.nodes.values()) if (node.parent === parentIri) out.push(node)
   return out.sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
-}
-
-/** A position strictly between `before` and `after` (either may be null). */
-export function positionBetween (before, after) {
-  if (before == null && after == null) return 1
-  if (before == null) return after - 1
-  if (after == null) return before + 1
-  return (before + after) / 2
-}
-
-export function needsRenumber (before, after) {
-  return before != null && after != null && after - before < MIN_GAP
-}
-
-/** Evenly spaced positions for a sibling list: 1, 2, 3 … → [{ node, position }] */
-export function renumber (siblings) {
-  return siblings.map((node, i) => ({ node, position: i + 1 }))
 }
 
 function siblingsAround (outline, node) {

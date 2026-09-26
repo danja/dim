@@ -1,0 +1,10 @@
+# Recent changes to one resource, from the change log.
+SELECT ?at ?action ?comment
+WHERE {
+  GRAPH ${graph} {
+    ?change prov:used ${resource} ; prov:startedAtTime ?at ; dim:changeAction ?action .
+    OPTIONAL { ?change rdfs:comment ?comment }
+  }
+}
+ORDER BY DESC(?at)
+LIMIT 20

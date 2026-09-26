@@ -22,6 +22,9 @@ node bin/trestle-import.js --file notes.md --slug notes --title "Notes"
   **loses any edits made to that outline in the web UI**.
 - Restart the server afterwards (outlines are cached in memory).
 - Run `node bin/ingest.js` first if you want the bookmark links.
+- `--replace` makes new items, so links *to* the old ones (bookmark notes'
+  mentions, Farelo tasks) are dropped; `node bin/farelo-import.js` relinks
+  the tasks.
 
 ## In the browser
 

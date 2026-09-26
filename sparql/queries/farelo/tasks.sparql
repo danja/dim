@@ -1,0 +1,21 @@
+# Every task, one row each, with dependencies and tags concatenated.
+SELECT ?task ?title ?status ?position ?created ?modified ?note ?priority ?due ?estimate ?project ?doneAt ?isProject
+       (GROUP_CONCAT(DISTINCT STR(?dep); separator=" ") AS ?deps)
+       (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
+WHERE {
+  GRAPH ${graph} {
+    ?task a dim:Task ; dcterms:title ?title ; dim:status ?status ; dim:position ?position .
+    OPTIONAL { ?task dcterms:created ?created }
+    OPTIONAL { ?task dcterms:modified ?modified }
+    OPTIONAL { ?task dim:note ?note }
+    OPTIONAL { ?task dim:priority ?priority }
+    OPTIONAL { ?task dim:due ?due }
+    OPTIONAL { ?task dim:estimate ?estimate }
+    OPTIONAL { ?task dim:partOf ?project }
+    OPTIONAL { ?task dim:doneAt ?doneAt }
+    OPTIONAL { ?task a dim:Project . BIND(true AS ?isProject) }
+    OPTIONAL { ?task dim:dependsOn ?dep }
+    OPTIONAL { ?task dim:tag ?tag }
+  }
+}
+GROUP BY ?task ?title ?status ?position ?created ?modified ?note ?priority ?due ?estimate ?project ?doneAt ?isProject

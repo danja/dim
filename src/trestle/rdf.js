@@ -1,10 +1,11 @@
 import { randomBytes } from 'crypto'
 import { NAMESPACES } from '../common/rdf/NamespaceManager.js'
 import { iri, literal, typedLiteral } from '../common/store/SPARQLHelper.js'
+import { decimalLiteral } from '../common/store/positions.js'
 
 /** Outline and node triples, IRIs and literals (graph:facet/trestle). */
 
-const { dim, rdf, dcterms, xsd } = NAMESPACES
+const { dim, rdf, dcterms } = NAMESPACES
 
 export const P = Object.freeze({
   type: rdf + 'type',
@@ -25,12 +26,7 @@ export const nodeIri = id => `${dim}node/${id}`
 export const outlineIri = slug => `${dim}outline/${slug}`
 export const newNodeId = () => `n${randomBytes(6).toString('hex')}`
 
-/** A decimal literal, never in exponent form (xsd:decimal forbids it). */
-export function decimalLiteral (n) {
-  if (!Number.isFinite(n)) throw new Error(`Not a finite position: ${n}`)
-  const text = Number.isInteger(n) ? `${n}.0` : n.toFixed(12).replace(/0+$/, '')
-  return literal(text, { datatype: `${xsd}decimal` })
-}
+export { decimalLiteral } from '../common/store/positions.js'
 
 export function outlineTriples ({ iri: o, title, created }) {
   const s = iri(o)

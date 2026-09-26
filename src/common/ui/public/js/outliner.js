@@ -180,8 +180,3 @@ if (root && csrf) {
     })
   })
 }
-
-// Confirm destructive forms anywhere on the page.
-for (const form of document.querySelectorAll('form[data-confirm]')) {
-  form.addEventListener('submit', e => { if (!confirm(form.dataset.confirm)) e.preventDefault() })
-}

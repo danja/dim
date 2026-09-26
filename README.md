@@ -31,7 +31,7 @@ docker compose up -d fuseki
 
 ## Use
 
-Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md).
+Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md).
 
 ```sh
 node bin/retrieve.js              # first-pass report over workflowy.md (offline)
@@ -56,6 +56,7 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /<facet>/` | Trestle, Farelo, Wiki, News, Blog, Squirt — placeholder pages until built |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
 | `GET /trestle/` | outlines (Trestle): the Workflowy outline, editable |
+| `GET /farelo/` | tasks (Farelo): Kanban board; `/farelo/dice` picks the next task |
 | `GET /find?q=` | search every facet |
 | `GET /r/<type>/<slug>` | the page of any DIM resource |
 | `POST /links`, `POST /gnamgnam/bookmark/<slug>/annotations` | links, tags and notes — needs `DIM_WRITE_TOKEN` (see `docs/tools.md`) |
@@ -108,6 +109,8 @@ GnamGnam (bookmarks) is the first facet.
   - `index.js` — the facet object
 - `src/trestle/` — the outliner facet: `OutlineStore` (outlines in memory,
   written through), `tree.js` (pure moves), `importOutline.js`, `api/`
+- `src/farelo/` — the task facet: `TaskStore`, `tasks.js` (states, rules),
+  `dice.js` (Getting Things Diced), `RollLog`, `fromOutline.js`, `api/`
 - `src/common/outline/OutlineParser.js` — Markdown bullet outlines
   (Workflowy export), shared by the bookmark harvester and Trestle
 - `vocabs/dim.ttl`, `vocabs/shapes.ttl` — ontology + SHACL
