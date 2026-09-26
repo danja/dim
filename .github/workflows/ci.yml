@@ -1,0 +1,26 @@
+name: CI
+
+# The offline test suite on every push and pull request. The live-store
+# suite (npm run test:store) needs Fuseki and is run locally.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # faiss-node builds against BLAS when no prebuilt binary fits.
+      - name: Native build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libopenblas-dev cmake
+      - run: npm ci
+      - run: npm test
