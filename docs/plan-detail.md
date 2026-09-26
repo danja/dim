@@ -787,4 +787,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | — | Command-reference commit had landed after the merge; re-applied. | |
 | 2026-09-26 | 4 | Write path (Repository + SHACL, token/session/CSRF auth, change log), links (shared graph, mentions, /r resolver, links panel, picker), /find, bookmark tags + notes. 174 core + 5 store tests; Playwright + axe; survives re-ingest. | 2672317 |
 | 2026-09-26 | 4 | Local check: writes, notes, tags and links work. Phase 4 done. | |
-| 2026-09-26 | 5 | Trestle: shared outline parser (fixes bookmark contexts), Workflowy import (8,118 items, 5,819 bookmark links), outliner UI with keys + touch toolbar, exports that round-trip. 190 core + 7 store tests; Playwright + axe. | |
+| 2026-09-26 | 5 | Trestle: shared outline parser (fixes bookmark contexts), Workflowy import (8,118 items, 5,819 bookmark links), outliner UI with keys + touch toolbar, exports that round-trip. 190 core + 7 store tests; Playwright + axe. | e698cec |
