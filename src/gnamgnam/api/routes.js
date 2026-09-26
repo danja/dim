@@ -1,5 +1,7 @@
 import { RETRIEVAL_CONFIG } from '../../../config/preferences.js'
 import { send, sendText, sendHtml, redirect, LICENCE } from '../../common/http/respond.js'
+import { writeRoute } from '../../common/http/write.js'
+import { saveAnnotations } from '../Annotations.js'
 import { negotiate } from '../../common/http/negotiate.js'
 import { BASE_PATH, BOOKMARK_PREFIX, bookmarkDataUrl, savedTurtle } from './bookmarkData.js'
 import { renderSearchPage } from './searchPage.js'
@@ -25,8 +27,19 @@ function pageSize (params, fallback) {
   return Math.min(Number(params.get('limit')) || fallback, RETRIEVAL_CONFIG.maxPageSize)
 }
 
-export function registerRoutes (router, { search, tabs }) {
-  router.get(BASE_PATH, async ({ response, url, started }) => {
+/** Links touching one resource, each resolved to a label and page. null if unavailable. */
+async function resolvedLinks ({ services, registry }, resourceIri) {
+  if (!services?.links) return null
+  try {
+    const links = await services.links.linksOf(resourceIri)
+    return Promise.all(links.map(async l => ({ ...l, ...(await registry.lookup(l.iri)), kind: l.kind, direction: l.direction, iri: l.iri })))
+  } catch (error) {
+    return { error: error.message }
+  }
+}
+
+export function registerRoutes (router, { search, tabs, services, registry, origin }) {
+  router.get(BASE_PATH, async ({ response, url, started, session }) => {
     const q = url.searchParams.get('q')
     const facets = facetParams(url.searchParams)
     const hasCriteria = Boolean(q) || Object.values(facets).some(Boolean)
@@ -41,7 +54,8 @@ export function registerRoutes (router, { search, tabs }) {
       corpus: search.documents.size,
       elapsedMs: hasCriteria ? Date.now() - started : undefined,
       facetValues: await search.facets(),
-      tabs
+      tabs,
+      session
     }))
   })
 
@@ -76,7 +90,7 @@ export function registerRoutes (router, { search, tabs }) {
     return send(response, 200, { total: outcome.total, results: outcome.results, licence: LICENCE })
   })
 
-  router.get(/^\/gnamgnam\/bookmark\/([A-Za-z0-9-]+?)(\.ttl|\.json)?$/, async ({ request, response, match }) => {
+  router.get(/^\/gnamgnam\/bookmark\/([A-Za-z0-9-]+?)(\.ttl|\.json)?$/, async ({ request, response, match, session }) => {
     const bookmarkIri = `${BOOKMARK_PREFIX}${match[1]}`
     const doc = search.documents.get(bookmarkIri)
     if (!doc) return send(response, 404, { error: 'No such bookmark', iri: bookmarkIri })
@@ -84,9 +98,30 @@ export function registerRoutes (router, { search, tabs }) {
     if (format === 'turtle') {
       return sendText(response, 200, await savedTurtle(search, bookmarkIri, doc), 'text/turtle; charset=utf-8')
     }
-    if (format === 'html') return sendHtml(response, 200, renderBookmarkPage(doc, { tabs }))
+    if (format === 'html') {
+      const links = await resolvedLinks({ services, registry }, bookmarkIri)
+      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, links }))
+    }
     return send(response, 200, { ...doc, data: bookmarkDataUrl(doc), licence: LICENCE })
   })
+
+  router.add(['POST'], /^\/gnamgnam\/bookmark\/([A-Za-z0-9-]+)\/annotations$/, writeRoute(async ({ match, body, identity }) => {
+    const doc = search.documents.get(`${BOOKMARK_PREFIX}${match[1]}`)
+    if (!doc) throw Object.assign(new Error('No such bookmark'), { status: 404 })
+    if (!services.repository) throw Object.assign(new Error('No store configured'), { status: 503 })
+    const saved = await saveAnnotations({
+      search,
+      repository: services.repository,
+      links: services.links,
+      registry,
+      origin,
+      doc,
+      tags: body.tags,
+      note: body.note,
+      actor: identity.user
+    })
+    return { redirect: `${BASE_PATH}/bookmark/${match[1]}`, json: { ok: true, ...saved } }
+  }))
 
   for (const path of LEGACY) {
     router.get(path, ({ response, url }) => redirect(response, 301, `${BASE_PATH}${path}${url.search}`))

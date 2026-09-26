@@ -8,6 +8,12 @@ import SearchService from '../src/common/search/SearchService.js'
 import { bookmarkSearchAdapter } from '../src/gnamgnam/BookmarkSearch.js'
 import { createServer } from '../src/server.js'
 import { createFacets } from '../src/facets.js'
+import Auth from '../src/common/http/auth.js'
+import ShapeValidator from '../src/common/store/ShapeValidator.js'
+import GraphRegistry from '../src/common/store/GraphRegistry.js'
+import ChangeLog from '../src/common/store/ChangeLog.js'
+import Repository from '../src/common/store/Repository.js'
+import LinkStore from '../src/common/links/LinkStore.js'
 
 logger.setLevel('info')
 
@@ -31,16 +37,32 @@ const loaded = await search.loadDocuments()
 
 console.log(`Loaded ${loaded} bookmarks, ${index.size} vectors from ${index.path}`)
 
+// The write path: validated writes into facet graphs, a change log, links.
+const auth = Auth.fromEnv()
+const registry = new GraphRegistry(client)
+const repository = new Repository({
+  client,
+  validator: await ShapeValidator.load(),
+  changeLog: new ChangeLog({ client, registry }),
+  registry
+})
+const links = new LinkStore({ client, repository })
+
 const facets = createFacets({ search })
-const server = createServer({ facets, config, projectRoot: Config.projectRoot })
+const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links } })
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)
+  console.log(auth.writesEnabled
+    ? '  writes: enabled — log in at /login with DIM_WRITE_TOKEN'
+    : '  writes: disabled — set DIM_WRITE_TOKEN (16+ chars) in .env to enable notes, tags and links')
   console.log(`  facets: ${facets.map(f => `/${f.id}/`).join('  ')}`)
   console.log('  GET /gnamgnam/?q=...            bookmark search page')
   console.log('  GET /gnamgnam/search?q=...      hybrid search JSON, optional bookmarkType/domain')
   console.log('  GET /gnamgnam/facets            facet values and counts')
   console.log('  GET /gnamgnam/bookmarks         browse')
   console.log('  GET /gnamgnam/bookmark/<slug>   one bookmark (.ttl for Turtle)')
+  console.log('  GET /find?q=...                 search every facet')
+  console.log('  GET /r/<type>/<slug>            a resource\'s page')
   console.log('  GET /health                     per-facet status')
   console.log('  GET /ns/<name>.ttl              the vocabularies the data refers to')
 })

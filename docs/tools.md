@@ -66,7 +66,16 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | `GET /<facet>/` | Other facets (`trestle`, `farelo`, `wiki`, `news`, `blog`, `squirt`): placeholder pages until their phase lands. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
 | `GET /static/…` | Shared UI kit (CSS, JS). |
-| `GET /health` | Per-facet status (`facets.gnamgnam` has bookmark/vector counts), embedding model. |
+| `GET /health` | Per-facet status (`facets.gnamgnam` has bookmark/vector counts), whether writes are enabled, embedding model. |
+| `GET /find?q=…` / `GET /find.json?q=…&limit=` | Search every facet; results grouped by facet. |
+| `GET /r/<type>/<slug>`, `GET /r?iri=…` | Redirect to the page of any DIM resource. |
+| `GET /login`, `POST /login`, `POST /logout` | Browser session for writing (`token` = `DIM_WRITE_TOKEN`). |
+| `GET /links?iri=…` | Links touching a resource, both directions, with labels and pages. |
+| `POST /links` | Add a link: `from`, `to` (IRI, page URL, bookmarked URL or `[[type/slug]]`), `kind` = `related` \| `resource` \| `partOf`. |
+| `POST /links/delete` | Remove a link (same fields). |
+| `POST /gnamgnam/bookmark/<slug>/annotations` | Replace the owner's `tags` (comma-separated or array) and `note` (Markdown) on a bookmark. |
+
+**Writes** need `DIM_WRITE_TOKEN` (16+ chars) in `.env`; without it the server is read-only. Scripts send it as `Authorization: Bearer <token>` (or the Basic password) with a JSON body; browsers log in at `/login` and forms carry a CSRF token. Every write is SHACL-checked first (422 with reasons if rejected) and logged in `graph:system/changes`. User data lives in `graph:facet/<facet>` and links in `graph:facet/links`, so an ingest never touches it.
 
 Old URLs `/search`, `/facets`, `/bookmarks`, `/bookmark/<slug>` redirect (301) to `/gnamgnam/…`.
 

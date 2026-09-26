@@ -102,12 +102,21 @@ export class SearchService {
     const queryTokens = tokenise(queryText)
 
     const vectorScores = new Map()
+    let vectorError = null
     if (queryText.trim() !== '' && this.index.size > 0) {
-      const vector = await this.embeddings.embed(queryText)
-      const hits = this.index.search(vector, RETRIEVAL_CONFIG.candidateLimit, {
-        minScore: RETRIEVAL_CONFIG.minSimilarity
-      })
-      for (const hit of hits) vectorScores.set(hit.iri, hit.score)
+      let vector = null
+      try {
+        vector = await this.embeddings.embed(queryText)
+      } catch (error) {
+        // Ollama down or slow: answer from the lexical signal alone.
+        vectorError = error.message
+      }
+      if (vector) {
+        const hits = this.index.search(vector, RETRIEVAL_CONFIG.candidateLimit, {
+          minScore: RETRIEVAL_CONFIG.minSimilarity
+        })
+        for (const hit of hits) vectorScores.set(hit.iri, hit.score)
+      }
     }
 
     const fused = []
@@ -126,6 +135,7 @@ export class SearchService {
       total: fused.length,
       signals: {
         vectorCandidates: vectorScores.size,
+        vectorError,
         filtered: allowed ? allowed.size : null,
         corpus: this.documents.size
       }

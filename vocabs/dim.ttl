@@ -80,6 +80,30 @@ dim:wikipediaTitle a owl:DatatypeProperty ; rdfs:domain dim:Bookmark ; rdfs:rang
 ## and dim:fetchStatus, not stored. schema:archivedAt holds a Wayback Machine
 ## snapshot found by bin/deadlinks.js --wayback.
 
+## ── Authored data and cross-links (Phase 4) ───────────────────────────
+## User-authored statements live in facet graphs (graph:facet/<id>); links
+## between any two resources live in graph:facet/links.
+dim:note a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "The owner's own note on a resource, as Markdown. At most one per resource per facet graph." .
+dim:relatedTo a owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:comment "A general link between two resources, in either direction." .
+dim:resource a owl:ObjectProperty ;
+    rdfs:comment "Something useful for the subject — e.g. a task or note pointing at a bookmark, page or feed item." .
+dim:mentions a owl:ObjectProperty ;
+    rdfs:comment "The subject's Markdown refers to the object ([[type/slug]] or a DIM URL). Derived on save; not edited directly." .
+dim:partOf a owl:ObjectProperty, owl:TransitiveProperty ;
+    rdfs:comment "Containment: an outline node in an outline, a task in a project." .
+
+## ── Change log (graph:system/changes) ─────────────────────────────────
+## Each write is a prov:Activity: prov:startedAtTime, prov:wasAssociatedWith,
+## prov:used (the resource), plus these.
+dim:changeAction a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "update, add or remove." .
+dim:inGraph a owl:ObjectProperty ;
+    rdfs:comment "The named graph a change was made in." .
+dim:changedProperty a owl:ObjectProperty ;
+    rdfs:comment "A property the change touched." .
+
 ## ── Catalogue administration (mirrors plugin-universe, dim: namespace) ────
 dim:SourceGraph a owl:Class ; rdfs:label "Source Graph" .
 dim:graphKind a owl:DatatypeProperty ; rdfs:domain dim:SourceGraph ; rdfs:range xsd:string .

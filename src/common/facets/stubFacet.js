@@ -13,9 +13,10 @@ export function stubFacet ({ id, label, description, phase }) {
     description,
     stub: true,
     routes (router, { tabs }) {
-      router.get(`/${id}`, ({ response }) => sendHtml(response, 200, renderPage({
+      router.get(`/${id}`, ({ response, session }) => sendHtml(response, 200, renderPage({
         title: label,
         tabs,
+        session,
         active: id,
         body: `<h1>${esc(label)}</h1>
 <p class="lede">${esc(description)}</p>

@@ -50,7 +50,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 1 | Restructure into `common` + `gnamgnam` | 0 | `[x]` |
 | 2 | Shared shell: facet registry, tabs, mobile-first UI kit | 1 | `[x]` |
 | 3 | GnamGnam completion (live probe, enrichment, full index) | 1 (2 for UI) | `[~]` 3a code done; 3b local runs |
-| 4 | Write path & cross-linking foundation | 2 | `[ ]` |
+| 4 | Write path & cross-linking foundation | 2 | `[x]` (local check pending) |
 | 5 | Trestle outliner | 4 | `[ ]` |
 | 6 | Farelo (Kanban + Getting Things Diced) | 4 | `[ ]` |
 | 7 | Wiki (from foowiki) | 4 | `[ ]` |
@@ -371,42 +371,90 @@ done locally.
 **Goal:** facets can create/edit data safely, and anything can link to
 anything.
 
+Decisions (2026-09-26): links live in one shared graph (Q1); writes are
+protected by one token from `.env` plus a browser session with CSRF (Q5).
+Proved on GnamGnam: the owner's tags and notes on bookmarks, and links
+from the bookmark detail page.
+
 ### 4.1 Write path
 
-- [ ] `src/common/store/Repository.js` — typed CRUD over a facet graph:
-      build `INSERT DATA` / `DELETE/INSERT WHERE` via `SPARQLHelper`,
-      SHACL-validate the changed resource before commit.
-- [ ] HTTP: `POST`/`PUT`/`PATCH`/`DELETE` routes per facet; forms work
-      without JS (POST + redirect), JSON for JS clients.
-- [ ] Auth for writes (localhost first): single-user token or HTTP Basic
-      from `.env`; reads stay open on loopback. CSRF token on forms.
-- [ ] Change log: every write adds `prov:Activity` (who/when/what) to
-      `graph:system/changes`.
+- [x] `src/common/store/Repository.js` — validated writes into a facet's
+      own graph (`graph:facet/<id>`, registered on first write, licence
+      `personal-data`). `replace` (owned properties of one resource),
+      `add`, `remove`. The resource's current triples are read, the change
+      applied in memory and SHACL-validated **before** anything is written;
+      a rejection is a 422 with readable reasons. User data never goes in
+      a source graph (an ingest reloads those) — verified: notes, tags and
+      links survive a full re-ingest.
+- [x] HTTP writes: `POST` routes (not PUT/PATCH/DELETE — HTML forms only
+      speak GET/POST, and one verb keeps both clients on the same path).
+      `src/common/http/write.js`: forms get a 303 back to a local page
+      (`_return`, open-redirect safe); JSON clients get JSON. Bodies are
+      forms or JSON, size-capped (`body.js`).
+- [x] Auth (`src/common/http/auth.js`): `DIM_WRITE_TOKEN` (16+ chars) in
+      `.env`. Scripts send it as `Bearer` or the Basic password; browsers
+      log in at `/login` → HttpOnly, SameSite=Strict session cookie (30
+      days, in memory — a restart logs you out) and a per-session CSRF
+      token checked on every form write. No token → read-only, and writes
+      say why. Constant-time comparison; a failed login waits 750 ms.
+- [x] Change log (`src/common/store/ChangeLog.js`): each write is a
+      `prov:Activity` in `graph:system/changes` — who, when, action,
+      resource, graph, properties, a one-line summary.
 
 ### 4.2 Cross-linking
 
-- [ ] Shared link vocabulary in `vocabs/dim.ttl`: `dim:relatedTo`
-      (symmetric), `dim:resource` (task/note → bookmark/feed item/page),
-      `dim:mentions` (parsed from Markdown), `dim:partOf`.
-- [ ] Links stored in `graph:facet/links` (or in the owning facet graph —
-      decide and record here).
-- [ ] Markdown link parser: `[[wiki-style]]` and plain IRIs to DIM
-      resources become `dim:mentions` triples on save.
-- [ ] Generic resolver `/r/<type>/<slug>` → owning facet's page;
-      content-negotiated Turtle/JSON-LD for every resource.
-- [ ] "Linked from" panel component in `src/common/ui/` used by every
-      detail page.
-- [ ] Cross-facet search: `SearchService` queries all registered
-      adapters, results grouped by facet.
-- [ ] Link picker UI: type-ahead over cross-facet search to attach a
-      resource to anything.
+- [x] Link vocabulary in `vocabs/dim.ttl`: `dim:relatedTo` (symmetric),
+      `dim:resource`, `dim:mentions`, `dim:partOf`; plus `dim:note` and the
+      change-log terms. SHACL: `TaggedShape`, `NotedShape`, `LinkShape`
+      (target by property, since facet graphs carry no `rdf:type`).
+- [x] Links stored in **`graph:facet/links`** (Q1) — `src/common/links/LinkStore.js`;
+      one query reads both directions; `related` shows once on both ends.
+- [x] Markdown references (`src/common/links/mentions.js`): `[[type/slug]]`,
+      `[[Title]]` (resolved by the facets), `/r/…` paths and DIM page URLs
+      become `dim:mentions` on save; references inside code are ignored.
+      Pasted URLs of bookmarked pages resolve to the bookmark.
+- [x] Resolver: `/r/<type>/<slug>` and `/r?iri=` → the owning facet's page
+      (facets declare `types`). Content negotiation per resource stays
+      with the facet (bookmarks: HTML / `.json` / `.ttl`).
+- [x] Links panel (`src/common/ui/linksPanel.js`), grouped by kind and
+      direction (Related, Resources / Used by, Part of / Contains,
+      Mentions / Mentioned by), remove buttons, add form. On the bookmark
+      detail page now; reusable by every facet.
+- [x] Cross-facet search: `/find` (page) and `/find.json`, via the new
+      facet hooks `find`, `lookup`, `lookupUrl`, `lookupTitle`.
+      (`/search` was taken by a permanent redirect from Phase 2.)
+- [x] Link picker (`/static/js/linkpicker.js`): type-ahead over `/find.json`,
+      keyboard-operable combobox; without JS the field takes a URL, IRI or
+      `[[type/slug]]`.
+- [x] Safe Markdown (`src/common/ui/markdown.js`): raw HTML shown as text,
+      only http(s)/mailto/local link targets, `[[…]]` linked.
+- [x] Also: search falls back to lexical-only when Ollama is unreachable,
+      instead of failing.
 
 ### Acceptance
 
-- Create, edit, delete a resource through the UI; SHACL rejects an
-  invalid one with a readable error.
-- A link added in one facet appears in the other's "Linked from" panel.
-- Store tests cover Repository round-trip.
+- [x] Edit through the UI (Playwright, 375 px): log in (wrong token shows
+      an error), save tags + a note, add a link with the picker, remove
+      one, log out. Raw HTML in a note is escaped. axe clean on the
+      detail, find and login flows; no horizontal scroll.
+- [x] SHACL rejects invalid writes with a readable error (upper-case tag
+      → 422 "Tags are short and lower-case."), nothing written.
+- [x] A link added on one resource shows on the other as "Mentioned by" /
+      "Used by" (verified on the live store).
+- [x] Store tests cover Repository and LinkStore round-trips
+      (`tests/store/writes.test.js`, 5 tests, sandbox Fuseki 5.6).
+- [x] `bin/validate.js`: every graph conforms, including
+      `graph:facet/gnamgnam`, `graph:facet/links`, `graph:system/changes`.
+- [x] 174 core tests.
+- [ ] Re-check on the local machine with `DIM_WRITE_TOKEN` set.
+
+### Notes
+
+- Sessions are in memory: restarting the server logs you out.
+- Deleting a *resource* waits for a facet that owns resources (Trestle,
+  Farelo); bookmarks come from the outline, so they are not deleted in DIM.
+- History view of the change log is not built yet (task pages in Phase 6
+  are the first consumer).
 
 ---
 
@@ -648,11 +696,11 @@ time/resources.
 
 | # | Question | Raised | Decision |
 |---|---|---|---|
-| Q1 | Links in a shared `graph:facet/links` or in the owning facet's graph? | Phase 4 | |
+| Q1 | Links in a shared `graph:facet/links` or in the owning facet's graph? | Phase 4 | Shared `graph:facet/links` (2026-09-26). |
 | Q2 | Outline ordering: `dim:position` numbers or `rdf:List`? | Phase 5 | |
 | Q3 | Source repos (trestle, NewsMonitor, foowiki, squirt) are not in this sandbox — add them to the session / vendor snapshots when those phases start. | 2026-09-26 | |
 | Q4 | Getting Things Diced method — needs a local copy of the post. | 2026-09-26 | Resolved: copy in `docs/`, method in 6.1. |
-| Q5 | Write auth model for localhost: token vs Basic vs none-on-loopback. | Phase 4 | |
+| Q5 | Write auth model for localhost: token vs Basic vs none-on-loopback. | Phase 4 | `DIM_WRITE_TOKEN` as Bearer/Basic; browser session + CSRF (2026-09-26). |
 
 ---
 
@@ -681,3 +729,5 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 3 | 3b: Gemini answered 503 "high demand". Remote summariser now retries 429/500/502/503/504 and network errors with capped exponential backoff (5s, 10s, 20s, 40s; 4 retries) or Retry-After. 131/131 tests. | 98df377 |
 | 2026-09-26 | 3 | 3b: Gemini kept answering 503, Mistral 429 "rate limit exceeded". Added provider rotation (`LLM_PROVIDERS`, peasant's key names and measured profiles): per-provider cool-down on 429/5xx, drop on 401/402/403, next provider on a bad reply. 142/142 tests. | af504f6 |
 | 2026-09-26 | 3 | 3b: rotation sample 34/50 enriched (Groq answering), 13 refused, 3 failed; overnight `--only-new --llm-only --reembed` loop started. Added `docs/commands-gnamgnam.md`; `pipeline.sh` accepts `--summariser remote`. | |
+| 2026-09-26 | — | Command-reference commit had landed after the merge; re-applied. | |
+| 2026-09-26 | 4 | Write path (Repository + SHACL, token/session/CSRF auth, change log), links (shared graph, mentions, /r resolver, links panel, picker), /find, bookmark tags + notes. 174 core + 5 store tests; Playwright + axe; survives re-ingest. | |

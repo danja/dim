@@ -30,7 +30,7 @@ function renderOptions (values, selected) {
   }).join('')
 }
 
-export function renderSearchPage ({ query, selected = {}, results, total, corpus, elapsedMs, facetValues, tabs }) {
+export function renderSearchPage ({ query, selected = {}, results, total, corpus, elapsedMs, facetValues, tabs, session = null }) {
   const status = elapsedMs != null
     ? `${total} of ${corpus} bookmarks, ${elapsedMs}ms`
     : `${corpus} bookmarks`
@@ -46,5 +46,5 @@ export function renderSearchPage ({ query, selected = {}, results, total, corpus
 ${results.map(renderResult).join('\n')}
 </ul>
 <p class="foot meta"><a href="${BASE_PATH}/facets">facets</a> · <a href="/health">health</a></p>`
-  return renderPage({ title: query ? `${query} — Bookmarks` : 'Bookmarks', tabs, active: 'gnamgnam', body })
+  return renderPage({ title: query ? `${query} — Bookmarks` : 'Bookmarks', tabs, active: 'gnamgnam', body, session })
 }

@@ -191,10 +191,37 @@ PORT=4111 node bin/serve.js
 | `/gnamgnam/bookmark/<slug>` | detail page (`.json`, `.ttl` for data) |
 | `/gnamgnam/search?q=…` | JSON results |
 | `/gnamgnam/facets` | facet counts |
+| `/find?q=…` | search every facet |
 | `/health` | per-facet status |
 
 The server loads bookmarks and vectors at start: restart it after an
-ingest or enrich run.
+ingest or enrich run. Notes, tags and links do not need a restart.
+
+### Notes, tags and links
+
+Set a write token in `.env` (16+ characters), restart, and log in at
+`/login` with it:
+
+```sh
+DIM_WRITE_TOKEN=$(openssl rand -base64 24)      # put the value in .env
+```
+
+A bookmark's page then has **Your tags and note** (Markdown; `[[bookmark/slug]]`
+or `[[Title]]` link to other things) and **Links** (related / resources /
+part of, with a type-ahead picker, or paste a URL). From a script:
+
+```sh
+( set -a; . ./.env; set +a
+  curl -s -X POST localhost:4110/gnamgnam/bookmark/<slug>/annotations \
+    -H "Authorization: Bearer $DIM_WRITE_TOKEN" -H 'Content-Type: application/json' \
+    -d '{"tags":"synth, diy","note":"See [[bookmark/other-slug]]"}'
+  curl -s -X POST localhost:4110/links -H "Authorization: Bearer $DIM_WRITE_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d '{"from":"/gnamgnam/bookmark/<slug>","kind":"resource","to":"https://github.com/…"}' )
+```
+
+These live in `graph:facet/gnamgnam` and `graph:facet/links`, which an
+ingest never drops. Every change is recorded in `graph:system/changes`.
 
 ## pipeline — everything in one go
 

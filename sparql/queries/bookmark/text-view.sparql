@@ -1,10 +1,11 @@
 # Everything retrieval and the UI need for one bookmark row per bookmark.
 # Repeatable catalogue fields are aggregated in their own sub-selects so they
 # do not multiply against types/tags/keywords. Lists use " | " (Catalogue.js).
+# Notes and user tags come from the owner's own graph, <graph:facet/gnamgnam>.
 SELECT ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
        ?fetchStatus ?context ?sourceLine ?archivedAt
        ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
-       ?githubTopic ?arxivAuthor ?arxivCategory
+       ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags
        (GROUP_CONCAT(DISTINCT ?typeLabel; separator=", ") AS ?bookmarkTypes)
        (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
        (GROUP_CONCAT(DISTINCT ?kw; separator=", ") AS ?keywords)
@@ -34,6 +35,12 @@ WHERE {
     OPTIONAL { ?bookmark dim:tag ?tag }
     OPTIONAL { ?bookmark dim:keyword ?kw }
   }
+  OPTIONAL { GRAPH <graph:facet/gnamgnam> { ?bookmark dim:note ?note } }
+  OPTIONAL {
+    SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?userTag; separator=", ") AS ?userTags)
+    WHERE { GRAPH <graph:facet/gnamgnam> { ?bookmark dim:tag ?userTag } }
+    GROUP BY ?bookmark
+  }
   OPTIONAL {
     SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?topic; separator=" | ") AS ?githubTopic)
     WHERE { GRAPH ?tg { ?bookmark dim:githubTopic ?topic } }
@@ -53,5 +60,5 @@ WHERE {
 GROUP BY ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
          ?fetchStatus ?context ?sourceLine ?archivedAt
          ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
-         ?githubTopic ?arxivAuthor ?arxivCategory
+         ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags
 ORDER BY ?linkText

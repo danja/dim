@@ -55,6 +55,9 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /gnamgnam/bookmark/<slug>` | one bookmark — HTML detail page, JSON by `.json`, Turtle by `.ttl` |
 | `GET /<facet>/` | Trestle, Farelo, Wiki, News, Blog, Squirt — placeholder pages until built |
 | `GET /health` | per-facet status (bookmark and index counts for GnamGnam) |
+| `GET /find?q=` | search every facet |
+| `GET /r/<type>/<slug>` | the page of any DIM resource |
+| `POST /links`, `POST /gnamgnam/bookmark/<slug>/annotations` | links, tags and notes — needs `DIM_WRITE_TOKEN` (see `docs/tools.md`) |
 
 Every page shares one mobile-first shell with a tab per facet
 (`src/common/ui/`). The pre-facet URLs (`/search`, `/facets`, `/bookmarks`,
@@ -71,7 +74,8 @@ GnamGnam (bookmarks) is the first facet.
 - `src/common/` — facet-agnostic core (copied from plugin-universe, adapted)
   - `store/` — `SPARQLClient`, `SPARQLHelper`, `QueryService` (file-based
     queries), `GraphRegistry` (named graphs, provenance, licence flags),
-    `GraphWriter` (batched grouped writes), `ShapeValidator` (SHACL)
+    `GraphWriter` (batched grouped writes), `ShapeValidator` (SHACL),
+    `Repository` (validated writes into facet graphs), `ChangeLog`
   - `rdf/` — `NamespaceManager` (single prefix registry), `URIMinter`
     (content-hash IRIs; one URL = one bookmark), `TurtleReader`
   - `vectors/` — `VectorIndex` (persisted FAISS), `VectorOperations`
@@ -79,9 +83,14 @@ GnamGnam (bookmarks) is the first facet.
   - `search/` — `SearchService` (hybrid retrieval, driven by a per-facet
     adapter), `LexicalIndex`
   - `harvest/` — `Harvester` (interface), `HttpSource`
-  - `http/` — `Router`, response helpers, content negotiation, static files
+  - `http/` — `Router`, response helpers, content negotiation, static files,
+    `auth` (write token, sessions, CSRF), `body`, `write` (write routes),
+    `commonRoutes` (health, find, login, `/r`, links)
   - `facets/` — `FacetRegistry` (the facet contract), `stubFacet`
-  - `ui/` — page shell with the tab row (`layout.js`); `public/` CSS + JS
+  - `links/` — `LinkStore` (links between any resources), `mentions`
+    (`[[references]]` and pasted URLs → IRIs)
+  - `ui/` — page shell with the tab row (`layout.js`), links panel, safe
+    Markdown, login/find pages; `public/` CSS + JS (link picker)
 - `src/gnamgnam/` — the bookmark facet
   - `harvest/` — `BookmarkHarvester` (retrieval agent), `WorkflowyParser`,
     `BookmarkNormaliser` (URL-heuristic SKOS typing), `BookmarkSerialiser`,
@@ -92,6 +101,7 @@ GnamGnam (bookmarks) is the first facet.
   - `BookmarkSearch.js` — search adapter
   - `Catalogue.js` — per-type catalogue details (GitHub, arXiv, Wikipedia)
   - `LinkStatus.js` — ok / dead / blocked / error / unchecked
+  - `Annotations.js` — the owner's tags and notes on bookmarks
   - `deadlinks/` — Wayback Machine lookups
   - `api/` — routes (under `/gnamgnam`), search page, bookmark Turtle
   - `index.js` — the facet object

@@ -33,6 +33,8 @@ export const bookmarkSearchAdapter = Object.freeze({
   toDocument (row, provenance) {
     const bookmarkTypes = list(row.bookmarkTypes)
     const catalogue = catalogueFromRow(row)
+    const sourceTags = list(row.tags)
+    const userTags = list(row.userTags)
     const httpStatus = int(row.httpStatus)
     const fetchStatus = int(row.fetchStatus)
     return {
@@ -68,7 +70,10 @@ export const bookmarkSearchAdapter = Object.freeze({
         ...(catalogue.githubLanguage ? [catalogue.githubLanguage] : [])
       ],
       formats: [],
-      tags: list(row.tags),
+      sourceTags,
+      userTags,
+      note: row.note ?? null,
+      tags: [...new Set([...sourceTags, ...userTags])],
       parameters: []
     }
   },

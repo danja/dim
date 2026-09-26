@@ -1,6 +1,9 @@
 import { esc } from '../../common/http/respond.js'
 import { renderPage } from '../../common/ui/layout.js'
 import { CATALOGUE_FIELDS } from '../Catalogue.js'
+import { renderMarkdown } from '../../common/ui/markdown.js'
+import { renderLinksPanel, LINK_PICKER_SCRIPT } from '../../common/ui/linksPanel.js'
+import { formFields } from '../../common/http/write.js'
 import { BASE_PATH, bookmarkSlug } from './bookmarkData.js'
 
 /** One bookmark, as an HTML page inside the shared shell. */
@@ -43,7 +46,43 @@ function renderOutline (doc) {
   return `<h2>In the outline</h2>\n<dl class="facts">${context}${where}</dl>`
 }
 
-export function renderBookmarkPage (doc, { tabs }) {
+function renderTagList (tags, { search = true } = {}) {
+  if (!tags?.length) return ''
+  return `<ul class="tags">${tags.map(t => search
+    ? `<li><a href="${BASE_PATH}/?q=${encodeURIComponent(t)}">${esc(t)}</a></li>`
+    : `<li>${esc(t)}</li>`).join('')}</ul>`
+}
+
+/** The owner's tags and note, with an edit form when logged in. */
+function renderAnnotations (doc, { session, slug }) {
+  const path = `${BASE_PATH}/bookmark/${slug}`
+  const shown = `${renderTagList(doc.userTags)}${doc.note ? `\n<div class="note">${renderMarkdown(doc.note)}</div>` : ''}`
+  const empty = !doc.userTags?.length && !doc.note
+  let form = ''
+  if (session?.user) {
+    form = `<details${empty ? ' open' : ''}><summary>Edit tags and note</summary>
+<form class="edit" method="post" action="${path}/annotations">${formFields(session, path)}
+<label for="tags">Tags, comma-separated</label>
+<input type="text" id="tags" name="tags" value="${esc((doc.userTags ?? []).join(', '))}" autocomplete="off">
+<label for="note">Note (Markdown; [[bookmark/slug]] or [[Title]] links to things)</label>
+<textarea id="note" name="note">${esc(doc.note ?? '')}</textarea>
+<button>Save</button>
+</form>
+</details>`
+  } else if (session?.writesEnabled) {
+    form = `<p class="meta"><a href="/login?return=${encodeURIComponent(path)}">Log in</a> to add tags and a note.</p>`
+  }
+  if (empty && !form) return ''
+  return `<section aria-labelledby="yours-h">\n<h2 id="yours-h">Your tags and note</h2>\n${shown}${empty && !session?.user ? '<p class="muted">None yet.</p>' : ''}\n${form}\n</section>`
+}
+
+function renderLinks (doc, { links, session, slug }) {
+  if (links === null || links === undefined) return ''
+  if (links.error) return `<section class="links"><h2>Links</h2><p class="muted">Links unavailable: ${esc(links.error)}</p></section>`
+  return renderLinksPanel(links, { subject: doc.iri, session, returnPath: `${BASE_PATH}/bookmark/${slug}` })
+}
+
+export function renderBookmarkPage (doc, { tabs, session = null, links = null }) {
   const slug = bookmarkSlug(doc.iri)
   const text = doc.summary || doc.description
   const facts = [
@@ -57,10 +96,13 @@ ${renderLinkStatus(doc)}
 ${facts ? `<p class="meta">${facts}</p>` : ''}
 ${text ? `<p>${esc(text)}</p>` : '<p class="muted">No summary yet.</p>'}
 ${(doc.keywords ?? []).length ? `<p class="meta">key terms: ${esc(doc.keywords.join(', '))}</p>` : ''}
+${renderAnnotations(doc, { session, slug })}
+${renderLinks(doc, { links, session, slug })}
 ${renderCatalogue(doc.catalogue)}
 ${renderOutline(doc)}
 <p class="foot meta">data: <a href="${BASE_PATH}/bookmark/${esc(slug)}.ttl">Turtle</a> · <a href="${BASE_PATH}/bookmark/${esc(slug)}.json">JSON</a></p>`
-  return renderPage({ title: doc.name, tabs, active: 'gnamgnam', body })
+  const head = session?.user ? LINK_PICKER_SCRIPT : ''
+  return renderPage({ title: doc.name, tabs, active: 'gnamgnam', body, session, head })
 }
 
 export default renderBookmarkPage

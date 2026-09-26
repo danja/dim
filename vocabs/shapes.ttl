@@ -147,6 +147,33 @@ dim:BookmarkShape a sh:NodeShape ;
         sh:message "schema:archivedAt is one Wayback Machine snapshot URL." ;
     ] .
 
+## Authored data (Phase 4). Facet graphs carry no rdf:type for resources
+## typed elsewhere, so these target by property rather than by class.
+dim:TaggedShape a sh:NodeShape ;
+    sh:targetSubjectsOf dim:tag ;
+    sh:property [
+        sh:path dim:tag ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 60 ;
+        sh:pattern "^[^A-Z]*$" ;
+        sh:message "Tags are short and lower-case." ;
+    ] .
+
+dim:NotedShape a sh:NodeShape ;
+    sh:targetSubjectsOf dim:note ;
+    sh:property [
+        sh:path dim:note ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 20000 ;
+        sh:message "One note per resource per facet, at most 20,000 characters." ;
+    ] .
+
+dim:LinkShape a sh:NodeShape ;
+    sh:targetSubjectsOf dim:relatedTo, dim:resource, dim:mentions, dim:partOf ;
+    sh:property [ sh:path dim:relatedTo ; sh:nodeKind sh:IRI ; sh:message "Links point at IRIs." ] ;
+    sh:property [ sh:path dim:resource ; sh:nodeKind sh:IRI ; sh:message "Links point at IRIs." ] ;
+    sh:property [ sh:path dim:mentions ; sh:nodeKind sh:IRI ; sh:message "Links point at IRIs." ] ;
+    sh:property [ sh:path dim:partOf ; sh:nodeKind sh:IRI ; sh:message "Links point at IRIs." ] .
+
 dim:ConceptShape a sh:NodeShape ;
     sh:targetClass skos:Concept ;
     sh:property [

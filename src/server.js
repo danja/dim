@@ -1,71 +1,46 @@
 import http from 'http'
-import fs from 'fs'
-import { join as pathJoin, isAbsolute } from 'path'
-import { fileURLToPath } from 'url'
 import logger from 'loglevel'
 import Router from './common/http/Router.js'
 import FacetRegistry from './common/facets/FacetRegistry.js'
-import { registerStatic } from './common/http/staticFiles.js'
-import { JSON_HEADERS, LICENCE, send, sendText, redirect } from './common/http/respond.js'
+import Auth from './common/http/auth.js'
+import { JSON_HEADERS, send } from './common/http/respond.js'
+import { registerCommonRoutes } from './common/http/commonRoutes.js'
+
+export { VOCABULARIES, STATIC_ROOT } from './common/http/commonRoutes.js'
 
 /**
  * DIM HTTP server. Adapted from plugin-universe src/api/server.js.
  *
- * Common routes live here: `/` (→ default facet), `/health`, `/ns`, and
- * `/static/*` (the shared UI kit). Everything else is registered by a
- * facet under `/<facet-id>/` — see src/facets.js for the list.
+ * Common routes (src/common/http/commonRoutes.js): `/` (→ default facet),
+ * `/health`, `/ns`, `/static/*`, `/login`, `/find`, `/r/…`, `/links`.
+ * Everything else is registered by a facet under `/<facet-id>/` — see
+ * src/facets.js for the list.
+ *
+ * services: { auth, repository, links } — the write path. Without them the
+ * server is read-only (writes answer 403 and say why).
  */
-
-export const VOCABULARIES = Object.freeze({
-  dim: 'vocabs/dim.ttl',
-  shapes: 'vocabs/shapes.ttl'
-})
-
-export const STATIC_ROOT = fileURLToPath(new URL('./common/ui/public/', import.meta.url))
-
-function registerCommonRoutes (router, { registry, config, defaultFacet, projectRoot }) {
-  router.get('/', ({ response, url }) => redirect(response, 302, `/${defaultFacet}/${url.search}`))
-
-  router.get('/health', async ({ response }) => send(response, 200, {
-    status: 'ok',
-    facets: await registry.health(),
-    embeddingModel: config?.get('embedding.model') ?? null,
-    licence: LICENCE
-  }))
-
-  router.get('/ns', ({ response }) => send(response, 200, {
-    vocabularies: Object.keys(VOCABULARIES).map(name => ({ name, url: `/ns/${name}.ttl` })),
-    licence: LICENCE
-  }))
-
-  router.get(/^\/ns\/([a-z0-9-]+)\.ttl$/, async ({ response, match }) => {
-    const file = VOCABULARIES[match[1]]
-    if (!file) return send(response, 404, { error: 'No such vocabulary', name: match[1] })
-    const body = await fs.promises.readFile(isAbsolute(file) ? file : pathJoin(projectRoot, file), 'utf8')
-    return sendText(response, 200, body, 'text/turtle; charset=utf-8')
-  })
-
-  registerStatic(router, { prefix: '/static', root: STATIC_ROOT })
-}
 
 /**
  * facets: facet objects in tab order (src/facets.js).
  * defaultFacet: id `/` redirects to; config `app.defaultFacet` when omitted.
  */
-export function createRouter ({ facets, config = null, defaultFacet = null, projectRoot = process.cwd() }) {
+export function createRouter ({ facets, config = null, defaultFacet = null, projectRoot = process.cwd(), services = {} }) {
   const registry = new FacetRegistry(facets)
   const home = defaultFacet ?? config?.get('app.defaultFacet')
   if (!home || !registry.get(home)) {
     throw new Error(`Default facet ${JSON.stringify(home)} is not one of: ${registry.facets.map(f => f.id).join(', ')}`)
   }
+  const allServices = { auth: services.auth ?? new Auth(), repository: services.repository ?? null, links: services.links ?? null }
+  const origin = config?.get('site.origin') ?? null
   const router = new Router()
-  registerCommonRoutes(router, { registry, config, defaultFacet: home, projectRoot })
-  registry.mount(router, {})
-  return router
+  registerCommonRoutes(router, { registry, services: allServices, config, defaultFacet: home, projectRoot, origin })
+  registry.mount(router, { services: allServices, registry, origin })
+  return { router, registry, services: allServices }
 }
 
 export function createServer (options) {
-  const router = createRouter(options)
+  const { router, registry, services } = createRouter(options)
+  const tabs = registry.tabs()
 
   return http.createServer(async (request, response) => {
     const started = Date.now()
@@ -84,13 +59,15 @@ export function createServer (options) {
     const path = url.pathname.replace(/\/$/, '') || '/'
     const route = router.match(request.method, path)
     if (!route) return send(response, 404, { error: 'No such endpoint', path })
-    if (route.methodNotAllowed) return send(response, 405, { error: 'This API is read-only' })
+    if (route.methodNotAllowed) return send(response, 405, { error: `${request.method} is not allowed here` })
 
+    const session = { ...services.auth.identify(request), writesEnabled: services.auth.writesEnabled }
     try {
-      return await route.handler({ request, response, url, match: route.match, started })
+      return await route.handler({ request, response, url, match: route.match, started, session, services, tabs, registry })
     } catch (error) {
       logger.error('[server]', error)
-      return send(response, 500, { error: error.message })
+      if (!response.headersSent) return send(response, 500, { error: error.message })
+      response.end()
     }
   })
 }

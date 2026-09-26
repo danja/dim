@@ -16,11 +16,21 @@ export function renderTabs (tabs, active) {
   return `<nav class="tabs" aria-label="Facets"><ul>${items}</ul></nav>`
 }
 
+/** Log in / log out, when writes are enabled at all. */
+export function renderSession (session) {
+  if (!session?.writesEnabled) return ''
+  if (session.user) {
+    return `<form class="session" method="post" action="/logout"><input type="hidden" name="_csrf" value="${esc(session.csrf ?? '')}"><button class="linkish">log out</button></form>`
+  }
+  return '<a class="session" href="/login">log in</a>'
+}
+
 /**
  * A full page. body is trusted HTML built by the caller with esc();
- * title is plain text.
+ * title is plain text. session (optional) is the request's identity:
+ * { user, csrf, writesEnabled }.
  */
-export function renderPage ({ title, tabs, active, body, head = '' }) {
+export function renderPage ({ title, tabs, active, body, head = '', session = null }) {
   const fullTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME
   return `<!doctype html>
 <html lang="en">
@@ -36,6 +46,7 @@ ${head}
 <body>
 <header class="site">
 ${renderTabs(tabs, active)}
+${renderSession(session)}
 </header>
 <main id="main">
 ${body}
