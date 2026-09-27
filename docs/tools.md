@@ -75,6 +75,7 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | `GET /farelo/…` | Farelo board, tasks and dice — see `docs/commands-farelo.md`. |
 | `GET /wiki/…` | Wiki pages, history, diffs — see `docs/commands-wiki.md`. |
 | `GET /news/…` | News river, items, feeds, OPML — see `docs/commands-news.md`. |
+| `GET /day[/<date>]`, `/week[/<date>]` | What you did on a day (by facet, from the change log, plus arrivals such as news) and a weekly review (counts, tasks done, pages started, bookmarks saved, posts published). Logged in only. |
 | `GET /topics`, `/topics/<topic>` | The topic tree, and everything on one topic across facets (`.json` too). |
 | `GET /tags`, `/tags/<tag>` | Every tag in use, and everything with one tag, across facets (`.json` too). |
 | `GET /blog/…` | Blog posts, tags, Atom feed — see `docs/commands-blog.md`. |

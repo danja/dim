@@ -62,7 +62,7 @@ ${searchForm}
 ${done}
 ${captureForm({ session })}
 ${nextCard(next)}
-${session?.user ? `<h2>Lately</h2>\n${timeline(items)}` : ''}
+${session?.user ? `<p class="meta"><a href="/day">Today</a> · <a href="/week">This week</a> · <a href="/topics">Topics</a></p>\n<h2>Lately</h2>\n${timeline(items)}` : ''}
 ${extras(origin)}`
   return squirtPage({ title: 'Squirt', body, tabs, session })
 }

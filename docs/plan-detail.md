@@ -59,7 +59,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[x]` (phone check needs https) |
 | 11 | "What next?" advisor | 6, 3, 4 | `[x]` (local check pending) |
 | 12 | Operations: backup, auth, deploy hardening | runs alongside | `[x]` |
-| 13 | Cross-facet contact | 3–11 | `[ ]` |
+| 13 | Cross-facet contact | 3–11 | `[x]` (people later) |
 
 Phases 5–8 are independent of each other once Phase 4 is done and can be
 taken in any order; the order above puts the todo graph (Farelo) and the
@@ -1018,8 +1018,11 @@ projects, the flow of work, time, people.
       *part of* it by facet, the resources its tasks use, and an **Add** box
       (links a picked item *part of* the project); the advisor gains a
       *Quiet project* reason (no activity for 14+ days).
-- [ ] 13.6 **Day view:** what was saved, read, written and done on a day,
-      from the change log; a weekly review.
+- [x] 13.6 **Day view:** what was saved, read, written and done on a day,
+      from the change log; a weekly review. *Done:* `/day[/date]` (changes
+      collapsed per resource, by facet, plus a facet `day()` hook — news
+      arrivals), `/week[/date]` (Monday start; counts and highlights read
+      from change summaries); owner only; linked from Squirt.
 - [ ] (later) People: authors across papers, repositories and feeds.
 
 ### Acceptance
@@ -1079,3 +1082,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-09-26 | 12 | Operations: backup/restore (drill: identical counts across 17 graphs), app healthcheck + degraded /health, JSON logging, CI workflow, security review (private mode, CSP, cache headers, Secure cookie, link fix), deployment/security docs; CI workflow. 276 core + 13 store tests. | fbd08b6 |
 | 2026-09-26 | 3 | Topics from keywords (`bin/topics.js`, GnamGnam Topic filter); tags across facets (`/tags`, `/tags/<tag>`); links helper and panel shared by every facet; news item views split out. 282 core tests. | 833b881 |
 | 2026-09-26 | — | Review of the whole branch: fixed a malformed cookie crashing the server (uncaught before the handler's try), Done-column drag/keys placing cards the wrong way round, and a poll whose items failed to store not being recorded (feed never backed off). 284 core + 14 store tests. | 8600042 |
+| 2026-09-27 | 13 | Cross-facet contact: URLs as a join key (bookmarked/feeds/site/dead-link warnings), blog mentions, bookmark source; one related vector space (Related on every detail page, News For you, advisor to-hand); topics shared across facets with hubs; project hubs + quiet-project reason; day and week views. 301 core tests; sandbox checks with a stand-in embedder; Playwright + axe. | |

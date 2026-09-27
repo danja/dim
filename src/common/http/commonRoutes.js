@@ -7,6 +7,9 @@ import { registerStatic } from './staticFiles.js'
 import { writeRoute, safeReturn } from './write.js'
 import { renderLoginPage, renderFindPage, renderTagsPage, renderTagPage } from '../ui/pages.js'
 import { renderTopicsPage, renderTopicPage } from '../ui/topicPages.js'
+import { renderDay, renderWeek } from '../ui/journalPages.js'
+import { activity, week, dayRange, weekStart, isoDay } from '../journal/journal.js'
+import QueryService from '../store/QueryService.js'
 import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
 
@@ -100,6 +103,33 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     const { q, groups } = await find(url)
     return sendHtml(response, 200, renderFindPage({ tabs, session, query: q, groups }))
   })
+  // What you did: /day/<date> and /week/<date> (owner only; from the change log).
+  const journalQueries = new QueryService()
+  const ownerOnly = (response, url, session) => {
+    if (session?.user) return false
+    redirect(response, 303, `/login?return=${encodeURIComponent(url.pathname)}`)
+    return true
+  }
+  router.get(/^\/day(?:\/(\d{4}-\d{2}-\d{2}))?$/, async ({ response, url, match, tabs, session }) => {
+    if (ownerOnly(response, url, session)) return
+    const client = services.repository?.client
+    const today = isoDay(Date.now())
+    const day = match[1] ?? today
+    const range = dayRange(day)
+    if (!range) return send(response, 400, { error: 'Not a date' })
+    const { entries, extra } = client ? await activity({ client, queries: journalQueries, registry, ...range }) : { entries: [], extra: [] }
+    return sendHtml(response, 200, renderDay({ day, entries, extra, today, tabs, session }))
+  })
+  router.get(/^\/week(?:\/(\d{4}-\d{2}-\d{2}))?$/, async ({ response, url, match, tabs, session }) => {
+    if (ownerOnly(response, url, session)) return
+    const client = services.repository?.client
+    const today = isoDay(Date.now())
+    if (match[1] && !dayRange(match[1])) return send(response, 400, { error: 'Not a date' })
+    const start = weekStart(match[1] ?? today)
+    const days = client ? await week({ start, client, queries: journalQueries, registry }) : []
+    return sendHtml(response, 200, renderWeek({ start, days, today, tabs, session }))
+  })
+
   // Topics across facets (graph:alignment/topics, bin/topics.js).
   const topics = services.topics
   router.get(/^\/topics(\.json)?$/, async ({ response, match, tabs, session }) => {

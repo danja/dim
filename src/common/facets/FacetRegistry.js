@@ -19,6 +19,7 @@
  *     aboutDomain (host),    // optional: → [{ label, href }] what it has from a site
  *     urlStatus (url),       // optional: → { status, href, label, archivedAt } for a URL it tracks
  *     documents (),          // optional: → [{ iri, text }] to embed for "related" (src/common/related)
+ *     day ({ from, to }),    // optional: → [{ label, href }] what happened that isn't in the change log
  *     tags (),               // optional: → Map tag → count
  *     tagged (tag),          // optional: → [{ iri, label, href, snippet }]
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]

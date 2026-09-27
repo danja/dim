@@ -449,3 +449,12 @@ main:has(.board) { max-width: 90rem; }
 .project-hub h3 { font-size: 0.95rem; margin: 0.75rem 0 0.25rem; }
 .project-hub ul { margin: 0; padding-left: 1.2rem; }
 .project-hub a { overflow-wrap: anywhere; }
+
+/* ── Day and week views ────────────────────────────────────────────── */
+.day-nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-bottom: var(--gap); }
+.day-nav a { min-height: 44px; display: inline-flex; align-items: center; }
+.journal { list-style: none; padding: 0; }
+.journal li { padding: 0.3rem 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.journal time { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); margin-right: 0.4rem; }
+.week { border-collapse: collapse; width: 100%; }
+.week th, .week td { text-align: left; padding: 0.35rem 0.5rem 0.35rem 0; border-bottom: 1px solid var(--border); vertical-align: top; }

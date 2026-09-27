@@ -51,6 +51,21 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
       return items.filter(i => i.starred || i.firstSeen >= since).map(i => ({ iri: i.iri, text: [i.title, i.snippet].filter(Boolean).join('\n\n') }))
     },
 
+    /** For the day view: what arrived, by feed (arrivals aren't changes of yours). */
+    async day ({ from, to }) {
+      const a = from.toISOString()
+      const b = to.toISOString()
+      const { items } = await store.itemList({ view: 'all', limit: Infinity })
+      const byFeed = new Map()
+      for (const i of items) if (i.firstSeen >= a && i.firstSeen < b) byFeed.set(i.feed, (byFeed.get(i.feed) ?? 0) + 1)
+      const out = []
+      for (const [feedIri, n] of [...byFeed].sort((x, y) => y[1] - x[1])) {
+        const f = await store.feedByIri(feedIri)
+        if (f) out.push({ label: `${n} new from ${f.title}`, href: `${feedPath(f)}?view=all` })
+      }
+      return out
+    },
+
     /** Feed tags. */
     async tags () {
       return countTags((await store.feedList()).map(f => f.tags))

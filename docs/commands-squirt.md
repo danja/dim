@@ -28,6 +28,14 @@ curl -s -X POST localhost:4110/squirt/capture -H "Authorization: Bearer $DIM_WRI
   -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"text":"todo oil the lathe"}'
 ```
 
+## Today and this week
+
+`/day` shows what you did today, grouped by facet, with times and change
+summaries, plus what arrived (news). `/day/2026-09-22` shows another day.
+`/week` is a review of seven days: counts per day, and the tasks done, wiki
+pages started, bookmarks saved and posts published. Both are linked from
+Squirt, and are for the owner only.
+
 ## Lately
 
 The latest change to each thing you've touched, in any facet, plus the

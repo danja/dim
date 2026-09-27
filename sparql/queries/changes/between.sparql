@@ -1,0 +1,11 @@
+# Every change in a time range, oldest first. Link bookkeeping
+# (<graph:facet/links>) and the poller's are left out.
+SELECT ?resource ?at ?action ?actor ?summary
+WHERE {
+  GRAPH ${graph} {
+    ?c prov:used ?resource ; prov:startedAtTime ?at ; dim:changeAction ?action ; prov:wasAssociatedWith ?actor ; dim:inGraph ?g .
+    OPTIONAL { ?c rdfs:comment ?summary }
+    FILTER(?at >= ${from} && ?at < ${to} && ?actor != "poller" && ?g != <graph:facet/links>)
+  }
+}
+ORDER BY ?at

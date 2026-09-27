@@ -67,6 +67,7 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /squirt/` | phone front page: search, quick capture, recent activity; installable app with share target |
 | `GET /find?q=` | search every facet |
 | `GET /tags/<tag>`, `/topics/<topic>` | everything with a tag, or on a topic, across facets |
+| `GET /day`, `/week` | what you did today / this week, across facets |
 | `GET /r/<type>/<slug>` | the page of any DIM resource |
 | `POST /links`, `POST /gnamgnam/bookmark/<slug>/annotations` | links, tags and notes — needs `DIM_WRITE_TOKEN` (see `docs/tools.md`) |
 
