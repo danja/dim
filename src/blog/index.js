@@ -28,6 +28,11 @@ export function createBlogFacet ({ store, wiki = null, outlines = null, title = 
       return { status: 'ok', published: all.filter(p => p.status === 'published').length, drafts: all.filter(p => p.status === 'draft').length }
     },
 
+    /** Published posts only: drafts must never turn up as "related" to a stranger. */
+    async documents () {
+      return (await store.list()).map(p => ({ iri: p.iri, text: `${p.title}\n\n${p.content}` }))
+    },
+
     /** Published posts only, like find. */
     async tags () {
       return countTags((await store.list()).map(p => p.tags))

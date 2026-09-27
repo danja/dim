@@ -33,6 +33,10 @@ export function createWikiFacet ({ store }) {
       return { status: 'ok', pages: (await store.list()).length }
     },
 
+    async documents () {
+      return (await store.list()).map(p => ({ iri: p.iri, text: `${p.title}\n\n${p.content}` }))
+    },
+
     async tags () {
       return countTags((await store.list()).map(p => p.tags))
     },

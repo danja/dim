@@ -92,6 +92,16 @@ export class VectorIndex {
     return position
   }
 
+  /** Forget one IRI (its position is reclaimed by compact()). → whether it was there */
+  remove (iri) {
+    const position = this.positionByIri.get(iri)
+    if (position === undefined) return false
+    this.orphans.add(position)
+    this.positionByIri.delete(iri)
+    this.dirty = true
+    return true
+  }
+
   addBatch (entries) {
     for (const [iri, vector] of entries) this.add(iri, vector)
     return this.size

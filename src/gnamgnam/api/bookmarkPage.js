@@ -5,6 +5,7 @@ import { renderMarkdown } from '../../common/ui/markdown.js'
 import { renderLinksPanel, LINK_PICKER_SCRIPT } from '../../common/ui/linksPanel.js'
 import { formFields } from '../../common/http/write.js'
 import { BASE_PATH, bookmarkSlug } from './bookmarkData.js'
+import { renderRelated } from '../../common/ui/relatedPanel.js'
 
 /** One bookmark, as an HTML page inside the shared shell. */
 
@@ -92,7 +93,7 @@ function renderSite ({ site, session }) {
   return `<form class="inline-buttons" method="post" action="/news/feeds">${formFields(session, '')}<input type="hidden" name="url" value="${esc(site.offerFeed)}"><button>Look for this site's feed</button></form>`
 }
 
-export function renderBookmarkPage (doc, { tabs, session = null, links = null, site = null, source = null }) {
+export function renderBookmarkPage (doc, { tabs, session = null, links = null, related = null, site = null, source = null }) {
   const slug = bookmarkSlug(doc.iri)
   const text = doc.summary || doc.description
   const facts = [
@@ -110,6 +111,7 @@ ${text ? `<p>${esc(text)}</p>` : '<p class="muted">No summary yet.</p>'}
 ${(doc.topics ?? []).length ? `<p class="meta">topics: ${doc.topics.map(t => `<a href="${BASE_PATH}/?topic=${encodeURIComponent(t)}">${esc(t)}</a>`).join(', ')}</p>` : ''}
 ${(doc.keywords ?? []).length ? `<p class="meta">key terms: ${esc(doc.keywords.join(', '))}</p>` : ''}
 ${renderAnnotations(doc, { session, slug })}
+${renderRelated(related)}
 ${renderLinks(doc, { links, session, slug })}
 ${renderCatalogue(doc.catalogue)}
 ${renderOutline(doc)}

@@ -145,6 +145,7 @@ vite.config.ts.timestamp-*
 # DIM runtime state
 data/*.index
 data/*.index.json
+data/related.state.json
 data/cache/
 data/blog-site/
 data/backups/

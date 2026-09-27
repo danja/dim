@@ -27,6 +27,7 @@
     "news": "node bin/news.js",
     "blog-export": "node bin/blog-export.js",
     "topics": "node bin/topics.js",
+    "related": "node bin/related.js",
     "backup": "node bin/backup.js",
     "restore": "node bin/restore.js"
   },

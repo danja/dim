@@ -1,28 +1,9 @@
 #!/usr/bin/env node
 import Config from '../src/common/Config.js'
-import SPARQLClient from '../src/common/store/SPARQLClient.js'
-import VectorIndex from '../src/common/vectors/VectorIndex.js'
-import EmbeddingService from '../src/common/embeddings/EmbeddingService.js'
-import SearchService from '../src/common/search/SearchService.js'
-import { bookmarkSearchAdapter } from '../src/gnamgnam/BookmarkSearch.js'
 import { createServer } from '../src/server.js'
-import { createFacets } from '../src/facets.js'
 import Auth from '../src/common/http/auth.js'
-import ShapeValidator from '../src/common/store/ShapeValidator.js'
-import GraphRegistry from '../src/common/store/GraphRegistry.js'
-import ChangeLog from '../src/common/store/ChangeLog.js'
-import Repository from '../src/common/store/Repository.js'
-import LinkStore from '../src/common/links/LinkStore.js'
-import OutlineStore from '../src/trestle/OutlineStore.js'
-import TaskStore from '../src/farelo/TaskStore.js'
-import WikiStore from '../src/wiki/WikiStore.js'
-import NewsStore from '../src/news/NewsStore.js'
-import PostStore from '../src/blog/PostStore.js'
-import Advisor from '../src/advisor/Advisor.js'
-import AdviceStore from '../src/advisor/AdviceStore.js'
-import Poller from '../src/news/Poller.js'
+import { buildApp } from '../src/app.js'
 import { NEWS_CONFIG } from '../config/preferences.js'
-import RollLog from '../src/farelo/RollLog.js'
 import { configureLogging } from '../src/common/logging.js'
 
 const logging = configureLogging()
@@ -30,45 +11,36 @@ const logging = configureLogging()
 const config = Config.load()
 const port = Number(process.env.PORT) || 4110
 
-const client = new SPARQLClient(config.get('storage.endpoint'))
-if (!(await client.isReachable())) {
-  console.error(`SPARQL endpoint ${config.get('storage.endpoint.query')} is not reachable.`)
+let app
+try {
+  app = await buildApp({ config, projectRoot: Config.projectRoot })
+} catch (error) {
+  console.error(error.message)
   process.exit(1)
 }
+const { index, embeddings, search, related, repository, links, poller, facets } = app
+const newsStore = app.stores.news
+console.log(`Loaded ${search.documents.size} bookmarks, ${index.size} vectors from ${index.path}`)
+console.log(`Related index: ${related.index.size} vectors (wiki, tasks, outline items, posts, recent news)`)
 
-const index = await VectorIndex.open({
-  dimension: config.get('embedding.dimension'),
-  path: config.get('index.path'),
-  model: config.get('embedding.model')
-})
-const embeddings = EmbeddingService.fromConfig(config)
-const search = new SearchService({ client, index, embeddings, adapter: bookmarkSearchAdapter })
-const loaded = await search.loadDocuments()
-
-console.log(`Loaded ${loaded} bookmarks, ${index.size} vectors from ${index.path}`)
-
-// The write path: validated writes into facet graphs, a change log, links.
 const auth = Auth.fromEnv()
-const registry = new GraphRegistry(client)
-const repository = new Repository({
-  client,
-  validator: await ShapeValidator.load(),
-  changeLog: new ChangeLog({ client, registry }),
-  registry
-})
-const links = new LinkStore({ client, repository })
+const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links, related }, logRequests: logging.requests })
 
-const outlines = new OutlineStore({ client, repository, links })
-const tasks = new TaskStore({ client, repository, links })
-const wiki = new WikiStore({ client, repository, links })
-const newsStore = new NewsStore({ client, repository, links })
-const poller = new Poller({ store: newsStore })
-const posts = new PostStore({ client, repository, links })
-const advisor = new Advisor({ tasks, advice: new AdviceStore({ client, repository, links }), links })
-const blog = { store: posts, title: process.env.BLOG_TITLE || 'Blog', author: process.env.BLOG_AUTHOR || 'owner' }
-const rolls = new RollLog({ client, registry })
-const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller }, blog, client, advisor })
-const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links }, logRequests: logging.requests })
+// Keep the related index in step: shortly after start, then every
+// RELATED_SYNC_MINUTES (default 30; 0 turns it off). Only what changed is
+// embedded; nothing is tried while Ollama is unreachable.
+const relatedEvery = Number(process.env.RELATED_SYNC_MINUTES ?? 30)
+let relatedTimer = null
+if (relatedEvery > 0) {
+  const syncRelated = async () => {
+    if (!(await embeddings.provider.isAvailable().catch(() => false))) return
+    const totals = await related.sync(facets).catch(error => ({ error: error.message }))
+    if (totals.error) console.error('[related] sync failed:', totals.error)
+    else if (totals.embedded || totals.removed) console.log(`[related] embedded ${totals.embedded}, removed ${totals.removed}${totals.stopped ? ' (stopped: embeddings unavailable)' : ''}`)
+  }
+  setTimeout(syncRelated, 30000)
+  relatedTimer = setInterval(syncRelated, relatedEvery * 60000)
+}
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)
   console.log(auth.writesEnabled
@@ -115,6 +87,7 @@ if (pollEvery > 0) {
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     clearInterval(pollTimer)
+    clearInterval(relatedTimer)
     server.close(() => process.exit(0))
   })
 }

@@ -6,6 +6,8 @@ import { visibleNodes, titleHtml, nodePath, renderTree } from './treeView.js'
 import { ancestors, childrenOf, toMarkdown } from '../tree.js'
 import { resolveMentions } from '../../common/links/mentions.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { relatedFor } from '../../common/related/relatedFor.js'
+import { plainText } from '../../common/outline/OutlineParser.js'
 
 /** Trestle HTTP routes, mounted at /trestle. */
 
@@ -68,7 +70,8 @@ export function registerRoutes (router, { store, tabs, services, registry, origi
       tabs,
       session,
       treeCtx: await treeCtx(outline, node.iri),
-      links: await resolvedLinks({ services, registry }, node.iri)
+      links: await resolvedLinks({ services, registry }, node.iri),
+      related: await relatedFor({ services, registry }, node.iri, [plainText(node.title), node.note].filter(Boolean).join('\n\n'))
     }))
   })
 

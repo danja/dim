@@ -432,3 +432,8 @@ main:has(.board) { max-width: 90rem; }
 .link-health h2 { font-size: 1rem; margin: 0; }
 .link-health ul { margin: 0.25rem 0; padding-left: 1.2rem; }
 .link-health a { overflow-wrap: anywhere; }
+
+/* ── Related (across facets) ───────────────────────────────────────── */
+.related-panel h2 { font-size: 1.1rem; }
+.related-panel ul { padding-left: 1.2rem; }
+.related-panel a { overflow-wrap: anywhere; }

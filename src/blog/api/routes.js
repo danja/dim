@@ -9,6 +9,7 @@ import { renderIndex, renderTag, renderPost } from './pages.js'
 import { renderEdit } from './edit.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { badLinks } from '../../common/links/urls.js'
+import { relatedFor } from '../../common/related/relatedFor.js'
 
 /**
  * Blog HTTP routes, mounted at /blog. Drafts exist only for the logged-in
@@ -37,7 +38,7 @@ export function registerRoutes (router, { store, wiki, outlines, blogTitle, blog
     const published = await store.list()
     const source = post.derivedFrom ? await registry.lookup(post.derivedFrom) : null
     const bad = session.user ? await badLinks(post.content, registry) : []
-    return sendHtml(response, 200, renderPost({ post, posts: await store.list({ drafts: true }), published, source, links: await resolvedLinks({ services, registry }, post.iri), badLinks: bad, tabs, session }))
+    return sendHtml(response, 200, renderPost({ post, posts: await store.list({ drafts: true }), published, source, links: await resolvedLinks({ services, registry }, post.iri), related: post.status === 'published' || session.user ? await relatedFor({ services, registry }, post.iri, `${post.title}\n\n${post.content}`) : null, badLinks: bad, tabs, session }))
   }
 
   router.get('/blog', async ({ response, session }) => {

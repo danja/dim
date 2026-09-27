@@ -2,10 +2,11 @@ import { esc } from '../../common/http/respond.js'
 import { formFields } from '../../common/http/write.js'
 import { renderLinksPanel } from '../../common/ui/linksPanel.js'
 import { newsPage, itemRow, flagForms, when, itemPath, feedPath } from './common.js'
+import { renderRelated } from '../../common/ui/relatedPanel.js'
 
 /** The river of items (with filters and paging) and one item's page. */
 
-const VIEWS = [['unread', 'Unread'], ['starred', 'Starred'], ['all', 'All']]
+const VIEWS = [['unread', 'Unread'], ['foryou', 'For you'], ['starred', 'Starred'], ['all', 'All']]
 
 export function riverQuery ({ view, feed, tag, before }) {
   const params = new URLSearchParams()
@@ -17,8 +18,8 @@ export function riverQuery ({ view, feed, tag, before }) {
   return s ? `?${s}` : ''
 }
 
-function filters ({ query, feedList, tags, unread }) {
-  const views = VIEWS.map(([v, label]) => {
+function filters ({ query, feedList, tags, unread, forYou }) {
+  const views = VIEWS.filter(([v]) => v !== 'foryou' || forYou).map(([v, label]) => {
     const current = (query.view ?? 'unread') === v ? ' aria-current="page"' : ''
     const count = v === 'unread' ? ` <span class="count">${unread}</span>` : ''
     return `<a href="/news/${riverQuery({ ...query, view: v, before: null })}"${current}>${label}${count}</a>`
@@ -49,10 +50,11 @@ ${markAll}
 ${older}`
 }
 
-export function renderRiver ({ items, more, feeds, feedList, tags, unread, query, polling, tabs, session, returnPath, bookmarked = null }) {
+export function renderRiver ({ items, more, forYou = false, feeds, feedList, tags, unread, query, polling, tabs, session, returnPath, bookmarked = null }) {
   const body = `<div class="news-head"><h1>News</h1><a href="/news/feeds">Feeds (${feedList.length})</a></div>
 ${polling ? '<p class="meta" role="status">Polling feeds in the background; reload in a minute.</p>' : ''}
-${filters({ query, feedList, tags, unread })}
+${filters({ query, feedList, tags, unread, forYou })}
+${query.view === 'foryou' ? '<p class="meta">Unread items closest to your own bookmarks, pages and tasks first (new items are scored as the related index syncs).</p>' : ''}
 ${renderItemList({ items, more, feeds, query, session, returnPath, bookmarked })}`
   return newsPage({ title: 'News', body, tabs, session })
 }
@@ -71,7 +73,7 @@ function paragraphs (text) {
   return String(text ?? '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('\n')
 }
 
-export function renderItemPage ({ item, feed, text, links, bookmark = null, tabs, session }) {
+export function renderItemPage ({ item, feed, text, links, related = null, bookmark = null, tabs, session }) {
   const path = itemPath(item)
   const linksHtml = renderLinksPanel(links, { subject: item.iri, session, returnPath: path })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/news/">News</a>${feed ? ` <span aria-hidden="true">›</span> <a href="${feedPath(feed)}">${esc(feed.title)}</a>` : ''}</nav>
@@ -81,6 +83,7 @@ ${item.link ? `<p><a class="button" href="${esc(item.link)}" rel="noopener noref
 ${flagForms(item, { session, returnPath: path })}
 <div class="item-text">${paragraphs(text ?? item.snippet) || '<p class="muted">The feed gave no text for this item.</p>'}</div>
 ${saveForms({ item, session, bookmark })}
+${renderRelated(related)}
 ${linksHtml}
 <p class="foot meta">first seen ${when(item.firstSeen)} · <a href="${path}.json">JSON</a></p>`
   return newsPage({ title: item.title, body, tabs, session })

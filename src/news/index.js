@@ -44,6 +44,13 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
         .map(f => ({ label: f.title, href: feedPath(f), kind: 'feed' }))
     },
 
+    /** Recent items (a month) and starred ones; older ones leave the index as they're pruned. */
+    async documents () {
+      const since = new Date(Date.now() - 30 * 86400000).toISOString()
+      const { items } = await store.itemList({ view: 'all', limit: Infinity })
+      return items.filter(i => i.starred || i.firstSeen >= since).map(i => ({ iri: i.iri, text: [i.title, i.snippet].filter(Boolean).join('\n\n') }))
+    },
+
     /** Feed tags. */
     async tags () {
       return countTags((await store.feedList()).map(f => f.tags))

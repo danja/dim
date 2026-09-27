@@ -990,10 +990,19 @@ projects, the flow of work, time, people.
 - [x] 13.2 **Close the one-way gaps:** blog posts record their `[[…]]`
       mentions; bookmark pages say where a bookmark came from
       (`dcterms:source`, e.g. the news item). *Done.*
-- [ ] 13.3 **One vector index for every facet:** wiki pages, tasks, outline
+- [x] 13.3 **One vector index for every facet:** wiki pages, tasks, outline
       items, posts and news items embedded beside bookmarks (as they're
       saved; news on arrival, pruned with it); "Related" across facets on
       detail pages; news ranked by interest; the advisor's "to hand" uses it.
+      *Done:* `RelatedIndex` (second FAISS index beside the bookmarks',
+      state file of text hashes, sync embeds only changes and forgets what
+      went, news interest = nearest of your own things); facet hook
+      `documents()` (published posts only); **Related** on bookmark, wiki,
+      task, outline-item, post and news-item pages; News **For you**;
+      advisor "to hand" by meaning first; `bin/related.js` + server sync
+      every `RELATED_SYNC_MINUTES`; quiet for 5 min when Ollama is down.
+      Composition moved to `src/app.js` (server and tools share it). Sandbox
+      run with a stand-in embedder: 5,781 items, 10 s; rerun embeds nothing.
 - [ ] 13.4 **Topics as the shared vocabulary:** topics assigned beyond
       bookmarks; tags aligned to topics; a topic hub page.
 - [ ] 13.5 **Project hub:** a Farelo project gathers its tasks and the

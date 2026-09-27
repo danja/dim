@@ -9,6 +9,7 @@ import { taskPath } from './common.js'
 import { rankForDice } from '../tasks.js'
 import { diceList, pick, nextState, POLICIES } from '../dice.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { relatedFor } from '../../common/related/relatedFor.js'
 
 /** Farelo HTTP routes, mounted at /farelo. */
 
@@ -38,7 +39,7 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
     if (!task) return send(response, 404, { error: 'No such task', id: match[1] })
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, task)
     const [links, historyEntries] = await Promise.all([resolvedLinks({ services, registry }, task.iri), store.history(task).catch(() => [])])
-    return sendHtml(response, 200, renderTaskPage({ task, tasks: await store.list(), links, historyEntries, tabs, session }))
+    return sendHtml(response, 200, renderTaskPage({ task, tasks: await store.list(), links, related: await relatedFor({ services, registry }, task.iri, [task.title, task.note].filter(Boolean).join('\n\n')), historyEntries, tabs, session }))
   })
 
   router.get('/farelo/dice', async ({ response, session }) =>

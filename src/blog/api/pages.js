@@ -4,6 +4,7 @@ import { formFields } from '../../common/http/write.js'
 import { renderLinksPanel, LINK_PICKER_SCRIPT } from '../../common/ui/linksPanel.js'
 import { appPath, postList, postArticle, neighbours } from '../render.js'
 import { renderLinkHealth } from '../../common/ui/linkHealth.js'
+import { renderRelated } from '../../common/ui/relatedPanel.js'
 
 /** Blog pages in the app: index, tag, a post (with the owner's controls). */
 
@@ -58,7 +59,7 @@ ${publish}
 </div>`
 }
 
-export function renderPost ({ post, posts, published, source, links, badLinks = [], tabs, session }) {
+export function renderPost ({ post, posts, published, source, links, related = null, badLinks = [], tabs, session }) {
   const linksHtml = renderLinksPanel(links, { subject: post.iri, session, returnPath: appPath(post) })
   const from = source ? `<p class="meta">Started from <a href="${esc(source.href)}">${esc(source.label)}</a> (${esc(source.facetLabel ?? '')})</p>` : ''
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/blog/">Blog</a></nav>
@@ -66,6 +67,7 @@ ${ownerControls(post, session)}
 ${postArticle(post, { posts, ...at, ...neighbours(post, published) })}
 ${session?.user ? from : ''}
 ${session?.user ? renderLinkHealth(badLinks) : ''}
+${renderRelated(related)}
 ${linksHtml}
 <p class="foot meta">export: <a href="/blog/post/${esc(post.slug)}.md">Markdown</a> · <a href="/blog/post/${esc(post.slug)}.json">JSON</a></p>`
   return blogPage({ title: post.title, body, tabs, session })

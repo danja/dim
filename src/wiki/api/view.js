@@ -3,6 +3,7 @@ import { renderLinksPanel } from '../../common/ui/linksPanel.js'
 import { formFields } from '../../common/http/write.js'
 import { renderLinkHealth } from '../../common/ui/linkHealth.js'
 import { pagePath, contentHtml, wikiPage, when, renderDiff } from './common.js'
+import { renderRelated } from '../../common/ui/relatedPanel.js'
 
 /** Wiki reading pages: the index, a page, a missing page, history, diffs. */
 
@@ -42,7 +43,7 @@ function pageActions ({ page, session }) {
 </div>`
 }
 
-export function renderView ({ page, pages, links, badLinks = [], tabs, session }) {
+export function renderView ({ page, pages, links, related = null, badLinks = [], tabs, session }) {
   const linksHtml = renderLinksPanel(links, { subject: page.iri, session, returnPath: pagePath(page) })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/wiki/">Wiki</a></nav>
 <h1>${esc(page.title)}</h1>
@@ -50,6 +51,7 @@ ${page.tags.length ? `<p>${tagLinks(page.tags)}</p>` : ''}
 ${pageActions({ page, session })}
 ${contentHtml(page.content, pages)}
 ${session?.user ? renderLinkHealth(badLinks) : ''}
+${renderRelated(related)}
 ${linksHtml}
 <p class="foot meta">revision ${page.revision} · ${when(page.modified ?? page.created)} · <a href="${pagePath(page)}/history">history</a> · export: <a href="${pagePath(page)}.md">Markdown</a> · <a href="${pagePath(page)}.ttl">Turtle</a></p>`
   return wikiPage({ title: page.title, body, tabs, session })

@@ -10,6 +10,7 @@ import { itemPath, feedPath } from './common.js'
 import { renderRiver, renderItemPage, riverQuery } from './river.js'
 import { renderFeedsPage, renderFeedPage } from './feedsPage.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { relatedFor } from '../../common/related/relatedFor.js'
 
 /** News HTTP routes, mounted at /news. */
 
@@ -23,7 +24,7 @@ function notFound (what) {
 
 function queryOf (url) {
   const p = url.searchParams
-  const view = ['all', 'starred'].includes(p.get('view')) ? p.get('view') : 'unread'
+  const view = ['all', 'starred', 'foryou'].includes(p.get('view')) ? p.get('view') : 'unread'
   return { view, feed: p.get('feed') || null, tag: p.get('tag') || null, before: p.get('before') || null }
 }
 
@@ -44,10 +45,20 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
   router.get('/news', async ({ response, url, session }) => {
     const query = queryOf(url)
     const feedList = await store.feedList()
-    const { items, more } = await store.itemList(query)
+    const related = services?.related
+    let items, more
+    if (query.view === 'foryou' && related) {
+      // Unread, closest to your own things first (scores from the related sync).
+      const unread = (await store.itemList({ ...query, view: 'unread', before: null, limit: Infinity })).items
+      const scored = unread.map(i => ({ i, s: related.interest(i.iri) ?? -1 })).sort((a, b) => b.s - a.s)
+      items = scored.slice(0, 50).map(x => x.i)
+      more = false
+    } else {
+      ({ items, more } = await store.itemList(query))
+    }
     const unread = [...(await store.counts()).values()].reduce((n, c) => n + c.unread, 0)
     const tags = [...new Set(feedList.flatMap(f => f.tags))].sort()
-    return sendHtml(response, 200, renderRiver({ items, more, feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
+    return sendHtml(response, 200, renderRiver({ items, more, forYou: Boolean(related), feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
   })
 
   router.get('/news/items.json', async ({ response, url }) => {
@@ -61,7 +72,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     const text = await store.itemText(it)
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, { ...it, text })
     const bookmark = it.link ? await registry.urlStatus(it.link) : null
-    return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), bookmark, tabs, session }))
+    return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), related: await relatedFor({ services, registry }, it.iri, [it.title, text ?? it.snippet].filter(Boolean).join('\n\n')), bookmark, tabs, session }))
   })
 
   router.get('/news/feeds', async ({ response, url, session }) =>

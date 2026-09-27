@@ -8,6 +8,7 @@ import { renderSearchPage } from './searchPage.js'
 import { renderBookmarkPage } from './bookmarkPage.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { hostOf } from '../../common/links/urls.js'
+import { relatedFor } from '../../common/related/relatedFor.js'
 
 function originOf (url) {
   try { return new URL(url).origin + '/' } catch { return null }
@@ -100,7 +101,7 @@ export function registerRoutes (router, { search, tabs, services, registry, orig
       const alsoHere = (await registry.aboutDomain(host)).filter(a => a.facet !== 'gnamgnam')
       const site = { alsoHere, offerFeed: registry.get('news')?.aboutDomain ? originOf(doc.url) : null }
       const source = doc.source && !doc.source.startsWith('file:') ? await registry.lookup(doc.source) : null
-      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, links, site, source }))
+      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, links, related: await relatedFor({ services, registry }, bookmarkIri, [doc.name, doc.summary ?? doc.description].filter(Boolean).join('\n\n')), site, source }))
     }
     return send(response, 200, { ...doc, data: bookmarkDataUrl(doc), licence: LICENCE })
   })

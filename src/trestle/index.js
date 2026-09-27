@@ -32,6 +32,18 @@ export function createTrestleFacet ({ store }) {
       return { status: 'ok', outlines: outlines.length, nodes: outlines.reduce((n, o) => n + o.nodes.size, 0) }
     },
 
+    /** Items with something to say (a title of a few words, or a note). */
+    async documents () {
+      const out = []
+      for (const outline of await store.list()) {
+        for (const node of outline.nodes.values()) {
+          const text = [plainText(node.title), node.note].filter(Boolean).join('\n\n')
+          if (text.length >= 25) out.push({ iri: node.iri, text })
+        }
+      }
+      return out
+    },
+
     async lookup (resourceIri) {
       const found = await store.byIri(resourceIri)
       if (!found) return null

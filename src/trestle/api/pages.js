@@ -5,6 +5,7 @@ import { renderLinksPanel, LINK_PICKER_SCRIPT } from '../../common/ui/linksPanel
 import { formFields } from '../../common/http/write.js'
 import { plainText } from '../../common/outline/OutlineParser.js'
 import { renderTree, titleHtml, nodePath } from './treeView.js'
+import { renderRelated } from '../../common/ui/relatedPanel.js'
 
 /** Trestle pages: the list of outlines, an outline, one node zoomed in. */
 
@@ -78,7 +79,7 @@ function editForm ({ node, session, returnPath }) {
 </details>`
 }
 
-export function renderNodePage ({ outline, node, crumbs, tabs, session, treeCtx, links }) {
+export function renderNodePage ({ outline, node, crumbs, tabs, session, treeCtx, links, related = null }) {
   const returnPath = nodePath(node)
   const parent = crumbs.at(-1)
   const parentPath = parent ? nodePath(parent) : outlinePath(outline)
@@ -92,6 +93,7 @@ ${nodeActions({ node, session, returnPath, parentPath })}
 ${editForm({ node, session, returnPath })}
 ${renderTree(outline, node.iri, { ...treeCtx, session, returnPath })}
 ${addForm({ outline, parentId: node.id, session, returnPath, label: 'New item here' })}
+${renderRelated(related)}
 ${linksHtml}
 <p class="foot meta">export: <a href="${returnPath}.md">Markdown</a> · <a href="${returnPath}.json">JSON</a></p>`
   return page({ title: plainText(node.title) || '(untitled)', body, tabs, session })

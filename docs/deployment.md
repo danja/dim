@@ -131,6 +131,7 @@ Beyond the store and model settings above, all optional (`.env`):
 | `DIM_PRIVATE=1` | every page needs a login (not just writes). **Set it whenever DIM is reachable from anything but this machine.** |
 | `DIM_ORIGIN` | the address DIM is reached at, e.g. `https://dim.example.ts.net`; used in feeds and the bookmarklet, and makes the session cookie https-only |
 | `NEWS_POLL_MINUTES` | poll due feeds from the server every N minutes |
+| `RELATED_SYNC_MINUTES` | keep the cross-facet related index in step every N minutes (default 30; 0 = off; `bin/related.js` by hand) |
 | `BLOG_TITLE`, `BLOG_AUTHOR`, `BLOG_BASE_URL` | blog name, author, public URL of the static export |
 | `LOG_LEVEL`, `LOG_FORMAT=json`, `LOG_REQUESTS=1` | logging (below) |
 | `BACKUP_DIR` (tools), `BACKUP_HOST_DIR` (compose) | where backups go |

@@ -29,6 +29,7 @@ export class Advisor {
     if (!tasks || !advice) throw new Error('The advisor needs the TaskStore and an AdviceStore')
     Object.assign(this, { tasks, advice, links, now })
     this.registry = null
+    this.relatedIndex = null // RelatedIndex, when there is one (set by src/app.js)
   }
 
   /** → { ranked, closeCall, weights, contexts, total } */
@@ -52,8 +53,18 @@ export class Advisor {
         if (found?.href) out.push({ ...found, why: 'linked' })
       }
     }
+    // Meaning first (the shared vector index), then titles' topic words.
+    if (this.relatedIndex && this.registry) {
+      const hits = await this.relatedIndex.related(task.iri, [task.title, task.note].filter(Boolean).join('\n\n'), { k: limit }).catch(() => [])
+      for (const h of hits) {
+        if (seen.has(h.iri)) continue
+        seen.add(h.iri)
+        const found = await this.registry.lookup(h.iri)
+        if (found?.href && found.facet && found.facet !== 'farelo') out.push({ ...found, why: 'similar' })
+      }
+    }
     const words = topicWords(task.title)
-    if (this.registry && words.length) {
+    if (this.registry && words.length && out.length < limit) {
       // Similar = at least two thirds of the title's topic words appear (search alone is too loose).
       const needed = Math.max(1, Math.ceil(words.length * 2 / 3))
       const groups = await this.registry.find(words.join(' '), { limit: 5 }).catch(() => [])

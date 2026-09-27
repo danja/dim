@@ -54,7 +54,7 @@ How polling behaves (`NEWS_CONFIG` in `config/preferences.js`):
 
 | URL | |
 |---|---|
-| `/news/` | the river: **Unread** / **Starred** / **All**, by feed or tag; **Older →** pages back |
+| `/news/` | the river: **Unread** / **For you** / **Starred** / **All**, by feed or tag; **Older →** pages back. **For you**: unread items closest to your own bookmarks, pages and tasks first (needs the related index: `node bin/related.js`) |
 | `/news/item/<id>` | one item: full text, **Read the original**, **Save as bookmark**, **Make a task**, links |
 | `/news/feeds` | subscriptions: subscribe (paste a site or feed URL), import (paste OPML or URLs), poll, export OPML |
 | `/news/feed/<slug>` | one feed: status, last error, next poll, settings (title, tags), its items, unsubscribe |
