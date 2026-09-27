@@ -67,9 +67,10 @@ ${extras(origin)}`
   return squirtPage({ title: 'Squirt', body, tabs, session })
 }
 
-export function renderShare ({ values, guess, tabs, session }) {
+export function renderShare ({ values, guess, existing = null, tabs, session }) {
   const body = `<h1>Save to DIM</h1>
 ${values.title ? `<p><strong>${esc(values.title)}</strong></p>` : ''}
+${existing?.href ? `<p class="captured">Already bookmarked: <a href="${esc(existing.href)}">${esc(existing.label)}</a>. Saving again as a bookmark changes nothing; a task or note still works.</p>` : ''}
 ${captureForm({ session, values, guess })}`
   return squirtPage({ title: 'Save to DIM', body, tabs, session })
 }

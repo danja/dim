@@ -62,7 +62,8 @@ function feedSettings ({ feed, session }) {
 </details>`
 }
 
-export function renderFeedPage ({ feed, count, list, feeds, query, tabs, session }) {
+/** alsoHere: what other facets have from the feed's site (registry.aboutDomain). */
+export function renderFeedPage ({ feed, count, list, feeds, query, alsoHere = [], bookmarked = null, tabs, session }) {
   const path = feedPath(feed)
   const facts = [
     ['Feed', `<a href="${esc(feed.url)}" rel="noopener noreferrer">${esc(feed.url)}</a>`],
@@ -70,14 +71,15 @@ export function renderFeedPage ({ feed, count, list, feeds, query, tabs, session
     ['Status', `${statusBadge(feed)}${feed.lastError ? ` <span class="meta">${esc(feed.lastError)}</span>` : ''}`],
     ['Polled', feed.lastPolled ? `${when(feed.lastPolled)}${feed.nextPoll ? ` · next ${when(feed.nextPoll)}` : ''}` : 'not yet'],
     ['Items', `${count.unread} unread of ${count.total}${count.starred ? `, ${count.starred} starred` : ''}`],
-    feed.tags.length ? ['Tags', feed.tags.map(t => `<a href="/news/?tag=${encodeURIComponent(t)}">${esc(t)}</a>`).join(', ')] : null
+    feed.tags.length ? ['Tags', feed.tags.map(t => `<a href="/news/?tag=${encodeURIComponent(t)}">${esc(t)}</a>`).join(', ')] : null,
+    alsoHere.length ? ['From this site', alsoHere.map(a => `<a href="${esc(a.href)}">${esc(a.label)}</a>`).join(', ')] : null
   ].filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/news/">News</a> <span aria-hidden="true">›</span> <a href="/news/feeds">Feeds</a></nav>
 <h1>${esc(feed.title)}</h1>
 <dl class="facts">${facts}</dl>
 ${feedSettings({ feed, session })}
 <h2>Items</h2>
-${renderItemList({ ...list, feeds, query, session, returnPath: path + (query.view && query.view !== 'unread' ? `?view=${query.view}` : ''), basePath: path })}
+${renderItemList({ ...list, feeds, query, session, returnPath: path + (query.view && query.view !== 'unread' ? `?view=${query.view}` : ''), basePath: path, bookmarked })}
 <p class="meta"><a href="${path}?view=all">all items</a> · <a href="${path}?view=starred">starred</a></p>`
   return newsPage({ title: feed.title, body, tabs, session })
 }

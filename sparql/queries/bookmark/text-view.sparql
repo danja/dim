@@ -2,7 +2,7 @@
 # Repeatable catalogue fields are aggregated in their own sub-selects so they
 # do not multiply against types/tags/keywords. Lists use " | " (Catalogue.js).
 # Notes and user tags come from the owner's own graph, <graph:facet/gnamgnam>.
-SELECT ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
+SELECT ?bookmark ?g ?url ?source ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
        ?fetchStatus ?context ?sourceLine ?archivedAt
        ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
        ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags ?topics
@@ -12,6 +12,7 @@ SELECT ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown
 WHERE {
   GRAPH ?g {
     ?bookmark a dim:Bookmark ; dim:url ?url .
+    OPTIONAL { ?bookmark dcterms:source ?source }
     OPTIONAL { ?bookmark dim:linkText ?linkText }
     OPTIONAL { ?bookmark dcterms:title ?title }
     OPTIONAL { ?bookmark dcterms:description ?description }
@@ -62,7 +63,7 @@ WHERE {
     GROUP BY ?bookmark
   }
 }
-GROUP BY ?bookmark ?g ?url ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
+GROUP BY ?bookmark ?g ?url ?source ?linkText ?title ?description ?summary ?summaryMarkdown ?domain ?contentType ?httpStatus
          ?fetchStatus ?context ?sourceLine ?archivedAt
          ?githubOwner ?githubRepo ?githubLanguage ?githubStars ?arxivId ?wikipediaLanguage ?wikipediaTitle
          ?githubTopic ?arxivAuthor ?arxivCategory ?note ?userTags ?topics

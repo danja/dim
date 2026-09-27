@@ -4,6 +4,7 @@ import { writeRoute } from '../../common/http/write.js'
 import { parseSubscriptions, toOpml } from '../formats/opml.js'
 import { absoluteUrl } from '../formats/feed.js'
 import { resolveFeed } from '../subscribe.js'
+import { hostOf } from '../../common/links/urls.js'
 import { saveAsBookmark, makeTask } from '../saveAs.js'
 import { itemPath, feedPath } from './common.js'
 import { renderRiver, renderItemPage, riverQuery } from './river.js'
@@ -28,6 +29,15 @@ function queryOf (url) {
 
 export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs, services, registry }) {
   const feedMap = async () => new Map((await store.feedList()).map(f => [f.iri, f]))
+  // Items whose link is already a bookmark: id → { href, label }.
+  const bookmarkedOf = async items => {
+    const out = new Map()
+    for (const i of items) {
+      const s = i.link ? await registry.urlStatus(i.link) : null
+      if (s?.href) out.set(i.id, s)
+    }
+    return out
+  }
   const item = async id => (await store.item(id)) ?? Promise.reject(notFound('item'))
   const feed = async slug => (await store.feed(slug)) ?? Promise.reject(notFound('feed'))
 
@@ -37,7 +47,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     const { items, more } = await store.itemList(query)
     const unread = [...(await store.counts()).values()].reduce((n, c) => n + c.unread, 0)
     const tags = [...new Set(feedList.flatMap(f => f.tags))].sort()
-    return sendHtml(response, 200, renderRiver({ items, more, feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}` }))
+    return sendHtml(response, 200, renderRiver({ items, more, feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
   })
 
   router.get('/news/items.json', async ({ response, url }) => {
@@ -50,7 +60,8 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     const it = await item(match[1])
     const text = await store.itemText(it)
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, { ...it, text })
-    return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), tabs, session }))
+    const bookmark = it.link ? await registry.urlStatus(it.link) : null
+    return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), bookmark, tabs, session }))
   })
 
   router.get('/news/feeds', async ({ response, url, session }) =>
@@ -65,7 +76,8 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, { ...f, ...count })
     const query = { ...queryOf(url), feed: null }
     const list = await store.itemList({ ...query, feed: f.slug })
-    return sendHtml(response, 200, renderFeedPage({ feed: f, count, list, feeds: await feedMap(), query, tabs, session }))
+    const alsoHere = (await registry.aboutDomain(hostOf(f.siteUrl ?? f.url))).filter(a => a.facet !== 'news')
+    return sendHtml(response, 200, renderFeedPage({ feed: f, count, list, feeds: await feedMap(), query, alsoHere, bookmarked: await bookmarkedOf(list.items), tabs, session }))
   })
 
   // ── Writes ───────────────────────────────────────────────────────────

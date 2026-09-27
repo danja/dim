@@ -16,6 +16,8 @@
  *     lookupTitle (title),   // optional: exact title → IRI | null
  *     refresh (iri),         // optional: a resource it shows changed elsewhere
  *     recent ({ limit }),    // optional: → [{ iri, label, href, at, action }] not in the change log
+ *     aboutDomain (host),    // optional: → [{ label, href }] what it has from a site
+ *     urlStatus (url),       // optional: → { status, href, label, archivedAt } for a URL it tracks
  *     tags (),               // optional: → Map tag → count
  *     tagged (tag),          // optional: → [{ iri, label, href, snippet }]
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
@@ -98,6 +100,27 @@ export class FacetRegistry {
   iriFromUrl (url) {
     for (const facet of this.facets) {
       const found = facet.lookupUrl?.(url)
+      if (found) return found
+    }
+    return null
+  }
+
+  /** What every facet has from one site (e.g. bookmarks, a feed). → [{ facet, facetLabel, label, href }] */
+  async aboutDomain (host) {
+    const out = []
+    if (!host) return out
+    for (const facet of this.facets) {
+      try {
+        for (const item of (await facet.aboutDomain?.(host)) ?? []) out.push({ facet: facet.id, facetLabel: facet.label, ...item })
+      } catch { /* one facet failing must not hide the others */ }
+    }
+    return out
+  }
+
+  /** Is this URL tracked (bookmarked), and how was it when last checked? */
+  async urlStatus (url) {
+    for (const facet of this.facets) {
+      const found = await facet.urlStatus?.(url)
       if (found) return found
     }
     return null

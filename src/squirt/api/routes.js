@@ -24,11 +24,16 @@ export function registerRoutes (router, { client, tasks, wiki, mentions, advisor
     send(response, session.user ? 200 : 401, session.user ? { items: await activity(session) } : { error: 'Log in to see recent activity' }))
 
   // The share target (and the bookmarklet): a capture form, filled in.
-  router.get('/squirt/share', ({ response, url, session }) => {
+  router.get('/squirt/share', async ({ response, url, session }) => {
     const values = { title: url.searchParams.get('title') ?? '', text: url.searchParams.get('text') ?? '', url: url.searchParams.get('url') ?? '', returnPath: url.pathname + url.search }
     let guess = null
-    try { guess = classify(values).kind } catch { /* nothing shared */ }
-    return sendHtml(response, 200, renderShare({ values, guess, tabs, session }))
+    let existing = null
+    try {
+      const item = classify(values)
+      guess = item.kind
+      if (item.url) existing = await registry.urlStatus(item.url)
+    } catch { /* nothing shared */ }
+    return sendHtml(response, 200, renderShare({ values, guess, existing, tabs, session }))
   })
 
   router.add(['POST'], '/squirt/capture', writeRoute(async ({ body, identity }) => {

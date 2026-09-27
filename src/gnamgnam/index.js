@@ -1,6 +1,7 @@
 import { registerRoutes } from './api/routes.js'
 import { BASE_PATH, bookmarkSlug } from './api/bookmarkData.js'
 import { canonicalUrl } from '../common/rdf/URIMinter.js'
+import { hostOf } from '../common/links/urls.js'
 
 /**
  * GnamGnam — the bookmark manager/retriever facet. See
@@ -59,6 +60,22 @@ export function createGnamgnamFacet ({ search }) {
     tagged (tag) {
       return [...search.documents.values()].filter(d => (d.userTags ?? []).includes(tag))
         .map(d => ({ iri: d.iri, label: d.name, href: href(d), snippet: snippet(d) }))
+    },
+
+    /** Bookmarks from one site. */
+    aboutDomain (host) {
+      const docs = [...search.documents.values()].filter(d => hostOf(d.url) === host)
+      if (!docs.length) return []
+      const domain = docs[0].domain ?? host
+      return [{ label: `${docs.length} bookmark${docs.length === 1 ? '' : 's'} from ${host}`, href: `${BASE_PATH}/?domain=${encodeURIComponent(domain)}`, count: docs.length }]
+    },
+
+    /** A bookmarked URL's page and last-known link status. */
+    urlStatus (url) {
+      const key = canonical(url)
+      const iri = key ? byUrl().get(key) : null
+      const doc = iri ? search.documents.get(iri) : null
+      return doc ? { iri, href: href(doc), label: doc.name, status: doc.linkStatus, archivedAt: doc.archivedAt ?? null } : null
     },
 
     /** A bookmark was written elsewhere (e.g. saved from News): load it now. */

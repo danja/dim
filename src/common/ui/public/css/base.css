@@ -426,3 +426,9 @@ main:has(.board) { max-width: 90rem; }
 /* ── Tags across facets (/tags) ─────────────────────────────────────── */
 .tag-cloud { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
 .tag-cloud li { min-height: 44px; display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* ── Links that looked broken (wiki, blog) ─────────────────────────── */
+.link-health { margin: var(--gap) 0; padding: 0.5rem 0.75rem; border-left: 4px solid var(--warn); background: var(--surface); }
+.link-health h2 { font-size: 1rem; margin: 0; }
+.link-health ul { margin: 0.25rem 0; padding-left: 1.2rem; }
+.link-health a { overflow-wrap: anywhere; }

@@ -59,6 +59,7 @@ These apply to every phase; a task isn't done if it breaks one.
 | 10 | Squirt — mobile view of everything | 5–9 (incrementally) | `[x]` (phone check needs https) |
 | 11 | "What next?" advisor | 6, 3, 4 | `[x]` (local check pending) |
 | 12 | Operations: backup, auth, deploy hardening | runs alongside | `[x]` |
+| 13 | Cross-facet contact | 3–11 | `[ ]` |
 
 Phases 5–8 are independent of each other once Phase 4 is done and can be
 taken in any order; the order above puts the todo graph (Farelo) and the
@@ -968,6 +969,45 @@ time/resources.
       Tailscale or Caddy, backups and the drill, health and logs),
       `docs/tools.md`, README status.
 - [x] CI's first runs on GitHub passed, including the native `faiss-node` build (2026-09-26).
+
+## Phase 13 — Cross-facet contact
+
+**Goal:** the facets recognise each other's data, not only at the moment
+something is imported, saved or drafted. Seven kinds of overlap
+(2026-09-27 review): URLs and domains, meaning (text), topics and tags,
+projects, the flow of work, time, people.
+
+### Tasks
+
+- [x] 13.1 **URL matching everywhere:** "already bookmarked" on news items
+      and captures; a feed shows your bookmarks from its site, and a
+      bookmark shows (or offers) its site's feed; dead-link warnings for URLs
+      in wiki pages and blog posts, and from the blog export.
+      *Done:* registry hooks `aboutDomain(host)` and `urlStatus(url)`
+      (GnamGnam, News); news river/item/feed pages; bookmark page (its feed,
+      or "Look for this site's feed"); Squirt share; `Links to check` on wiki
+      pages, blog posts and the blog preview (owner); export warnings.
+- [x] 13.2 **Close the one-way gaps:** blog posts record their `[[…]]`
+      mentions; bookmark pages say where a bookmark came from
+      (`dcterms:source`, e.g. the news item). *Done.*
+- [ ] 13.3 **One vector index for every facet:** wiki pages, tasks, outline
+      items, posts and news items embedded beside bookmarks (as they're
+      saved; news on arrival, pruned with it); "Related" across facets on
+      detail pages; news ranked by interest; the advisor's "to hand" uses it.
+- [ ] 13.4 **Topics as the shared vocabulary:** topics assigned beyond
+      bookmarks; tags aligned to topics; a topic hub page.
+- [ ] 13.5 **Project hub:** a Farelo project gathers its tasks and the
+      pages, outline items, bookmarks, feeds and posts linked `partOf` it.
+- [ ] 13.6 **Day view:** what was saved, read, written and done on a day,
+      from the change log; a weekly review.
+- [ ] (later) People: authors across papers, repositories and feeds.
+
+### Acceptance
+
+- Each contact is visible from both ends, and is covered by tests and a
+  browser check.
+
+---
 
 ## Open questions
 

@@ -42,6 +42,7 @@ export const bookmarkSearchAdapter = Object.freeze({
       iri: row.bookmark,
       graph: row.g ?? null,
       url: row.url,
+      source: row.source ?? null,
       linkText: row.linkText ?? null,
       name: row.linkText ?? row.title ?? row.url,
       title: row.title ?? null,

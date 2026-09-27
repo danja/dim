@@ -2,12 +2,13 @@ import { send, sendText, sendHtml, redirect } from '../../common/http/respond.js
 import { negotiate } from '../../common/http/negotiate.js'
 import { writeRoute } from '../../common/http/write.js'
 import { wantsJson } from '../../common/http/body.js'
-import { toIri } from '../../common/links/mentions.js'
+import { toIri, resolveMentions } from '../../common/links/mentions.js'
 import { draftFrom } from '../sources.js'
 import { appPath, datedPath, atomFeed, postHtml } from '../render.js'
 import { renderIndex, renderTag, renderPost } from './pages.js'
 import { renderEdit } from './edit.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { badLinks } from '../../common/links/urls.js'
 
 /**
  * Blog HTTP routes, mounted at /blog. Drafts exist only for the logged-in
@@ -21,6 +22,12 @@ function notFound (what) {
 }
 
 export function registerRoutes (router, { store, wiki, outlines, blogTitle, blogAuthor, tabs, services, registry, origin }) {
+  // A post's [[…]] and DIM links are mentions, as in every other facet.
+  const syncMentions = async (post, actor) => {
+    if (!services?.links) return
+    const targets = (await resolveMentions(post.content, { registry, origin })).filter(t => t !== post.iri)
+    await services.links.syncMentions({ from: post.iri, targets, actor }).catch(() => {})
+  }
   const visible = async (slug, session) => {
     const post = await store.get(slug)
     if (!post || (post.status !== 'published' && !session.user)) throw notFound('post')
@@ -29,7 +36,8 @@ export function registerRoutes (router, { store, wiki, outlines, blogTitle, blog
   const showPost = async ({ response, post, session }) => {
     const published = await store.list()
     const source = post.derivedFrom ? await registry.lookup(post.derivedFrom) : null
-    return sendHtml(response, 200, renderPost({ post, posts: await store.list({ drafts: true }), published, source, links: await resolvedLinks({ services, registry }, post.iri), tabs, session }))
+    const bad = session.user ? await badLinks(post.content, registry) : []
+    return sendHtml(response, 200, renderPost({ post, posts: await store.list({ drafts: true }), published, source, links: await resolvedLinks({ services, registry }, post.iri), badLinks: bad, tabs, session }))
   }
 
   router.get('/blog', async ({ response, session }) => {
@@ -81,6 +89,7 @@ export function registerRoutes (router, { store, wiki, outlines, blogTitle, blog
     }
     const post = await store.create(fields, identity.user)
     if (post.derivedFrom && services.links) await services.links.add({ from: post.iri, kind: 'related', to: post.derivedFrom, actor: identity.user }).catch(() => {})
+    await syncMentions(post, identity.user)
     return { redirect: `/blog/post/${post.slug}/edit`, json: { ok: true, slug: post.slug, iri: post.iri } }
   }))
 
@@ -91,9 +100,11 @@ export function registerRoutes (router, { store, wiki, outlines, blogTitle, blog
     const posts = await store.list({ drafts: true })
     if (body.action === 'preview') {
       if (wantsJson(request)) return { json: { ok: true, html: postHtml(String(fields.content ?? post.content), { posts, postHref: appPath }) } }
-      return { html: renderEdit({ post, draft: { ...post, ...fields }, posts, preview: true, tabs, session }) }
+      const bad = await badLinks(String(fields.content ?? post.content), registry)
+      return { html: renderEdit({ post, draft: { ...post, ...fields }, posts, preview: true, badLinks: bad, tabs, session }) }
     }
     const saved = await store.update(post, fields, identity.user)
+    if ('content' in fields) await syncMentions(saved, identity.user)
     return { redirect: appPath(saved), json: { ok: true, slug: saved.slug } }
   }))
 

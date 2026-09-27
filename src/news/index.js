@@ -1,6 +1,7 @@
 import { registerRoutes } from './api/routes.js'
 import { itemPath, feedPath } from './api/common.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
+import { hostOf } from '../common/links/urls.js'
 import { countTags } from '../common/facets/tags.js'
 
 /**
@@ -34,6 +35,13 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
         unread: counts.reduce((n, c) => n + c.unread, 0),
         polling: Boolean(poller.running)
       }
+    },
+
+    /** Feeds from one site (by the feed's own or its site's host). */
+    async aboutDomain (host) {
+      return (await store.feedList())
+        .filter(f => hostOf(f.url) === host || hostOf(f.siteUrl) === host)
+        .map(f => ({ label: f.title, href: feedPath(f), kind: 'feed' }))
     },
 
     /** Feed tags. */

@@ -10,6 +10,10 @@ import ChangeLog from '../src/common/store/ChangeLog.js'
 import Repository from '../src/common/store/Repository.js'
 import PostStore from '../src/blog/PostStore.js'
 import { buildSite } from '../src/blog/staticSite.js'
+import QueryService from '../src/common/store/QueryService.js'
+import { canonicalUrl } from '../src/common/rdf/URIMinter.js'
+import { linkStatus } from '../src/gnamgnam/LinkStatus.js'
+import { urlsIn, BAD_LINK } from '../src/common/links/urls.js'
 
 /**
  * Export the published posts as a static site, for hosting anywhere (the
@@ -63,4 +67,18 @@ for (const [rel, content] of files) {
 }
 fs.writeFileSync(path.join(out, MARKER), `Made by bin/blog-export.js at ${new Date().toISOString()}\n`)
 console.log(`Exported ${posts.length} published posts (${files.size} files) to ${out}`)
+
+// Links in the posts that GnamGnam last saw broken.
+const canonical = url => { try { return canonicalUrl(url) } catch { return null } }
+const statuses = new Map()
+for (const r of await client.select(new QueryService().get('bookmark/statuses', {}))) {
+  const key = canonical(r.url)
+  if (key) statuses.set(key, { status: linkStatus({ httpStatus: r.httpStatus != null ? Number(r.httpStatus) : null, fetchStatus: r.fetchStatus != null ? Number(r.fetchStatus) : null }), archivedAt: r.archivedAt ?? null })
+}
+for (const post of posts) {
+  for (const url of urlsIn(post.content)) {
+    const s = statuses.get(canonical(url))
+    if (s && BAD_LINK.has(s.status)) console.log(`  warning: "${post.title}" links to ${url} (${s.status})${s.archivedAt ? ` — archived copy: ${s.archivedAt}` : ''}`)
+  }
+}
 console.log(`  feed: ${baseUrl.replace(/\/?$/, '/')}feed.atom — preview with: python3 -m http.server -d ${out}  (or any static server)`)

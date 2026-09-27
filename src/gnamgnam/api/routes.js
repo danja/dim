@@ -7,6 +7,11 @@ import { BASE_PATH, BOOKMARK_PREFIX, bookmarkDataUrl, savedTurtle } from './book
 import { renderSearchPage } from './searchPage.js'
 import { renderBookmarkPage } from './bookmarkPage.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { hostOf } from '../../common/links/urls.js'
+
+function originOf (url) {
+  try { return new URL(url).origin + '/' } catch { return null }
+}
 
 /**
  * GnamGnam HTTP routes, mounted at /gnamgnam: search page, search/facets/
@@ -91,7 +96,11 @@ export function registerRoutes (router, { search, tabs, services, registry, orig
     }
     if (format === 'html') {
       const links = await resolvedLinks({ services, registry }, bookmarkIri)
-      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, links }))
+      const host = hostOf(doc.url)
+      const alsoHere = (await registry.aboutDomain(host)).filter(a => a.facet !== 'gnamgnam')
+      const site = { alsoHere, offerFeed: registry.get('news')?.aboutDomain ? originOf(doc.url) : null }
+      const source = doc.source && !doc.source.startsWith('file:') ? await registry.lookup(doc.source) : null
+      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, links, site, source }))
     }
     return send(response, 200, { ...doc, data: bookmarkDataUrl(doc), licence: LICENCE })
   })

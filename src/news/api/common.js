@@ -42,13 +42,15 @@ export function flagForms (item, { session, returnPath }) {
   return `<div class="item-actions">${toggle('read', item.read, 'Mark unread', 'Mark read', item.read ? 'unread' : 'read')}${toggle('starred', item.starred, 'Unstar', 'Star', item.starred ? '★' : '☆')}</div>`
 }
 
-export function itemRow (item, { feeds, session, returnPath }) {
+/** bookmarked: Map item id → { href } for items whose link is already a bookmark. */
+export function itemRow (item, { feeds, session, returnPath, bookmarked = null }) {
   const feed = feeds.get(item.feed)
   const title = esc(item.title)
   const heading = item.link
     ? `<a class="out" href="${esc(item.link)}" rel="noopener noreferrer" data-read-id="${esc(item.id)}">${title}</a>`
     : `<a href="${itemPath(item)}">${title}</a>`
-  const meta = [feed ? `<a href="${feedPath(feed)}">${esc(feed.title)}</a>` : '', when(item.published ?? item.firstSeen), item.author ? esc(item.author) : '', `<a href="${itemPath(item)}">details</a>`].filter(Boolean).join(' · ')
+  const saved = bookmarked?.get(item.id)
+  const meta = [feed ? `<a href="${feedPath(feed)}">${esc(feed.title)}</a>` : '', when(item.published ?? item.firstSeen), item.author ? esc(item.author) : '', saved ? `<a class="bookmarked" href="${esc(saved.href)}">bookmarked</a>` : '', `<a href="${itemPath(item)}">details</a>`].filter(Boolean).join(' · ')
   const snippet = item.snippet ? `<p class="snippet">${esc(item.snippet.replace(/\s+/g, ' ').slice(0, 280))}${item.snippet.length > 280 ? '…' : ''}</p>` : ''
   return `<li class="news-item${item.read ? ' read' : ''}${item.starred ? ' starred' : ''}" data-id="${esc(item.id)}">
 <h2>${heading}</h2>

@@ -47,6 +47,9 @@ already waiting for it. `[[…]]` inside code is left alone.
 - If the page was saved by someone else (another tab) since you started
   editing, Save shows **Edit conflict**: your text is kept, what the other
   save changed is shown, and saving again replaces it.
+- **Links to check** (when logged in): URLs in the page that GnamGnam last
+  saw broken, with the archived copy when `deadlinks --wayback` found one.
+  Blog posts and the blog preview show the same, and `blog-export` warns.
 - **history** (page foot) → every revision; **changes** shows a line diff.
 - Renaming a page keeps its address; `[[New title]]` finds it by title.
 

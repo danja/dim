@@ -2,13 +2,15 @@ import { esc } from '../../common/http/respond.js'
 import { formFields } from '../../common/http/write.js'
 import { appPath, postHtml } from '../render.js'
 import { blogPage } from './pages.js'
+import { renderLinkHealth } from '../../common/ui/linkHealth.js'
 
 /** The post editor, with a server-rendered preview. draft: the form's values. */
-export function renderEdit ({ post, draft = post, posts, preview = false, tabs, session }) {
+export function renderEdit ({ post, draft = post, posts, preview = false, badLinks = [], tabs, session }) {
   const tags = Array.isArray(draft.tags) ? draft.tags.join(', ') : draft.tags ?? ''
   const previewHtml = preview
     ? `<section class="preview" aria-labelledby="preview-h"><h2 id="preview-h">Preview</h2>
-<article class="post"><h1>${esc(draft.title)}</h1><div class="post-body">${postHtml(draft.content, { posts, postHref: appPath })}</div></article></section>`
+<article class="post"><h1>${esc(draft.title)}</h1><div class="post-body">${postHtml(draft.content, { posts, postHref: appPath })}</div></article>
+${renderLinkHealth(badLinks)}</section>`
     : ''
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/blog/">Blog</a> <span aria-hidden="true">›</span> <a href="${appPath(post)}">${esc(post.title)}</a></nav>
 <h1>Editing ${post.status === 'draft' ? 'draft' : 'post'}</h1>

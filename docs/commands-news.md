@@ -70,6 +70,10 @@ How polling behaves (`NEWS_CONFIG` in `config/preferences.js`):
   and linked to the bookmark.
 - **Make a task:** a Farelo task in To do, whose note links the item. The item
   is starred and linked from the task.
+- Items whose link you've already bookmarked say **bookmarked** (and the
+  item page links the bookmark instead of offering to save it). A feed's
+  page lists your bookmarks from the same site; a bookmark's page lists its
+  site's feed, or offers to look for one.
 - Starred items never expire. Everything else goes after
   `NEWS_CONFIG.retentionDays` (90).
 

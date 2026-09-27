@@ -80,7 +80,19 @@ function renderLinks (doc, { links, session, slug }) {
   return renderLinksPanel(links, { subject: doc.iri, session, returnPath: `${BASE_PATH}/bookmark/${slug}` })
 }
 
-export function renderBookmarkPage (doc, { tabs, session = null, links = null }) {
+/**
+ * site: { alsoHere: [{ label, href, facetLabel }] (e.g. its feed), offerFeed: origin URL or null }
+ * source: where the bookmark came from, resolved ({ label, href, facetLabel }) or null.
+ */
+function renderSite ({ site, session }) {
+  if (!site) return ''
+  const here = site.alsoHere.map(a => `<a href="${esc(a.href)}">${esc(a.label)}</a> <small class="meta">${esc(a.facetLabel ?? '')}</small>`).join(', ')
+  if (here) return `<p class="meta">From this site: ${here}</p>`
+  if (!site.offerFeed || !session?.user) return ''
+  return `<form class="inline-buttons" method="post" action="/news/feeds">${formFields(session, '')}<input type="hidden" name="url" value="${esc(site.offerFeed)}"><button>Look for this site's feed</button></form>`
+}
+
+export function renderBookmarkPage (doc, { tabs, session = null, links = null, site = null, source = null }) {
   const slug = bookmarkSlug(doc.iri)
   const text = doc.summary || doc.description
   const facts = [
@@ -92,6 +104,8 @@ export function renderBookmarkPage (doc, { tabs, session = null, links = null })
 <p class="url"><a href="${esc(doc.url)}">${esc(doc.url)}</a></p>
 ${renderLinkStatus(doc)}
 ${facts ? `<p class="meta">${facts}</p>` : ''}
+${source?.href ? `<p class="meta">Saved from <a href="${esc(source.href)}">${esc(source.label)}</a>${source.facetLabel ? ` (${esc(source.facetLabel)})` : ''}</p>` : ''}
+${renderSite({ site, session })}
 ${text ? `<p>${esc(text)}</p>` : '<p class="muted">No summary yet.</p>'}
 ${(doc.topics ?? []).length ? `<p class="meta">topics: ${doc.topics.map(t => `<a href="${BASE_PATH}/?topic=${encodeURIComponent(t)}">${esc(t)}</a>`).join(', ')}</p>` : ''}
 ${(doc.keywords ?? []).length ? `<p class="meta">key terms: ${esc(doc.keywords.join(', '))}</p>` : ''}

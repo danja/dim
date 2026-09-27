@@ -10,6 +10,7 @@ import { pagePath, contentHtml } from './common.js'
 import { renderIndex, renderView, renderMissing, renderHistory, renderRevision, renderDiffPage } from './view.js'
 import { renderEdit, renderConflict } from './edit.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { badLinks } from '../../common/links/urls.js'
 
 /** Wiki HTTP routes, mounted at /wiki. */
 
@@ -48,7 +49,8 @@ export function registerRoutes (router, { store, tabs, services, registry, origi
     if (match[2] === '.md') return sendText(response, 200, page.content, 'text/markdown; charset=utf-8')
     if (match[2] === '.ttl') return sendText(response, 200, await store.turtle(page), 'text/turtle; charset=utf-8')
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, page)
-    return sendHtml(response, 200, renderView({ page, pages: await store.list(), links: await resolvedLinks({ services, registry }, page.iri), tabs, session }))
+    const bad = session.user ? await badLinks(page.content, registry) : []
+    return sendHtml(response, 200, renderView({ page, pages: await store.list(), links: await resolvedLinks({ services, registry }, page.iri), badLinks: bad, tabs, session }))
   })
 
   router.get(new RegExp(`^/wiki/page/${SLUG}/edit$`), async ({ response, url, match, session }) => {
