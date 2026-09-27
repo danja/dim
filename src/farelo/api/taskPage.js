@@ -5,6 +5,7 @@ import { renderLinksPanel } from '../../common/ui/linksPanel.js'
 import { STATES, STATE_LABELS, byIri, pendingDependencies } from '../tasks.js'
 import { page, taskPath, titleHtml, metaLine, stateBadge } from './common.js'
 import { renderRelated } from '../../common/ui/relatedPanel.js'
+import { renderProjectHub } from './projectHub.js'
 
 /** One task: details, dependencies, note, links, history, and editing. */
 
@@ -53,7 +54,7 @@ function history (entries) {
   return `<details class="history"><summary>History</summary><ol>${entries.map(e => `<li><time datetime="${esc(e.at)}">${esc(String(e.at).slice(0, 16).replace('T', ' '))}</time> ${esc(e.comment ?? e.action)}</li>`).join('')}</ol></details>`
 }
 
-export function renderTaskPage ({ task, tasks, links, related = null, historyEntries, tabs, session }) {
+export function renderTaskPage ({ task, tasks, links, related = null, hub = null, historyEntries, tabs, session }) {
   const index = byIri(tasks)
   const waiting = pendingDependencies(task, index).length > 0
   const children = tasks.filter(t => t.project === task.iri)
@@ -65,6 +66,7 @@ ${statusButtons(task, { session, blocked: waiting })}
 ${task.note ? `<div class="note">${renderMarkdown(task.note)}</div>` : ''}
 ${dependencyList(task, index)}
 ${children.length ? `<h2>In this project</h2><ul class="deps">${children.map(c => `<li>${stateBadge(c.status)} <a href="${taskPath(c)}">${titleHtml(c)}</a></li>`).join('')}</ul>` : ''}
+${renderProjectHub(hub, { project: task, session })}
 ${renderRelated(related)}
 ${linksHtml}
 ${editForm(task, { tasks, session })}

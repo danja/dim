@@ -1012,8 +1012,12 @@ projects, the flow of work, time, people.
       and `/topics/<slug>` hub grouped by facet; tag pages link the topic of
       the same name; Related panels list topics. Sandbox: 29 topics, given to
       1,414 outline items, 12 tasks, 15 news items.
-- [ ] 13.5 **Project hub:** a Farelo project gathers its tasks and the
+- [x] 13.5 **Project hub:** a Farelo project gathers its tasks and the
       pages, outline items, bookmarks, feeds and posts linked `partOf` it.
+      *Done:* project pages show progress, last activity, everything linked
+      *part of* it by facet, the resources its tasks use, and an **Add** box
+      (links a picked item *part of* the project); the advisor gains a
+      *Quiet project* reason (no activity for 14+ days).
 - [ ] 13.6 **Day view:** what was saved, read, written and done on a day,
       from the change log; a weekly review.
 - [ ] (later) People: authors across papers, repositories and feeds.

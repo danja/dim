@@ -6,7 +6,7 @@ import { MINUTES } from '../Advisor.js'
 
 /** "What next?" — the suggestions, why, what's related, and feedback buttons. */
 
-const LABELS = Object.freeze({ priority: 'Priority', due: 'Due soon', underway: 'Under way', fits: 'Fits your time', context: 'Your context', unblocks: 'Unblocks others', ready: 'Resources ready', age: 'Waiting long', skipped: 'Skipped lately' })
+const LABELS = Object.freeze({ priority: 'Priority', due: 'Due soon', underway: 'Under way', fits: 'Fits your time', context: 'Your context', unblocks: 'Unblocks others', ready: 'Resources ready', age: 'Waiting long', skipped: 'Skipped lately', dormant: 'Quiet project' })
 
 export function contextQuery ({ minutes, context }) {
   const p = new URLSearchParams()

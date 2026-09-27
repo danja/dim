@@ -9,6 +9,7 @@ import { taskPath } from './common.js'
 import { rankForDice } from '../tasks.js'
 import { diceList, pick, nextState, POLICIES } from '../dice.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
+import { gatherProject } from './projectHub.js'
 import { relatedFor } from '../../common/related/relatedFor.js'
 
 /** Farelo HTTP routes, mounted at /farelo. */
@@ -39,7 +40,14 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
     if (!task) return send(response, 404, { error: 'No such task', id: match[1] })
     if (negotiate(match[2], request.headers.accept) !== 'html') return send(response, 200, task)
     const [links, historyEntries] = await Promise.all([resolvedLinks({ services, registry }, task.iri), store.history(task).catch(() => [])])
-    return sendHtml(response, 200, renderTaskPage({ task, tasks: await store.list(), links, related: await relatedFor({ services, registry }, task.iri, [task.title, task.note].filter(Boolean).join('\n\n')), historyEntries, tabs, session }))
+    const all = await store.list()
+    let hub = null
+    if (task.isProject || all.some(t => t.project === task.iri)) {
+      const taskLinks = new Map()
+      for (const child of all.filter(t => t.project === task.iri)) taskLinks.set(child.iri, await resolvedLinks({ services, registry }, child.iri))
+      hub = gatherProject({ project: task, tasks: all, links, taskLinks })
+    }
+    return sendHtml(response, 200, renderTaskPage({ task, tasks: all, links, hub, related: await relatedFor({ services, registry }, task.iri, [task.title, task.note].filter(Boolean).join('\n\n')), historyEntries, tabs, session }))
   })
 
   router.get('/farelo/dice', async ({ response, session }) =>

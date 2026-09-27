@@ -109,3 +109,20 @@ describe('LLM second opinion', () => {
     expect((await explain(ranked, { config: null })).ok).toBe(false)
   })
 })
+
+describe('quiet projects', () => {
+  it('nudge their tasks after two weeks', () => {
+    const P = 'http://purl.org/stuff/dim/task/'
+    const tasks = [
+      { id: 'p', iri: P + 'p', title: 'Synth project', status: 'doing', isProject: true, created: '2026-08-01T00:00:00Z', dependsOn: [], tags: [] },
+      { id: 'a', iri: P + 'a', title: 'Solder the VCO', status: 'todo', project: P + 'p', created: '2026-08-02T00:00:00Z', dependsOn: [], tags: [] },
+      { id: 'b', iri: P + 'b', title: 'Tidy the desk', status: 'todo', created: '2026-08-02T00:00:00Z', dependsOn: [], tags: [] }
+    ]
+    const ranked = rank(tasks, { now: NOW })
+    const a = ranked.find(r => r.task.id === 'a')
+    expect(a.values.dormant).toBe(1)
+    expect(a.reasons.map(r => r.text)).toContain('its project has been quiet 55 days')
+    expect(ranked.find(r => r.task.id === 'b').values.dormant).toBe(0)
+    expect(ranked[0].task.id).toBe('a')
+  })
+})

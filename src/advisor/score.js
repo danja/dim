@@ -16,10 +16,11 @@ import { byIri, eligibleForDice, pendingDependencies, comparePriority, DEFAULT_P
  *   ready      it has linked resources (bookmarks, pages, …)
  *   age        waiting a long time (so nothing starves)
  *   skipped    you passed on it lately (-1 fading over ~3 days)
+ *   dormant    its project has been quiet for two weeks or more (full at six)
  */
 
-export const FEATURES = Object.freeze(['priority', 'due', 'underway', 'fits', 'context', 'unblocks', 'ready', 'age', 'skipped'])
-export const DEFAULT_WEIGHTS = Object.freeze({ priority: 3, due: 3, underway: 1.5, fits: 2, context: 1, unblocks: 1.5, ready: 0.5, age: 0.5, skipped: 2 })
+export const FEATURES = Object.freeze(['priority', 'due', 'underway', 'fits', 'context', 'unblocks', 'ready', 'age', 'skipped', 'dormant'])
+export const DEFAULT_WEIGHTS = Object.freeze({ priority: 3, due: 3, underway: 1.5, fits: 2, context: 1, unblocks: 1.5, ready: 0.5, age: 0.5, skipped: 2, dormant: 1 })
 export const WEIGHT_RANGE = Object.freeze([0.1, 6])
 export const CLOSE_CALL = 0.05 // top two within 5%: offer the dice
 
@@ -78,6 +79,10 @@ export function features (task, ctx) {
   f.skipped = -clamp(skips.reduce((s, d) => s + Math.exp(-d / 3), 0), 0, 1)
   if (skips.length) why.skipped = `skipped ${skips.length}× lately`
 
+  const quiet = task.project && ctx.projectActivity?.has(task.project) ? (ctx.now - Date.parse(ctx.projectActivity.get(task.project))) / DAY : 0
+  f.dormant = quiet >= 14 ? clamp((quiet - 14) / 28 + 0.5, 0, 1) : 0
+  if (f.dormant) why.dormant = `its project has been quiet ${Math.floor(quiet)} days`
+
   for (const k of FEATURES) f[k] = round(f[k] ?? 0)
   return { values: f, why }
 }
@@ -97,7 +102,15 @@ export function rank (tasks, { weights = DEFAULT_WEIGHTS, now = new Date(), minu
     if (t.status === 'done') continue
     for (const dep of pendingDependencies(t, index)) waitingOn.set(dep, (waitingOn.get(dep) ?? 0) + 1)
   }
-  const ctx = { now, minutes, context, index, waitingOn, resources, skips }
+  // A project's last activity: its own and its tasks' latest change.
+  const projectActivity = new Map()
+  for (const t of tasks) {
+    const at = t.modified ?? t.doneAt ?? t.created
+    for (const key of [t.project, t.isProject ? t.iri : null]) {
+      if (key && at && (!projectActivity.has(key) || at > projectActivity.get(key))) projectActivity.set(key, at)
+    }
+  }
+  const ctx = { now, minutes, context, index, waitingOn, resources, skips, projectActivity }
   return tasks.filter(t => eligibleForDice(t, index)).map(task => {
     const { values, why } = features(task, ctx)
     const reasons = FEATURES

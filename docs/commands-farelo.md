@@ -80,6 +80,19 @@ A roll that hits an empty number rolls again. Every roll is recorded
 items, which drops links *to* them — including tasks' links to their
 outline items. Run `node bin/farelo-import.js` afterwards to relink.
 
+## Projects as hubs
+
+A project's page (any task marked *This is a project*, or with tasks in it)
+gathers the project in one place:
+
+- **Progress:** how many of its tasks are done, and when anything last
+  happened.
+- **Contains:** everything linked as *part of* it, grouped by facet: wiki
+  pages, outline items, bookmarks, feeds, posts. Link them from their own
+  page's **Links** panel (kind *part of*, pick the project), or from the
+  **Add** box on the project page.
+- **Used by its tasks:** the resources its tasks link to.
+
 ## What next? (`/farelo/next`)
 
 The advisor ranks the tasks that are ready (To do or Doing, not projects,
@@ -104,6 +117,7 @@ board and shown as **Next up** on Squirt.
 | Resources ready | it links to bookmarks, pages, … | 0.5 |
 | Waiting long | it has waited up to 60 days | 0.5 |
 | Skipped lately | you said "Not now" (takes away, fading over ~3 days) | 2 |
+| Quiet project | its project has seen no activity for two weeks (full at six) | 1 |
 
 - **Do this now:** moves the task to Doing and opens it. Picking something
   lower in the list teaches the advisor: the weights move a little toward
