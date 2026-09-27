@@ -168,48 +168,9 @@ proxy. See `docs/security.md`.
 
 ## Backups
 
-The store holds work that exists nowhere else: the wiki, tasks, outlines as
-edited, notes, links, news subscriptions, blog posts. Back it up.
-
-```sh
-node bin/backup.js                         # store (all graphs, TriG, gzipped) + vector index → data/backups/<time>/
-node bin/backup.js --with-cache            # …and data/cache (enrichment/retrieval caches)
-node bin/backup.js --keep 30               # keep the newest 30 (default 14)
-node bin/restore.js --list
-node bin/restore.js <backup> --yes         # REPLACES the store; saves the current state first
-node bin/restore.js <backup> --yes --store-only
-```
-
-With Docker, backups go to `./backups` on the host (`BACKUP_HOST_DIR`). The
-directory must be writable by the container's user:
-
-```sh
-mkdir -p backups && sudo chown 1001:1001 backups
-docker compose run --rm app node bin/backup.js
-```
-
-Nightly, from the host's crontab (`crontab -e`):
-
-```
-17 3 * * *  cd /path/to/dim && docker compose run --rm app node bin/backup.js >> backups/backup.log 2>&1
-```
-
-Each backup has a `manifest.json` with a checksum. Restore refuses a store
-file that doesn't match it.
-
-**Restore drill.** Rehearse this once, and again after upgrades:
-
-1. `node bin/backup.js`.
-2. Count triples per graph:
-   `curl -s -u admin:$SPARQL_PASSWORD localhost:3031/dim/query --data-urlencode 'query=SELECT ?g (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s ?p ?o } } GROUP BY ?g ORDER BY ?g' -H 'Accept: text/csv' > before.csv`
-3. Break something, for example
-   `curl -s -u admin:$SPARQL_PASSWORD localhost:3031/dim/update --data-urlencode 'update=DROP GRAPH <graph:facet/wiki>'`.
-4. `node bin/restore.js <that backup> --yes`, then count again into
-   `after.csv` and `diff before.csv after.csv` — no difference.
-5. Restart the app (it caches in memory).
-
-(Rehearsed 2026-09-26 on a 17-graph store: identical counts; the restore
-took about 11 s.)
+See `docs/backup.md`: nightly snapshots (`bin/backup.js`), a check of each
+(`bin/restore.js latest --check`), a copy off the machine (restic), and
+restoring everything or one facet's graphs.
 
 ## Health and logs
 

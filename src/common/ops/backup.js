@@ -4,12 +4,14 @@ import zlib from 'zlib'
 import { createHash } from 'crypto'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
+import { graphsAsNTriples } from './backupGraphs.js'
 
 /**
  * Backups: the whole store as gzipped TriG (every named graph, from the
- * Graph Store endpoint), the vector index, and optionally the harvest
- * caches — into one timestamped directory with a manifest of checksums.
- * Restore puts them back (replacing the store's dataset).
+ * Graph Store endpoint), the files under data/ that are slow to rebuild
+ * (vector indexes, the related state), and optionally the harvest caches —
+ * into one timestamped directory with a manifest and a checksum.
+ * Restore puts them back: the whole dataset, or chosen graphs only.
  *
  * dataUrl: the dataset's read-write Graph Store endpoint (…/dim/data).
  */
@@ -46,8 +48,21 @@ export function listBackups (root) {
 }
 
 /**
- * → { dir, manifest }. files: { index: path (the .index; its .json sidecar
- * comes too), cache: dir or null }. keep: how many backups to keep in root.
+ * The newest regular backup in root (labelled ones, like pre-restore safety
+ * copies, don't show that scheduled backups still run).
+ * → { dir, latest, createdAt, hours } or null
+ */
+export function latestBackup (root, now = new Date()) {
+  const dir = listBackups(root).find(d => /Z$/.test(d))
+  if (!dir) return null
+  const { createdAt } = readManifest(dir)
+  return { dir, latest: path.basename(dir), createdAt, hours: Math.round((now - new Date(createdAt)) / 36e5 * 10) / 10 }
+}
+
+/**
+ * → { dir, manifest, removed }. files: { data: [paths of files to keep a
+ * copy of; missing ones are skipped], cache: dir or null }. keep: how many
+ * backups to keep in root.
  */
 export async function backup ({ dataUrl, authHeader = null, root, files = {}, keep = 14, label = '', fetchImpl = fetch, now = new Date() }) {
   const dir = path.join(root, `${stamp(now)}${label ? `-${label}` : ''}`)
@@ -59,10 +74,8 @@ export async function backup ({ dataUrl, authHeader = null, root, files = {}, ke
   await pipeline(Readable.fromWeb(response.body), zlib.createGzip(), fs.createWriteStream(storeFile))
 
   const included = { store: STORE_FILE }
-  if (files.index && copyIfThere(files.index, path.join(dir, 'index', path.basename(files.index)))) {
-    copyIfThere(`${files.index}.json`, path.join(dir, 'index', `${path.basename(files.index)}.json`))
-    included.index = `index/${path.basename(files.index)}`
-  }
+  const data = (files.data ?? []).filter(file => copyIfThere(file, path.join(dir, 'data', path.basename(file))))
+  if (data.length) included.data = data.map(file => path.basename(file))
   if (files.cache && copyIfThere(files.cache, path.join(dir, 'cache'))) included.cache = 'cache'
 
   const manifest = {
@@ -90,30 +103,58 @@ export function readManifest (dir) {
   return manifest
 }
 
-/**
- * Put a backup back. The store's whole dataset is replaced (PUT); the
- * index and caches are copied over the current ones when present and asked
- * for. The checksum is verified first.
- */
-export async function restore ({ dir, dataUrl, authHeader = null, files = {}, withCache = false, storeOnly = false, fetchImpl = fetch }) {
-  const manifest = readManifest(dir)
+/** The store file's TriG, after checking it against the manifest. */
+export async function readStore (dir, manifest = readManifest(dir)) {
   const storeFile = path.join(dir, manifest.files.store)
-  if (await sha256(storeFile) !== manifest.storeSha256) throw new Error(`${storeFile} does not match its checksum; not restoring`)
-  const trig = zlib.gunzipSync(fs.readFileSync(storeFile))
+  if (await sha256(storeFile) !== manifest.storeSha256) throw new Error(`${storeFile} does not match its checksum; not using it`)
+  return zlib.gunzipSync(fs.readFileSync(storeFile))
+}
+
+/** Files under data/ a backup holds (older backups kept only the bookmark index). */
+function dataFiles (dir, manifest) {
+  if (manifest.files.data) return manifest.files.data.map(name => path.join(dir, 'data', name))
+  if (!manifest.files.index) return []
+  const index = path.join(dir, manifest.files.index)
+  return [index, `${index}.json`].filter(file => fs.existsSync(file))
+}
+
+/**
+ * Put a backup back. The store's whole dataset is replaced (PUT); the data
+ * files are copied into dataDir unless storeOnly; the caches too if asked.
+ * The checksum is verified first.
+ */
+export async function restore ({ dir, dataUrl, authHeader = null, dataDir = null, cacheDir = null, withCache = false, storeOnly = false, fetchImpl = fetch }) {
+  const manifest = readManifest(dir)
+  const trig = await readStore(dir, manifest)
   const response = await fetchImpl(dataUrl, { method: 'PUT', headers: { 'Content-Type': 'application/trig', ...(authHeader ? { Authorization: authHeader } : {}) }, body: trig })
   if (!response.ok) throw new Error(`The store refused the restore: HTTP ${response.status} ${(await response.text().catch(() => '')).slice(0, 200)}`)
 
   const restored = ['store']
-  if (!storeOnly && manifest.files.index && files.index) {
-    const from = path.join(dir, manifest.files.index)
-    fs.mkdirSync(path.dirname(files.index), { recursive: true })
-    fs.copyFileSync(from, files.index)
-    if (fs.existsSync(`${from}.json`)) fs.copyFileSync(`${from}.json`, `${files.index}.json`)
-    restored.push('index')
+  const data = storeOnly || !dataDir ? [] : dataFiles(dir, manifest)
+  if (data.length) {
+    fs.mkdirSync(dataDir, { recursive: true })
+    for (const file of data) fs.copyFileSync(file, path.join(dataDir, path.basename(file)))
+    restored.push(...data.map(file => path.basename(file)))
   }
-  if (!storeOnly && withCache && manifest.files.cache && files.cache) {
-    fs.cpSync(path.join(dir, manifest.files.cache), files.cache, { recursive: true })
+  if (!storeOnly && withCache && manifest.files.cache && cacheDir) {
+    fs.cpSync(path.join(dir, manifest.files.cache), cacheDir, { recursive: true })
     restored.push('cache')
   }
   return { manifest, restored }
+}
+
+/**
+ * Put back some graphs only, leaving the rest of the store as it is. Each
+ * graph is replaced (PUT ?graph=); one the backup doesn't hold is emptied.
+ * → [{ graph, triples }]
+ */
+export async function restoreGraphs ({ dir, graphs, dataUrl, authHeader = null, fetchImpl = fetch }) {
+  const byGraph = await graphsAsNTriples(await readStore(dir), graphs)
+  const done = []
+  for (const [graph, ntriples] of byGraph) {
+    const response = await fetchImpl(`${dataUrl}?graph=${encodeURIComponent(graph)}`, { method: 'PUT', headers: { 'Content-Type': 'application/n-triples', ...(authHeader ? { Authorization: authHeader } : {}) }, body: ntriples })
+    if (!response.ok) throw new Error(`The store refused ${graph}: HTTP ${response.status}`)
+    done.push({ graph, triples: ntriples ? ntriples.split('\n').length - 1 : 0 })
+  }
+  return done
 }

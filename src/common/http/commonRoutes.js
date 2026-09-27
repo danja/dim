@@ -12,6 +12,8 @@ import { activity, week, dayRange, weekStart, isoDay } from '../journal/journal.
 import QueryService from '../store/QueryService.js'
 import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
+import { latestBackup } from '../ops/backup.js'
+import { backupPaths } from '../ops/backupPaths.js'
 
 /**
  * Routes that belong to no one facet: home redirect, health, vocabularies,
@@ -26,6 +28,20 @@ export const VOCABULARIES = Object.freeze({
 export const STATIC_ROOT = fileURLToPath(new URL('../ui/public/', import.meta.url))
 
 const LOGIN_FAILURE_DELAY_MS = 750
+
+/**
+ * How old the newest backup is. Shown, not counted in the overall status:
+ * a 503 would have Docker call the app unhealthy for want of a cron job.
+ */
+function backupHealth (root, staleHours = Number(process.env.BACKUP_STALE_HOURS ?? 48)) {
+  try {
+    const found = latestBackup(root)
+    if (!found) return { status: 'none', hint: 'node bin/backup.js (docs/backup.md)' }
+    return { status: found.hours > staleHours ? 'stale' : 'ok', latest: found.latest, ageHours: found.hours }
+  } catch (error) {
+    return { status: 'error', error: error.message }
+  }
+}
 
 function clampLimit (value, fallback, max = 50) {
   return Math.min(Math.max(Number(value) || fallback, 1), max)
@@ -50,6 +66,7 @@ export function registerCommonRoutes (router, { registry, services, config, defa
       writes: services.auth.writesEnabled ? 'enabled' : 'disabled',
       private: Boolean(services.auth.privateReads),
       embeddingModel: config?.get('embedding.model') ?? null,
+      backups: config && projectRoot ? backupHealth(backupPaths(config, projectRoot).root) : null,
       licence: LICENCE
     })
   })
