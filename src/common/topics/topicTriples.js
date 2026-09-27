@@ -1,10 +1,10 @@
-import { NAMESPACES } from '../../common/rdf/NamespaceManager.js'
-import { iri, literal, typedLiteral } from '../../common/store/SPARQLHelper.js'
+import { NAMESPACES } from '../rdf/NamespaceManager.js'
+import { iri, literal, typedLiteral } from '../store/SPARQLHelper.js'
 
-/** The topic scheme (graph:alignment/bookmark-topics) as triple groups. */
+/** The topic scheme (graph:alignment/topics) as triple groups. */
 
 const { dim, rdf, rdfs, skos, dcterms } = NAMESPACES
-export const TOPIC_SCHEME = `${dim}bookmark-topics`
+export const TOPIC_SCHEME = `${dim}topics`
 export const topicIri = slug => `${dim}concept/topic-${slug}`
 
 export function topicTriples ({ topics, assignments }, { now = new Date() } = {}) {
@@ -12,7 +12,7 @@ export function topicTriples ({ topics, assignments }, { now = new Date() } = {}
   const bySlug = new Map(topics.map(t => [t.key, t]))
   const groups = [[
     `${scheme} ${iri(rdf + 'type')} ${iri(skos + 'ConceptScheme')} .`,
-    `${scheme} ${iri(rdfs + 'label')} ${literal('DIM bookmark topics')} .`,
+    `${scheme} ${iri(rdfs + 'label')} ${literal('DIM topics')} .`,
     `${scheme} ${iri(dcterms + 'created')} ${typedLiteral(now)} .`
   ]]
   for (const t of topics) {

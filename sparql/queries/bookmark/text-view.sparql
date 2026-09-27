@@ -54,7 +54,7 @@ WHERE {
   }
   OPTIONAL {
     SELECT ?bookmark (GROUP_CONCAT(DISTINCT ?topicLabel; separator=" | ") AS ?topics)
-    WHERE { GRAPH <graph:alignment/bookmark-topics> { ?bookmark dcterms:subject ?topic . ?topic skos:prefLabel ?topicLabel } }
+    WHERE { GRAPH <graph:alignment/topics> { ?bookmark dcterms:subject ?topic . ?topic skos:prefLabel ?topicLabel } }
     GROUP BY ?bookmark
   }
   OPTIONAL {

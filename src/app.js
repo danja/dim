@@ -19,6 +19,7 @@ import AdviceStore from './advisor/AdviceStore.js'
 import Poller from './news/Poller.js'
 import RollLog from './farelo/RollLog.js'
 import { openRelated } from './common/related/openRelated.js'
+import TopicStore from './common/topics/TopicStore.js'
 
 /**
  * The whole of DIM, assembled: the store client, bookmark search, the write
@@ -53,7 +54,8 @@ export async function buildApp ({ config, projectRoot, env = process.env }) {
   const blog = { store: posts, title: env.BLOG_TITLE || 'Blog', author: env.BLOG_AUTHOR || 'owner' }
   const facets = createFacets({ search, outlines, tasks, rolls, wiki, news: { store: newsStore, poller }, blog, client, advisor })
 
-  return { client, index, embeddings, search, related, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, rolls }, poller, advisor, facets }
+  const topics = new TopicStore({ client })
+  return { client, index, embeddings, search, related, topics, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, rolls }, poller, advisor, facets }
 }
 
 export default buildApp

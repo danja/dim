@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import ShapeValidator from '../../src/common/store/ShapeValidator.js'
-import { buildTopics, termKey } from '../../src/gnamgnam/topics/buildTopics.js'
-import { topicTriples, topicIri } from '../../src/gnamgnam/topics/topicTriples.js'
+import { buildTopics, termKey } from '../../src/common/topics/buildTopics.js'
+import { topicTriples, topicIri } from '../../src/common/topics/topicTriples.js'
 import { bookmarkSearchAdapter } from '../../src/gnamgnam/BookmarkSearch.js'
 
 const B = 'http://purl.org/stuff/dim/bookmark/'
@@ -66,5 +66,27 @@ describe('buildTopics', () => {
     expect(doc.topics).toEqual(['rdf', 'knowledge-graphs'])
     expect(bookmarkSearchAdapter.documentFilter({ topic: 'rdf' })(doc)).toBe(true)
     expect(bookmarkSearchAdapter.documentFacets([doc]).topic).toEqual([{ value: 'knowledge-graphs', count: 1 }, { value: 'rdf', count: 1 }])
+  })
+})
+
+describe('topics beyond bookmarks', async () => {
+  const { assignByText } = await import('../../src/common/topics/assignByText.js')
+  it('assigns by whole-word names in titles and text', () => {
+    const topics = [
+      { key: 'eurorack', label: 'eurorack', altLabels: [], size: 5 },
+      { key: 'modular synthesizer', label: 'modular synthesizers', altLabels: ['modular-synthesizer'], size: 10 },
+      { key: 'rdf', label: 'rdf', altLabels: [], size: 16 }
+    ]
+    const docs = [
+      { iri: 'p1', text: 'Eurorack case build\nPower for the modular synthesizer, then more modular synthesizers.' },
+      { iri: 'p2', text: 'Groceries\nRDF once' },
+      { iri: 'p3', text: 'Notes\nrdf here, RDF there, and rdfs (not rdf) everywhere' },
+      { iri: 'p4', text: 'Eurorackish things\nnothing' }
+    ]
+    const got = assignByText(docs, topics)
+    expect(got.get('p1')).toEqual(['eurorack', 'modular synthesizer'])
+    expect(got.has('p2')).toBe(false)
+    expect(got.get('p3')).toEqual(['rdf'])
+    expect(got.has('p4')).toBe(false)
   })
 })

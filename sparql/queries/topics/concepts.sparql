@@ -1,0 +1,10 @@
+# Every topic with its names and broader topic.
+SELECT ?topic ?label ?broader (GROUP_CONCAT(DISTINCT ?alt; separator=" | ") AS ?alts)
+WHERE {
+  GRAPH <graph:alignment/topics> {
+    ?topic a skos:Concept ; skos:prefLabel ?label .
+    OPTIONAL { ?topic skos:altLabel ?alt }
+    OPTIONAL { ?topic skos:broader ?broader }
+  }
+}
+GROUP BY ?topic ?label ?broader

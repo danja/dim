@@ -31,7 +31,7 @@ export function createRouter ({ facets, config = null, defaultFacet = null, proj
   if (!home || !registry.get(home)) {
     throw new Error(`Default facet ${JSON.stringify(home)} is not one of: ${registry.facets.map(f => f.id).join(', ')}`)
   }
-  const allServices = { auth: services.auth ?? new Auth(), repository: services.repository ?? null, links: services.links ?? null, related: services.related ?? null }
+  const allServices = { auth: services.auth ?? new Auth(), repository: services.repository ?? null, links: services.links ?? null, related: services.related ?? null, topics: services.topics ?? null }
   // DIM_ORIGIN: the address DIM is reached at (e.g. https://dim.example.ts.net).
   const origin = process.env.DIM_ORIGIN || config?.get('site.origin') || null
   const router = new Router()

@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 import logger from 'loglevel'
 import Config from '../src/common/Config.js'
-import SPARQLClient from '../src/common/store/SPARQLClient.js'
 import GraphRegistry from '../src/common/store/GraphRegistry.js'
 import GraphWriter from '../src/common/store/GraphWriter.js'
 import QueryService from '../src/common/store/QueryService.js'
 import ShapeValidator from '../src/common/store/ShapeValidator.js'
-import { buildTopics, DEFAULTS } from '../src/gnamgnam/topics/buildTopics.js'
-import { topicTriples, TOPIC_SCHEME } from '../src/gnamgnam/topics/topicTriples.js'
+import { buildApp } from '../src/app.js'
+import { buildTopics, DEFAULTS } from '../src/common/topics/buildTopics.js'
+import { assignByText } from '../src/common/topics/assignByText.js'
+import { topicTriples, TOPIC_SCHEME } from '../src/common/topics/topicTriples.js'
 
 /**
- * Derive bookmark topics (a SKOS scheme) from enrichment keywords, GitHub
- * topics, arXiv categories and tags, and tag each bookmark with its most
- * specific ones. Replaces graph:alignment/bookmark-topics.
+ * Topics: a SKOS scheme derived from what enrichment and the sites said
+ * about bookmarks (keywords, GitHub topics, arXiv categories, tags), then
+ * given to everything else — wiki pages, tasks, outline items, published
+ * posts, recent news — by their names appearing in the text. Replaces
+ * graph:alignment/topics.
  *
  *   node bin/topics.js --dry-run          show what it would make
  *   node bin/topics.js                    write it (then restart the server)
- *   options: --min-docs 8 --max-share 0.25 --max-topics 80 --per-bookmark 3
- *
- * Run it after enrichment has added keywords (bin/enrich.js); re-run
- * whenever you like — it is rebuilt from scratch each time.
+ *   options: --min-docs 8 --max-share 0.25 --max-topics 80 --per-bookmark 3 [--all]
  */
 
 logger.setLevel('warn')
@@ -35,15 +35,19 @@ const options = {
   perBookmark: num('--per-bookmark', DEFAULTS.perBookmark)
 }
 
-const config = Config.load()
-const client = new SPARQLClient(config.get('storage.endpoint'))
-if (!(await client.isReachable())) {
-  console.error(`SPARQL endpoint ${config.get('storage.endpoint.query')} is not reachable.`)
+let app
+try {
+  app = await buildApp({ config: Config.load(), projectRoot: Config.projectRoot })
+} catch (error) {
+  console.error(error.message)
   process.exit(1)
 }
+const { client, facets } = app
 const queries = new QueryService()
-const rows = await client.select(queries.get('bookmark/topic-terms', {}))
+
+// 1. The scheme, from bookmark terms.
 const byBookmark = new Map()
+const rows = await client.select(queries.get('bookmark/topic-terms', {}))
 for (const r of rows) {
   if (!byBookmark.has(r.bookmark)) byBookmark.set(r.bookmark, [])
   byBookmark.get(r.bookmark).push(r.term)
@@ -65,6 +69,16 @@ if (!result.topics.length) {
   console.log(docs.length ? 'No term is shared by enough bookmarks: lower --min-docs.' : 'No keywords yet: run bin/enrich.js first (topics come mostly from its keywords).')
   process.exit(0)
 }
+
+// 2. Everything else gets topics by name.
+const perFacet = {}
+for (const facet of facets) {
+  if (facet.id === 'gnamgnam' || typeof facet.documents !== 'function') continue
+  const assigned = assignByText(await facet.documents(), result.topics)
+  for (const [iri, keys] of assigned) result.assignments.set(iri, keys)
+  if (assigned.size) perFacet[facet.label] = assigned.size
+}
+console.log(`Also given topics: ${Object.entries(perFacet).map(([f, n]) => `${n} in ${f}`).join(', ') || 'nothing else'}`)
 if (args.includes('--dry-run')) process.exit(0)
 
 const groups = topicTriples(result)
@@ -74,7 +88,8 @@ if (!report.conforms) {
   process.exit(1)
 }
 const registry = new GraphRegistry(client)
-await registry.drop('alignment', 'bookmark-topics')
-const graph = await registry.register({ kind: 'alignment', id: 'bookmark-topics', licence: 'CC0-1.0', derivedFrom: TOPIC_SCHEME, comment: 'SKOS topics for bookmarks, derived from keywords, GitHub topics, arXiv categories and tags (bin/topics.js)' })
+await registry.drop('alignment', 'topics')
+const graph = await registry.register({ kind: 'alignment', id: 'topics', licence: 'CC0-1.0', derivedFrom: TOPIC_SCHEME, comment: 'SKOS topics, derived from bookmark keywords, GitHub topics, arXiv categories and tags; given to other resources by name (bin/topics.js)' })
 const written = await new GraphWriter(client, { registry }).writeGrouped(graph, groups)
-console.log(`Wrote ${written} triples to ${graph}. Restart the server; GnamGnam then offers a Topic filter.`)
+console.log(`Wrote ${written} triples to ${graph}. Restart the server: /topics, and GnamGnam's Topic filter.`)
+process.exit(0)

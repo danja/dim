@@ -1,4 +1,4 @@
-import { slugify } from '../../common/rdf/URIMinter.js'
+import { slugify } from '../rdf/URIMinter.js'
 
 /**
  * Topics for bookmarks, from what enrichment and the sites said about them:

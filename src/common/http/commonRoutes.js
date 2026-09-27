@@ -6,6 +6,7 @@ import { readBody } from './body.js'
 import { registerStatic } from './staticFiles.js'
 import { writeRoute, safeReturn } from './write.js'
 import { renderLoginPage, renderFindPage, renderTagsPage, renderTagPage } from '../ui/pages.js'
+import { renderTopicsPage, renderTopicPage } from '../ui/topicPages.js'
 import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
 
@@ -99,6 +100,33 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     const { q, groups } = await find(url)
     return sendHtml(response, 200, renderFindPage({ tabs, session, query: q, groups }))
   })
+  // Topics across facets (graph:alignment/topics, bin/topics.js).
+  const topics = services.topics
+  router.get(/^\/topics(\.json)?$/, async ({ response, match, tabs, session }) => {
+    const list = topics ? await topics.list() : []
+    return match[1] ? send(response, 200, { topics: list.map(({ members, ...t }) => ({ ...t, count: members.length })) }) : sendHtml(response, 200, renderTopicsPage({ topics: list, tabs, session }))
+  })
+  router.get(/^\/topics\/([^/]+?)(\.json)?$/, async ({ response, match, tabs, session }) => {
+    const topic = topics ? await topics.get(decodeURIComponent(match[1])) : null
+    if (!topic) return send(response, 404, { error: 'No such topic' })
+    const groups = new Map()
+    for (const iri of topic.members) {
+      const found = await registry.lookup(iri)
+      if (!found?.href || !found.facet) continue
+      const g = groups.get(found.facet) ?? { label: found.facetLabel, results: [], total: 0 }
+      g.total++
+      if (g.results.length < 30) g.results.push({ iri, label: found.label, href: found.href })
+      groups.set(found.facet, g)
+    }
+    const bookmarks = groups.get('gnamgnam')
+    if (bookmarks && bookmarks.total > bookmarks.results.length) bookmarks.more = { href: `/gnamgnam/?topic=${encodeURIComponent(topic.label)}`, label: `all ${bookmarks.total} bookmarks on ${topic.label}` }
+    const tagged = await registry.tagged(topic.label.toLowerCase())
+    const broader = topic.broader ? await topics.byIri(topic.broader) : null
+    const narrower = (await Promise.all(topic.narrower.map(i => topics.byIri(i)))).filter(Boolean)
+    if (match[2]) return send(response, 200, { topic: { ...topic, members: undefined }, groups: [...groups.values()] })
+    return sendHtml(response, 200, renderTopicPage({ topic, broader, narrower, groups: [...groups.values()], tagHref: tagged.length ? `/tags/${encodeURIComponent(topic.label.toLowerCase())}` : null, tabs, session }))
+  })
+
   // Tags across facets: /tags (all), /tags/<tag> (everything with it); .json too.
   router.get(/^\/tags(\.json)?$/, async ({ response, match, tabs, session }) => {
     const tags = await registry.tags()
@@ -108,7 +136,8 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     let tag
     try { tag = decodeURIComponent(match[1]).trim().toLowerCase() } catch { return send(response, 400, { error: 'Bad tag' }) }
     const groups = await registry.tagged(tag)
-    return match[2] ? send(response, 200, { tag, groups }) : sendHtml(response, 200, renderTagPage({ tag, groups, tabs, session }))
+    const topic = await services.topics?.forTag(tag)
+    return match[2] ? send(response, 200, { tag, groups, topic: topic?.slug ?? null }) : sendHtml(response, 200, renderTagPage({ tag, groups, topic, tabs, session }))
   })
 
   router.get('/find.json', async ({ response, url }) => {

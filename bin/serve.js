@@ -18,13 +18,13 @@ try {
   console.error(error.message)
   process.exit(1)
 }
-const { index, embeddings, search, related, repository, links, poller, facets } = app
+const { index, embeddings, search, related, topics, repository, links, poller, facets } = app
 const newsStore = app.stores.news
 console.log(`Loaded ${search.documents.size} bookmarks, ${index.size} vectors from ${index.path}`)
 console.log(`Related index: ${related.index.size} vectors (wiki, tasks, outline items, posts, recent news)`)
 
 const auth = Auth.fromEnv()
-const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links, related }, logRequests: logging.requests })
+const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links, related, topics }, logRequests: logging.requests })
 
 // Keep the related index in step: shortly after start, then every
 // RELATED_SYNC_MINUTES (default 30; 0 turns it off). Only what changed is

@@ -149,7 +149,7 @@ Check a provider by hand without leaking `.env` into your shell:
 
 ```sh
 node bin/topics.js --dry-run          # the topics it would make, biggest first, with ⊂ nesting
-node bin/topics.js                    # write them (graph:alignment/bookmark-topics); restart the server
+node bin/topics.js                    # write them (graph:alignment/topics); restart the server
 node bin/topics.js --min-docs 5 --max-topics 120 --per-bookmark 2
 ```
 
@@ -164,9 +164,18 @@ there's little to go on), GitHub topics, arXiv categories and your tags:
   narrower than it (SKOS `broader`).
 - **Assigned:** each bookmark gets its most specific topics.
 
+- **Beyond bookmarks:** the same topics then go to wiki pages, tasks,
+  outline items, published posts and recent news items whose text names
+  them (a name in the title, or twice in the text).
+
 It is rebuilt from scratch each run, so rerun it after more enrichment.
-GnamGnam's search then has a **Topic** filter (`?topic=`), and bookmark
-pages link their topics.
+Then:
+
+- GnamGnam's search has a **Topic** filter (`?topic=`).
+- `/topics` shows the scheme as a tree.
+- `/topics/<topic>` gathers everything on one topic, from every facet.
+- Detail pages list their topics under **Related**.
+- A tag with the same name as a topic links to it.
 
 ## deadlinks — link health and archived copies
 

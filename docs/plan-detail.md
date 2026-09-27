@@ -1003,8 +1003,15 @@ projects, the flow of work, time, people.
       every `RELATED_SYNC_MINUTES`; quiet for 5 min when Ollama is down.
       Composition moved to `src/app.js` (server and tools share it). Sandbox
       run with a stand-in embedder: 5,781 items, 10 s; rerun embeds nothing.
-- [ ] 13.4 **Topics as the shared vocabulary:** topics assigned beyond
+- [x] 13.4 **Topics as the shared vocabulary:** topics assigned beyond
       bookmarks; tags aligned to topics; a topic hub page.
+      *Done:* topic code moved to `src/common/topics/`, graph renamed
+      `graph:alignment/topics` (not yet run on real data, so nothing to
+      migrate); `assignByText` gives topics to other facets by whole-word
+      names (title counts double; score ≥ 2); `TopicStore`; `/topics` tree
+      and `/topics/<slug>` hub grouped by facet; tag pages link the topic of
+      the same name; Related panels list topics. Sandbox: 29 topics, given to
+      1,414 outline items, 12 tasks, 15 news items.
 - [ ] 13.5 **Project hub:** a Farelo project gathers its tasks and the
       pages, outline items, bookmarks, feeds and posts linked `partOf` it.
 - [ ] 13.6 **Day view:** what was saved, read, written and done on a day,

@@ -1,0 +1,3 @@
+# Which topics each resource has.
+SELECT ?s ?topic
+WHERE { GRAPH <graph:alignment/topics> { ?s dcterms:subject ?topic } }
