@@ -9,10 +9,11 @@ import { countTags } from '../common/facets/tags.js'
  * read/starred flags in graph:facet/news, items in graph:source/news. See
  * src/common/facets/FacetRegistry.js for the facet contract.
  *
- * tasks: Farelo's TaskStore, for "make a task" (optional).
+ * tasks: Farelo's TaskStore, for "make a task" (optional). inbox: the
+ * FeedInbox, feeds found on bookmarked pages (optional).
  */
 
-export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetch }) {
+export function createNewsFacet ({ store, poller, inbox = null, tasks = null, fetchImpl = fetch }) {
   if (!store || !poller) throw new Error('News needs a NewsStore and a Poller')
   return {
     id: 'news',
@@ -21,7 +22,7 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
     types: { 'news-item': '/news/item/', feed: '/news/feed/' },
 
     routes (router, ctx) {
-      registerRoutes(router, { store, poller, tasks, fetchImpl, ...ctx })
+      registerRoutes(router, { store, poller, inbox, tasks, fetchImpl, ...ctx })
     },
 
     async health () {
@@ -33,7 +34,8 @@ export function createNewsFacet ({ store, poller, tasks = null, fetchImpl = fetc
         failing: feeds.filter(f => ['error', 'refused', 'gone'].includes(f.status)).length,
         items: counts.reduce((n, c) => n + c.total, 0),
         unread: counts.reduce((n, c) => n + c.unread, 0),
-        polling: Boolean(poller.running)
+        polling: Boolean(poller.running),
+        ...(inbox ? { inbox: (await inbox.list()).length } : {})
       }
     },
 

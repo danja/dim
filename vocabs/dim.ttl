@@ -163,6 +163,11 @@ dim:pollFailures a owl:DatatypeProperty ; rdfs:range xsd:integer ; rdfs:comment 
 dim:lastError a owl:DatatypeProperty ; rdfs:range xsd:string .
 dim:etag a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "ETag of the last 200 answer, sent back as If-None-Match." .
 dim:lastModifiedHeader a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "Last-Modified of the last 200 answer, sent back as If-Modified-Since." .
+dim:FeedSuggestion a owl:Class ;
+    rdfs:comment "A feed found on a bookmarked page, waiting in the feed inbox to be subscribed to or dismissed." .
+dim:suggestedFeed a owl:ObjectProperty ; rdfs:domain dim:FeedSuggestion ; rdfs:comment "The feed's URL." .
+dim:foundOn a owl:ObjectProperty ; rdfs:domain dim:FeedSuggestion ; rdfs:comment "The page that offered the feed." .
+dim:suggestionStatus a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "new or dismissed." .
 dim:feedParked a owl:DatatypeProperty ; rdfs:range xsd:boolean ;
     rdfs:comment "Set aside after failing: listed apart and not polled until tried again or returned." .
 dim:inFeed a owl:ObjectProperty ; rdfs:domain dim:FeedItem ; rdfs:range dim:Feed .

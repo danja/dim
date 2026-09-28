@@ -51,13 +51,14 @@ export function defaultCache ({ cachePath } = {}) {
   return new CacheWriter(cachePath ? { cachePath } : {})
 }
 
-export function createEnricher (client, { summariser = ENRICH_CONFIG.summariser, cachePath, ollamaBaseUrl, llmOnly = false } = {}) {
+export function createEnricher (client, { summariser = ENRICH_CONFIG.summariser, cachePath, ollamaBaseUrl, llmOnly = false, observers = [] } = {}) {
   const cache = defaultCache({ cachePath })
   return new Enricher({
     fetchers: defaultFetchers(),
     extractors: defaultExtractors(),
     summarisers: defaultSummarisers(summariser, { ollamaBaseUrl, llmOnly }),
     writers: [new SparqlPatchWriter(client), cache],
+    observers,
     cache
   })
 }

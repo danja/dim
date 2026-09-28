@@ -62,13 +62,41 @@ How polling behaves (`NEWS_CONFIG` in `config/preferences.js`):
 - **New subscriptions:** items older than 14 days start as read, so a new
   feed doesn't bury the river.
 
+## Feeds found on your bookmarks (the inbox)
+
+When a bookmark is saved in DIM (Squirt, **Save as bookmark**) its page is
+fetched anyway (to check and summarise it), and if it's a web page its
+feeds go into the inbox at the top of **Manage feeds**: **Subscribe to
+ticked** (read straight away; one that doesn't work is set aside as
+failing) or **Dismiss ticked** (not suggested again). Left out: comment
+feeds, feeds you already read, and sites where every page has a feed of
+little interest (`discoverSkipHosts`: GitHub's commit feeds). One suggestion
+per feed, listing every bookmark it was on.
+
+For bookmarks you already have:
+
+```sh
+node bin/feed-scan.js --dry-run --limit 50   # what it would find; stores nothing
+node bin/feed-scan.js                        # every site not looked at yet
+node bin/feed-scan.js --limit 500            # in chunks
+node bin/feed-scan.js --rescan               # look again at pages seen before
+```
+
+It is polite and quick: sites in parallel, one page at a time per site with
+a pause, only the start of each page (`scanMaxBytes`), and at most 3 pages
+per site (`scanPagesPerHost`), stopping at the first that has a feed. Sites
+you already read or have a suggestion from are skipped, as are PDFs and
+dead links. Pages looked at are remembered in `data/cache/feed-scan.json`,
+so Ctrl-C and run again carries on. The server shows new suggestions within
+a minute. In Docker: `docker compose exec app node bin/feed-scan.js`.
+
 ## In the browser
 
 | URL | |
 |---|---|
 | `/news/` | the river: **Unread** / **For you** / **Starred** / **All**, by feed or tag; **Older →** pages back. **For you**: unread items closest to your own bookmarks, pages and tasks first (needs the related index: `node bin/related.js`) |
 | `/news/item/<id>` | one item: full text, **Read the original**, **Save as bookmark**, **Make a task**, links |
-| `/news/admin` | **Manage feeds** (linked from the river): add a feed, import OPML or URLs, and two lists — feeds being read, and failing ones set aside — with reread, set aside / return, and delete for whatever is ticked. `/news/feeds` redirects here |
+| `/news/admin` | **Manage feeds** (linked from the river): add a feed, import OPML or URLs, the inbox of feeds found on your bookmarks (subscribe / dismiss), and two lists — feeds being read, and failing ones set aside — with reread, set aside / return, and delete for whatever is ticked. `/news/feeds` redirects here |
 | `/news/feed/<slug>` | one feed: status, last error, next poll, settings (title, tags), its items, unsubscribe |
 | `/news/items.json?view=&feed=&tag=&before=&limit=` | the river as JSON |
 

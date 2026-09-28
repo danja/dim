@@ -33,7 +33,11 @@ function pick (plugins, ctx, kind) {
 }
 
 export class Enricher {
-  constructor ({ fetchers = [], extractors = [], summarisers = [], writers = [], cache = null, cacheTtlMs = ENRICH_CONFIG.cacheTtlMs } = {}) {
+  /**
+   * observers: [{ observe({ bookmarkIri, url, fetched }) }], shown every page
+   * fetched (e.g. to look for its feeds); their failures are only logged.
+   */
+  constructor ({ fetchers = [], extractors = [], summarisers = [], writers = [], observers = [], cache = null, cacheTtlMs = ENRICH_CONFIG.cacheTtlMs } = {}) {
     if (!fetchers.length) throw new EnrichError('Enricher needs fetchers')
     if (!extractors.length) throw new EnrichError('Enricher needs extractors')
     if (!summarisers.length) throw new EnrichError('Enricher needs summarisers')
@@ -41,6 +45,7 @@ export class Enricher {
     this.extractors = extractors
     this.summarisers = summarisers
     this.writers = writers
+    this.observers = observers
     this.cache = cache
     this.cacheTtlMs = cacheTtlMs
   }
@@ -89,6 +94,14 @@ export class Enricher {
       }
       await this.#write({ graph, bookmarkIri, url, enrichment, rawText: null })
       return { status: fetched?.refused ? 'refused' : 'failed', iri: bookmarkIri, url, enrichment }
+    }
+
+    for (const observer of this.observers) {
+      try {
+        await observer.observe({ bookmarkIri, url, fetched })
+      } catch (error) {
+        logger.warn(`[enrich] observer failed for ${url}: ${error.message}`)
+      }
     }
 
     const extractCtx = { ...ctx, contentType: fetched.contentType ?? ctx.contentType, fetched }

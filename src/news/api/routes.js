@@ -9,7 +9,8 @@ import { saveAsBookmark, makeTask } from '../saveAs.js'
 import { itemPath, feedPath } from './common.js'
 import { renderRiver, renderItemPage, riverQuery } from './river.js'
 import { renderFeedPage } from './feedsPage.js'
-import { renderAdminPage, ADMIN_PATH } from './adminPage.js'
+import { ADMIN_PATH } from './adminPage.js'
+import { registerAdminRoutes } from './adminRoutes.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { relatedFor } from '../../common/related/relatedFor.js'
 
@@ -29,7 +30,7 @@ function queryOf (url) {
   return { view, feed: p.get('feed') || null, tag: p.get('tag') || null, before: p.get('before') || null }
 }
 
-export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs, services, registry }) {
+export function registerRoutes (router, { store, poller, inbox = null, tasks, fetchImpl, tabs, services, registry }) {
   const feedMap = async () => new Map((await store.feedList()).map(f => [f.iri, f]))
   // Items whose link is already a bookmark: id → { href, label }.
   const bookmarkedOf = async items => {
@@ -59,7 +60,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     }
     const unread = [...(await store.counts()).values()].reduce((n, c) => n + c.unread, 0)
     const tags = [...new Set(feedList.flatMap(f => f.tags))].sort()
-    return sendHtml(response, 200, renderRiver({ items, more, forYou: Boolean(related), feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
+    return sendHtml(response, 200, renderRiver({ items, more, forYou: Boolean(related), feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, found: inbox ? (await inbox.list()).length : 0, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
   })
 
   router.get('/news/items.json', async ({ response, url }) => {
@@ -76,11 +77,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), related: await relatedFor({ services, registry }, it.iri, [it.title, text ?? it.snippet].filter(Boolean).join('\n\n')), bookmark, tabs, session }))
   })
 
-  router.get(ADMIN_PATH, async ({ response, url, session }) =>
-    sendHtml(response, 200, renderAdminPage({ feeds: await store.feedList(), counts: await store.counts(), notice: url.searchParams.get('notice'), polling: Boolean(poller.running), tabs, session })))
-
-  // The old subscriptions page is the admin page now.
-  router.get('/news/feeds', ({ response, url }) => redirect(response, 301, ADMIN_PATH + url.search))
+  registerAdminRoutes(router, { store, poller, inbox, tabs, registry })
 
   router.get('/news/feeds.opml', async ({ response }) =>
     sendText(response, 200, toOpml(await store.feedList()), 'text/x-opml; charset=utf-8'))
@@ -160,34 +157,6 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     const f = await feed(match[1])
     await store.setParked(f, match[2] === 'park')
     return { redirect: feedPath(f), json: { ok: true, parked: f.parked } }
-  }))
-
-  // The admin page's lists: one action for whatever is ticked.
-  router.add(['POST'], ADMIN_PATH, writeRoute(async ({ body, identity }) => {
-    const slugs = [body.slugs ?? []].flat().map(String).slice(0, 5000)
-    const all = await store.feedList()
-    const ticked = all.filter(f => slugs.includes(f.slug))
-    const done = notice => ({ redirect: `${ADMIN_PATH}?notice=${encodeURIComponent(notice)}`, json: { ok: true, notice } })
-    const action = String(body.action ?? '')
-    if (action === 'reread' || action === 'reread-all') {
-      const feeds = action === 'reread-all' ? all.filter(f => !f.parked) : ticked
-      if (!feeds.length) return done('Nothing ticked.')
-      if (poller.running) return done('Feeds are already being read; try again when that has finished.')
-      // Whole feeds (no conditional GET), in the background: a feed that works leaves the failing list.
-      poller.pollDue({ feeds, refetch: true }).catch(() => {})
-      return done(`Rereading ${feeds.length} feed${feeds.length === 1 ? '' : 's'} in the background.`)
-    }
-    if (!ticked.length) return done('Nothing ticked.')
-    if (action === 'park' || action === 'unpark') {
-      for (const f of ticked) await store.setParked(f, action === 'park')
-      return done(`${action === 'park' ? 'Set aside' : 'Returned to reading'}: ${ticked.length} feed${ticked.length === 1 ? '' : 's'}.`)
-    }
-    if (action === 'delete') {
-      let items = 0
-      for (const f of ticked) items += await store.deleteFeed(f, identity.user)
-      return done(`Deleted ${ticked.length} feed${ticked.length === 1 ? '' : 's'} and ${items} items.`)
-    }
-    throw Object.assign(new Error(`Unknown action "${action}"`), { status: 400 })
   }))
 
   router.add(['POST'], '/news/poll', writeRoute(async () => {

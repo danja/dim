@@ -32,7 +32,8 @@ A bookmark saved inside DIM (Squirt capture or share, News **Save as
 bookmark**) goes through the same steps as `enrich --reembed`, straight
 away and in the background, one at a time: GET the page (its HTTP status is
 the link check), extract, summarise, patch the store, then embed it into the
-bookmark index (written a few seconds later, and on shutdown). Its page says
+bookmark index (written a few seconds later, and on shutdown). A web page's
+feeds go into the News feed inbox (`docs/commands-news.md`). Its page says
 *Fetching and summarising…* until it's done; reload after a minute.
 
 | `.env` | |

@@ -19,7 +19,7 @@ docker compose up -d --build app     # the app in Docker (data in the app-data v
 
 Other tools in `bin/`: each has its usage at the top and a
 `docs/commands-<facet>.md` page (ingest/retrieve/enrich, trestle-import,
-farelo-import, wiki-import, news, blog-export, topics, related,
+farelo-import, wiki-import, news, feed-scan, blog-export, topics, related,
 backup/restore, deadlinks, validate).
 
 ## Layout

@@ -50,8 +50,10 @@ ${markAll}
 ${older}`
 }
 
-export function renderRiver ({ items, more, forYou = false, feeds, feedList, tags, unread, query, polling, tabs, session, returnPath, bookmarked = null }) {
-  const body = `<div class="news-head"><h1>News</h1><a href="/news/admin">Manage feeds (${feedList.length}${feedList.some(f => f.parked) ? `, ${feedList.filter(f => f.parked).length} failing` : ''})</a></div>
+export function renderRiver ({ items, more, forYou = false, feeds, feedList, tags, unread, found = 0, query, polling, tabs, session, returnPath, bookmarked = null }) {
+  const failing = feedList.filter(f => f.parked).length
+  const counts = [String(feedList.length), failing ? `${failing} failing` : '', found ? `${found} found` : ''].filter(Boolean).join(', ')
+  const body = `<div class="news-head"><h1>News</h1><a href="/news/admin">Manage feeds (${counts})</a></div>
 ${polling ? '<p class="meta" role="status">Polling feeds in the background; reload in a minute.</p>' : ''}
 ${filters({ query, feedList, tags, unread, forYou })}
 ${query.view === 'foryou' ? '<p class="meta">Unread items closest to your own bookmarks, pages and tasks first (new items are scored as the related index syncs).</p>' : ''}

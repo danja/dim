@@ -3,9 +3,10 @@ import { formFields } from '../../common/http/write.js'
 import { newsPage, statusBadge, when, feedPath } from './common.js'
 
 /**
- * Managing subscriptions: add, import, and two lists — feeds being polled,
- * and failing ones set aside (not polled) — with reread, set aside/return
- * and delete for whatever is ticked.
+ * Managing subscriptions: add, import, the inbox of feeds found on your
+ * bookmarks (subscribe, dismiss), and two lists — feeds being polled, and
+ * failing ones set aside (not polled) — with reread, set aside/return and
+ * delete for whatever is ticked.
  */
 
 export const ADMIN_PATH = '/news/admin'
@@ -58,12 +59,37 @@ ${list}
 </section>`
 }
 
-export function renderAdminPage ({ feeds, counts, notice, polling, tabs, session }) {
+function suggestionLine (s, { canEdit }) {
+  const label = s.title || s.url
+  const found = s.source
+    ? `found on <a href="${esc(s.source.href)}">${esc(s.source.label)}</a>`
+    : s.foundOn ? `found on <a href="${esc(s.foundOn)}" rel="noopener noreferrer">${esc(s.foundOn)}</a>` : ''
+  const more = s.sources.length > 1 ? ` and ${s.sources.length - 1} more` : ''
+  const head = `${canEdit ? `<input type="checkbox" name="suggestions" value="${esc(s.id)}" data-group="inbox" aria-label="Tick ${esc(label)}"> ` : ''}<a href="${esc(s.url)}" rel="noopener noreferrer">${esc(label)}</a>`
+  return `<li class="feed-row"><h3>${head}</h3><p class="meta">${[s.title ? esc(s.url) : '', found + more].filter(Boolean).join(' · ')}</p></li>`
+}
+
+/** Feeds found on bookmarked pages, waiting to be subscribed to or dismissed. */
+function inboxSection (suggestions, { canEdit }) {
+  if (!suggestions?.length) return ''
+  const selectAll = canEdit && suggestions.length > 1 ? '<label class="select-all" hidden><input type="checkbox" data-select-all="inbox"> Select all</label>' : ''
+  const buttons = canEdit ? '<div class="item-actions"><button name="action" value="subscribe">Subscribe to ticked</button><button name="action" value="dismiss" class="secondary">Dismiss ticked</button></div>' : ''
+  return `<section aria-labelledby="inbox-heading">
+<h2 id="inbox-heading">Found on your bookmarks (${suggestions.length})</h2>
+<p class="meta">Feeds offered by pages you bookmarked. Subscribing reads them straight away; a dismissed one isn't suggested again.</p>
+${buttons}
+${selectAll}
+<ul class="feeds">${suggestions.map(s => suggestionLine(s, { canEdit })).join('')}</ul>
+</section>`
+}
+
+export function renderAdminPage ({ feeds, counts, suggestions = null, notice, polling, tabs, session }) {
   const canEdit = Boolean(session?.user)
   const active = feeds.filter(f => !f.parked)
   const failing = feeds.filter(f => f.parked)
   const button = (action, label, { danger = false } = {}) => `<button name="action" value="${action}" class="${danger ? 'danger ' : ''}secondary"${danger ? ' data-confirm="Unsubscribe from the ticked feeds and delete their items?"' : ''}>${label}</button>`
-  const lists = `${section({
+  const lists = `${inboxSection(suggestions, { canEdit })}
+${section({
     id: 'active',
     heading: 'Being read',
     feeds: active,
