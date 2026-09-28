@@ -5,10 +5,10 @@
 const current = document.querySelector('.tabs [aria-current="page"]')
 if (current) current.scrollIntoView({ block: 'nearest', inline: 'center' })
 
-// Ask before destructive forms (data-confirm="…").
+// Ask before destructive forms or buttons (data-confirm="…").
 document.addEventListener('submit', e => {
-  const form = e.target.closest('form[data-confirm]')
-  if (form && !confirm(form.dataset.confirm)) e.preventDefault()
+  const message = e.submitter?.dataset.confirm ?? e.target.closest('form[data-confirm]')?.dataset.confirm
+  if (message && !confirm(message)) e.preventDefault()
 })
 
 // Links that print the page (data-print).

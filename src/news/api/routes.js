@@ -8,7 +8,8 @@ import { hostOf } from '../../common/links/urls.js'
 import { saveAsBookmark, makeTask } from '../saveAs.js'
 import { itemPath, feedPath } from './common.js'
 import { renderRiver, renderItemPage, riverQuery } from './river.js'
-import { renderFeedsPage, renderFeedPage } from './feedsPage.js'
+import { renderFeedPage } from './feedsPage.js'
+import { renderAdminPage, ADMIN_PATH } from './adminPage.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { relatedFor } from '../../common/related/relatedFor.js'
 
@@ -75,8 +76,11 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), related: await relatedFor({ services, registry }, it.iri, [it.title, text ?? it.snippet].filter(Boolean).join('\n\n')), bookmark, tabs, session }))
   })
 
-  router.get('/news/feeds', async ({ response, url, session }) =>
-    sendHtml(response, 200, renderFeedsPage({ feeds: await store.feedList(), counts: await store.counts(), notice: url.searchParams.get('notice'), tabs, session })))
+  router.get(ADMIN_PATH, async ({ response, url, session }) =>
+    sendHtml(response, 200, renderAdminPage({ feeds: await store.feedList(), counts: await store.counts(), notice: url.searchParams.get('notice'), polling: Boolean(poller.running), tabs, session })))
+
+  // The old subscriptions page is the admin page now.
+  router.get('/news/feeds', ({ response, url }) => redirect(response, 301, ADMIN_PATH + url.search))
 
   router.get('/news/feeds.opml', async ({ response }) =>
     sendText(response, 200, toOpml(await store.feedList()), 'text/x-opml; charset=utf-8'))
@@ -133,7 +137,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
       added++
     }
     const notice = `Imported ${added} of ${entries.length} feeds; they are polled on the next run.`
-    return { redirect: `/news/feeds?notice=${encodeURIComponent(notice)}`, json: { ok: true, added, found: entries.length } }
+    return { redirect: `${ADMIN_PATH}?notice=${encodeURIComponent(notice)}`, json: { ok: true, added, found: entries.length } }
   }))
 
   router.add(['POST'], new RegExp(`^/news/feed/${SLUG}$`), writeRoute(async ({ match, body, identity }) => {
@@ -149,7 +153,41 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
 
   router.add(['POST'], new RegExp(`^/news/feed/${SLUG}/delete$`), writeRoute(async ({ match, identity }) => {
     const deleted = await store.deleteFeed(await feed(match[1]), identity.user)
-    return { redirect: '/news/feeds', json: { ok: true, deleted } }
+    return { redirect: ADMIN_PATH, json: { ok: true, deleted } }
+  }))
+
+  router.add(['POST'], new RegExp(`^/news/feed/${SLUG}/(park|unpark)$`), writeRoute(async ({ match }) => {
+    const f = await feed(match[1])
+    await store.setParked(f, match[2] === 'park')
+    return { redirect: feedPath(f), json: { ok: true, parked: f.parked } }
+  }))
+
+  // The admin page's lists: one action for whatever is ticked.
+  router.add(['POST'], ADMIN_PATH, writeRoute(async ({ body, identity }) => {
+    const slugs = [body.slugs ?? []].flat().map(String).slice(0, 5000)
+    const all = await store.feedList()
+    const ticked = all.filter(f => slugs.includes(f.slug))
+    const done = notice => ({ redirect: `${ADMIN_PATH}?notice=${encodeURIComponent(notice)}`, json: { ok: true, notice } })
+    const action = String(body.action ?? '')
+    if (action === 'reread' || action === 'reread-all') {
+      const feeds = action === 'reread-all' ? all.filter(f => !f.parked) : ticked
+      if (!feeds.length) return done('Nothing ticked.')
+      if (poller.running) return done('Feeds are already being read; try again when that has finished.')
+      // Whole feeds (no conditional GET), in the background: a feed that works leaves the failing list.
+      poller.pollDue({ feeds, refetch: true }).catch(() => {})
+      return done(`Rereading ${feeds.length} feed${feeds.length === 1 ? '' : 's'} in the background.`)
+    }
+    if (!ticked.length) return done('Nothing ticked.')
+    if (action === 'park' || action === 'unpark') {
+      for (const f of ticked) await store.setParked(f, action === 'park')
+      return done(`${action === 'park' ? 'Set aside' : 'Returned to reading'}: ${ticked.length} feed${ticked.length === 1 ? '' : 's'}.`)
+    }
+    if (action === 'delete') {
+      let items = 0
+      for (const f of ticked) items += await store.deleteFeed(f, identity.user)
+      return done(`Deleted ${ticked.length} feed${ticked.length === 1 ? '' : 's'} and ${items} items.`)
+    }
+    throw Object.assign(new Error(`Unknown action "${action}"`), { status: 400 })
   }))
 
   router.add(['POST'], '/news/poll', writeRoute(async () => {

@@ -24,6 +24,8 @@ import { NEWS_CONFIG } from '../config/preferences.js'
  *   node bin/news.js list                       subscriptions and their status
  *   node bin/news.js poll [--all] [--feed <slug>] [--limit N] [--quiet]
  *   node bin/news.js poll --all --refetch        whole feeds, even if unchanged (fills in missing item dates)
+ *   node bin/news.js poll --all --include-failing   failing feeds too (they are set aside otherwise)
+ *   node bin/news.js park <slug> | unpark <slug>    set a feed aside / return it to reading
  *   node bin/news.js prune [--days 90]          delete old unstarred items
  *   node bin/news.js remove <slug>
  *
@@ -41,7 +43,7 @@ const option = (name, fallback = null) => {
 const TAKES_VALUE = new Set(['--tags', '--feed', '--limit', '--days'])
 const positional = rest.filter((a, i) => !a.startsWith('--') && !TAKES_VALUE.has(rest[i - 1]))
 const usage = () => {
-  console.error('Usage: node bin/news.js add <url> [--tags a,b] | import <file> | export | list | poll [--all] [--refetch] [--feed slug] [--limit N] [--quiet] | prune [--days N] | remove <slug>')
+  console.error('Usage: node bin/news.js add <url> [--tags a,b] | import <file> | export | list | poll [--all] [--refetch] [--feed slug] [--limit N] [--quiet] | park <slug> | unpark <slug> | prune [--days N] | remove <slug>')
   process.exit(1)
 }
 if (!command) usage()
@@ -91,13 +93,14 @@ switch (command) {
     const counts = await store.counts()
     for (const f of await store.feedList()) {
       const c = counts.get(f.iri) ?? { total: 0, unread: 0 }
-      console.log(`${f.status.padEnd(12)} ${String(c.unread).padStart(4)}/${String(c.total).padEnd(4)} ${f.slug.padEnd(40)} ${f.title}${f.lastError ? `  — ${f.lastError}` : ''}`)
+      console.log(`${(f.parked ? `${f.status}*` : f.status).padEnd(12)} ${String(c.unread).padStart(4)}/${String(c.total).padEnd(4)} ${f.slug.padEnd(40)} ${f.title}${f.lastError ? `  — ${f.lastError}` : ''}`)
     }
+    console.log('(* failing: set aside, not polled; see /news/admin or `park`/`unpark`)')
     break
   }
   case 'poll': {
     const slug = option('--feed')
-    const feeds = slug ? [await store.feed(slug)].filter(Boolean) : null
+    const feeds = slug ? [await store.feed(slug)].filter(Boolean) : rest.includes('--include-failing') ? await store.feedList() : null
     if (slug && !feeds.length) { console.error(`No feed ${slug}`); process.exit(1) }
     const quiet = rest.includes('--quiet')
     const started = Date.now()
@@ -108,12 +111,20 @@ switch (command) {
       limit: Number(option('--limit', Infinity)),
       onResult: quiet ? null : (feed, r) => console.log(`  ${r.status.padEnd(12)} ${String(r.fresh).padStart(3)} new  ${feed.title}${r.error ? `  — ${r.error}` : ''}`)
     })
-    console.log(`Polled ${totals.polled} feeds in ${((Date.now() - started) / 1000).toFixed(1)}s: ${totals.fresh} new items; ok ${totals.ok}, unchanged ${totals['not-modified']}, errors ${totals.error}, refused ${totals.refused}, gone ${totals.gone}`)
+    console.log(`Polled ${totals.polled} feeds in ${((Date.now() - started) / 1000).toFixed(1)}s: ${totals.fresh} new items; ok ${totals.ok}, unchanged ${totals['not-modified']}, errors ${totals.error}, refused ${totals.refused}, gone ${totals.gone}${totals.parked ? `; set aside as failing: ${totals.parked}` : ''}`)
     break
   }
   case 'prune': {
     const days = Number(option('--days', NEWS_CONFIG.retentionDays))
     console.log(`Pruned ${await store.prune({ days })} items first seen over ${days} days ago (starred kept).`)
+    break
+  }
+  case 'park':
+  case 'unpark': {
+    const feed = await store.feed(positional[0] ?? '')
+    if (!feed) { console.error(`No feed ${positional[0]}`); process.exit(1) }
+    await store.setParked(feed, command === 'park')
+    console.log(`${command === 'park' ? 'Set aside' : 'Returned to reading'}: ${feed.title}`)
     break
   }
   case 'remove': {

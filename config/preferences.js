@@ -73,5 +73,6 @@ export const NEWS_CONFIG = {
   maxItemsPerPoll: 100, // newest first; a feed dumping its archive is capped
   firstPollUnreadDays: 14, // on subscribing, older items start as read
   retentionDays: 90, // prune: items first seen longer ago go, unless starred
+  parkAfterFailures: 3, // failures in a row before a feed is set aside (refused and gone: at once)
   userAgent: 'dim-news/0.1 (+http://localhost:4110/about/crawler)'
 }

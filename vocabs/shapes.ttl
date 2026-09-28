@@ -273,6 +273,7 @@ dim:FeedShape a sh:NodeShape ;
     sh:property [ sh:path dim:lastPolled ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path dim:nextPoll ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path dim:httpStatus ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 100 ; sh:maxInclusive 999 ] ;
+    sh:property [ sh:path dim:feedParked ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
     sh:property [ sh:path dim:tag ; sh:datatype xsd:string ; sh:pattern "^[^A-Z]*$" ] .
 
 dim:FeedItemShape a sh:NodeShape ;

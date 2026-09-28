@@ -2,6 +2,7 @@ import logger from 'loglevel'
 import { NEWS_CONFIG } from '../../config/preferences.js'
 import { readCapped, statusCode } from '../common/http/fetch.js'
 import { parseFeed } from './formats/feed.js'
+import { shouldPark } from './parking.js'
 
 /**
  * Polls feeds politely: conditional GET (ETag / Last-Modified), an honest
@@ -29,7 +30,7 @@ export class Poller {
   }
 
   isDue (feed) {
-    return feed.status !== 'gone' && (!feed.nextPoll || feed.nextPoll <= this.now().toISOString())
+    return !feed.parked && feed.status !== 'gone' && (!feed.nextPoll || feed.nextPoll <= this.now().toISOString())
   }
 
   /**
@@ -43,8 +44,10 @@ export class Poller {
     if (feed.lastModified && !refetch) headers['If-Modified-Since'] = feed.lastModified
     const fail = async (status, message, httpStatus = null, retryAfter = null) => {
       const failures = (feed.failures ?? 0) + 1
-      await this.store.recordPoll(feed, { status, lastError: message, httpStatus, lastPolled: at, failures, nextPoll: status === 'gone' ? null : this.nextPoll(failures, retryAfter) })
-      return { status, fresh: 0, error: message }
+      const parked = Boolean(feed.parked) || shouldPark({ status, failures }, this.config.parkAfterFailures)
+      const newlyParked = parked && !feed.parked
+      await this.store.recordPoll(feed, { status, lastError: message, httpStatus, lastPolled: at, failures, parked, nextPoll: status === 'gone' ? null : this.nextPoll(failures, retryAfter) })
+      return { status, fresh: 0, error: message, ...(newlyParked ? { parked: true } : {}) }
     }
 
     let response
@@ -55,7 +58,7 @@ export class Poller {
     }
     const code = statusCode(response.status)
     if (code === 304) {
-      await this.store.recordPoll(feed, { status: 'not-modified', lastError: null, httpStatus: 304, lastPolled: at, failures: 0, nextPoll: this.nextPoll(0) })
+      await this.store.recordPoll(feed, { status: 'not-modified', lastError: null, httpStatus: 304, lastPolled: at, failures: 0, parked: false, nextPoll: this.nextPoll(0) })
       return { status: 'not-modified', fresh: 0 }
     }
     if (code === 410) return fail('gone', 'HTTP 410: the feed has been removed', 410)
@@ -99,13 +102,15 @@ export class Poller {
       lastError: null,
       lastPolled: at,
       failures: 0,
+      parked: false,
       nextPoll: this.nextPoll(0)
     })
     return { status: 'ok', fresh: fresh.length }
   }
 
   /**
-   * Every due feed (or `feeds`, or all with force). Hosts in parallel, each
+   * Every due feed; with force, every feed due or not. Parked feeds are left
+   * out of both, but polled when named in `feeds`. Hosts in parallel, each
    * host's feeds one after another. Only one run at a time; a second call
    * while one runs gets the running one.
    */
@@ -117,7 +122,7 @@ export class Poller {
 
   async #run ({ feeds, force, refetch, limit, onResult }) {
     const all = feeds ?? await this.store.feedList()
-    const due = all.filter(f => force || this.isDue(f)).slice(0, limit)
+    const due = (feeds ? all : all.filter(f => !f.parked && (force || this.isDue(f)))).slice(0, limit)
     const byHost = new Map()
     for (const feed of due) {
       let host = 'unknown'
@@ -126,7 +131,7 @@ export class Poller {
       byHost.get(host).push(feed)
     }
     const queue = [...byHost.values()]
-    const totals = { polled: 0, fresh: 0, ok: 0, 'not-modified': 0, error: 0, refused: 0, gone: 0 }
+    const totals = { polled: 0, fresh: 0, ok: 0, 'not-modified': 0, error: 0, refused: 0, gone: 0, parked: 0 }
     const worker = async () => {
       for (let group = queue.shift(); group; group = queue.shift()) {
         for (const [i, feed] of group.entries()) {
@@ -141,6 +146,7 @@ export class Poller {
           totals.polled++
           totals.fresh += result.fresh
           totals[result.status]++
+          if (result.parked) totals.parked++
           onResult?.(feed, result)
         }
       }

@@ -38,7 +38,7 @@ ${tags.length ? `<label>Tag <select name="tag"><option value="">any</option>${ta
 /** The list itself, shared by the river and a feed's page. */
 export function renderItemList ({ items, more, feeds, query, session, returnPath, basePath = '/news/', bookmarked = null }) {
   if (!items.length) {
-    return `<p class="muted">${(query.view ?? 'unread') === 'unread' ? 'Nothing unread.' : 'No items.'}${feeds.size ? '' : ' Subscribe to feeds on the <a href="/news/feeds">Feeds</a> page.'}</p>`
+    return `<p class="muted">${(query.view ?? 'unread') === 'unread' ? 'Nothing unread.' : 'No items.'}${feeds.size ? '' : ' Add feeds on the <a href="/news/admin">Manage feeds</a> page.'}</p>`
   }
   const markAll = session?.user && (query.view ?? 'unread') === 'unread'
     ? `<form class="mark-all" method="post" action="/news/items/flags">${formFields(session, returnPath)}<input type="hidden" name="ids" value="${esc(items.map(i => i.id).join(','))}"><input type="hidden" name="read" value="true"><button class="secondary">Mark these ${items.length} read</button></form>`
@@ -51,7 +51,7 @@ ${older}`
 }
 
 export function renderRiver ({ items, more, forYou = false, feeds, feedList, tags, unread, query, polling, tabs, session, returnPath, bookmarked = null }) {
-  const body = `<div class="news-head"><h1>News</h1><a href="/news/feeds">Feeds (${feedList.length})</a></div>
+  const body = `<div class="news-head"><h1>News</h1><a href="/news/admin">Manage feeds (${feedList.length}${feedList.some(f => f.parked) ? `, ${feedList.filter(f => f.parked).length} failing` : ''})</a></div>
 ${polling ? '<p class="meta" role="status">Polling feeds in the background; reload in a minute.</p>' : ''}
 ${filters({ query, feedList, tags, unread, forYou })}
 ${query.view === 'foryou' ? '<p class="meta">Unread items closest to your own bookmarks, pages and tasks first (new items are scored as the related index syncs).</p>' : ''}

@@ -118,4 +118,40 @@ describe('Poller', () => {
     expect(feed.failures).toBe(1)
     expect(poller.isDue(feed)).toBe(false)
   })
+
+  it('sets failing feeds aside, skips them even on --all, and returns one that works when tried', async () => {
+    let up = false
+    const { store, poller } = await setup({
+      'https://a.org/flaky': () => up ? { body: rss } : { status: 500 },
+      'https://a.org/404': { status: 404 },
+      'https://a.org/ok': { body: rss }
+    })
+    const flaky = await store.addFeed({ url: 'https://a.org/flaky', title: 'Flaky' }, 'test')
+    const refused = await store.addFeed({ url: 'https://a.org/404', title: 'Refused' }, 'test')
+    const ok = await store.addFeed({ url: 'https://a.org/ok', title: 'OK' }, 'test')
+    expect(await poller.pollFeed(refused)).toMatchObject({ status: 'refused', parked: true }) // at once
+    expect(await poller.pollFeed(flaky)).not.toHaveProperty('parked')
+    await poller.pollFeed(flaky)
+    expect(await poller.pollFeed(flaky)).toMatchObject({ status: 'error', parked: true }) // the third in a row
+    expect([flaky.parked, refused.parked, ok.parked]).toEqual([true, true, false])
+
+    const polled = []
+    await poller.pollDue({ force: true, onResult: f => polled.push(f.title) })
+    expect(polled).toEqual(['OK'])
+    polled.length = 0
+    await poller.pollDue({ feeds: [flaky, refused], onResult: f => polled.push(f.title) }) // named: tried
+    expect(polled.sort()).toEqual(['Flaky', 'Refused'])
+    expect(flaky.parked).toBe(true)
+
+    up = true
+    expect(await poller.pollFeed(flaky)).toMatchObject({ status: 'ok' })
+    expect(flaky).toMatchObject({ parked: false, failures: 0 })
+
+    // Set aside by hand: stays aside if a retry fails; returning it starts afresh.
+    await store.setParked(ok, true)
+    expect(poller.isDue(ok)).toBe(false)
+    await store.setParked(refused, false)
+    expect(refused).toMatchObject({ parked: false, failures: 0, nextPoll: null })
+    expect(poller.isDue(refused)).toBe(true)
+  })
 })

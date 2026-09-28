@@ -12,7 +12,7 @@
 
 .river, .feeds { list-style: none; padding: 0; margin: 0; }
 .news-item, .feed-row { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
-.news-item h2, .feed-row h2 { font-size: 1.05rem; margin: 0; overflow-wrap: anywhere; }
+.news-item h2, .feed-row h2, .feed-row h3 { font-size: 1.05rem; margin: 0; overflow-wrap: anywhere; }
 .news-item .meta, .feed-row .meta { margin: 0.25rem 0; }
 .news-item .snippet { margin: 0.25rem 0; color: var(--muted); font-size: 0.925rem; overflow-wrap: anywhere; }
 .news-item.read h2 a { color: var(--muted); font-weight: normal; }
@@ -31,6 +31,14 @@ button.danger.secondary { color: var(--bad); }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--bad); }
 .status.muted { color: var(--muted); }
+
+/* Manage feeds */
+.admin-add { margin: 0.5rem 0; }
+.admin-add summary { padding: 0.6rem 0; cursor: pointer; font-weight: 600; }
+.admin-feeds section { margin-top: calc(var(--gap) * 1.5); }
+.feed-row input[type="checkbox"], .select-all input { width: 1.5rem; height: 1.5rem; vertical-align: middle; margin: 0 0.5rem 0 0; }
+.select-all { display: inline-flex; align-items: center; min-height: 44px; }
+.select-all[hidden] { display: none; }
 
 a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
 

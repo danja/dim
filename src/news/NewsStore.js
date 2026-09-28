@@ -121,7 +121,7 @@ export class NewsStore {
     await this.#load()
     if (await this.feedByUrl(url)) throw new NewsError(`Already subscribed to ${url}`, 409)
     const slug = feedSlug(url)
-    const feed = { slug, iri: feedIri(slug), url, title: String(title || url).trim().slice(0, 300), siteUrl, tags: cleanTags(tags), created: this.now().toISOString(), format, status: 'new', lastPolled: null, nextPoll: null, failures: 0, lastError: null, httpStatus: null, etag: null, lastModified: null }
+    const feed = { slug, iri: feedIri(slug), url, title: String(title || url).trim().slice(0, 300), siteUrl, tags: cleanTags(tags), created: this.now().toISOString(), format, status: 'new', parked: false, lastPolled: null, nextPoll: null, failures: 0, lastError: null, httpStatus: null, etag: null, lastModified: null }
     await this.repository.replace({ graph: await this.graph(), subject: feed.iri, predicates: FEED_PREDICATES, triples: feedTriples(feed), actor, summary: `subscribed to ${feed.title}` })
     await replaceDirect(this.client, await this.graph(), feed.iri, POLL_PREDICATES, pollTriples(feed))
     this.feeds.set(slug, feed)
@@ -142,6 +142,12 @@ export class NewsStore {
   async recordPoll (feed, fields) {
     Object.assign(feed, fields)
     await replaceDirect(this.client, await this.graph(), feed.iri, POLL_PREDICATES, pollTriples(feed))
+  }
+
+  /** Set a feed aside (not polled), or return it: then it starts afresh, polled soon. */
+  async setParked (feed, parked) {
+    await this.#load()
+    await this.recordPoll(feed, parked ? { parked: true } : { parked: false, failures: 0, nextPoll: null })
   }
 
   async deleteFeed (feed, actor) {
