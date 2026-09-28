@@ -32,12 +32,15 @@ export class Poller {
     return feed.status !== 'gone' && (!feed.nextPoll || feed.nextPoll <= this.now().toISOString())
   }
 
-  /** One feed, now. → { status, fresh, error? } */
-  async pollFeed (feed) {
+  /**
+   * One feed, now. refetch: ask for the whole feed even if unchanged (to
+   * fill in what earlier polls missed). → { status, fresh, error? }
+   */
+  async pollFeed (feed, { refetch = false } = {}) {
     const at = this.now().toISOString()
     const headers = { 'User-Agent': this.config.userAgent, Accept: ACCEPT }
-    if (feed.etag) headers['If-None-Match'] = feed.etag
-    if (feed.lastModified) headers['If-Modified-Since'] = feed.lastModified
+    if (feed.etag && !refetch) headers['If-None-Match'] = feed.etag
+    if (feed.lastModified && !refetch) headers['If-Modified-Since'] = feed.lastModified
     const fail = async (status, message, httpStatus = null, retryAfter = null) => {
       const failures = (feed.failures ?? 0) + 1
       await this.store.recordPoll(feed, { status, lastError: message, httpStatus, lastPolled: at, failures, nextPoll: status === 'gone' ? null : this.nextPoll(failures, retryAfter) })
@@ -106,13 +109,13 @@ export class Poller {
    * host's feeds one after another. Only one run at a time; a second call
    * while one runs gets the running one.
    */
-  pollDue ({ feeds = null, force = false, limit = Infinity, onResult = null } = {}) {
+  pollDue ({ feeds = null, force = false, refetch = false, limit = Infinity, onResult = null } = {}) {
     if (this.running) return this.running
-    this.running = this.#run({ feeds, force, limit, onResult }).finally(() => { this.running = null })
+    this.running = this.#run({ feeds, force, refetch, limit, onResult }).finally(() => { this.running = null })
     return this.running
   }
 
-  async #run ({ feeds, force, limit, onResult }) {
+  async #run ({ feeds, force, refetch, limit, onResult }) {
     const all = feeds ?? await this.store.feedList()
     const due = all.filter(f => force || this.isDue(f)).slice(0, limit)
     const byHost = new Map()
@@ -130,7 +133,7 @@ export class Poller {
           if (i > 0) await this.sleep(this.config.perHostIntervalMs)
           let result
           try {
-            result = await this.pollFeed(feed)
+            result = await this.pollFeed(feed, { refetch })
           } catch (error) {
             logger.error(`[news] ${feed.url}:`, error)
             result = { status: 'error', fresh: 0, error: error.message }

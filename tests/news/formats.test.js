@@ -4,6 +4,7 @@ import { parseFeed, FeedParseError, absoluteUrl } from '../../src/news/formats/f
 import { discoverFeeds } from '../../src/news/formats/discover.js'
 import { parseOpml, parseFeedList, parseSubscriptions, toOpml } from '../../src/news/formats/opml.js'
 import { htmlToText, decodeEntities } from '../../src/common/text/html.js'
+import { feedDate } from '../../src/news/formats/dates.js'
 
 const fixture = name => fs.readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8')
 
@@ -24,6 +25,18 @@ describe('feed parsing', () => {
     expect(rdf.items[0]).toMatchObject({ guid: 'https://rdf.example/a', published: '2026-09-01T10:00:00.000Z', categories: ['linked data'] })
     const json = parseFeed(JSON.stringify({ version: 'https://jsonfeed.org/version/1.1', title: 'J', items: [{ id: 7, url: 'https://j.example/1', content_html: '<p>Hi</p>', authors: [{ name: 'Z' }] }] }))
     expect(json.items[0]).toMatchObject({ guid: '7', title: 'Hi', author: 'Z' })
+  })
+
+  it('reads feed dates, timezone abbreviations included', () => {
+    expect(feedDate('Mon, 27 Sep 2026 10:00:00 GMT')).toBe('2026-09-27T10:00:00.000Z')
+    expect(feedDate('Mon, 27 Sep 2026 10:00:00 BST')).toBe('2026-09-27T09:00:00.000Z')
+    expect(feedDate('Mon, 27 Sep 2026 10:00:00 CEST')).toBe('2026-09-27T08:00:00.000Z')
+    expect(feedDate('Mon, 27 Sep 2026 10:00:00 AEST')).toBe('2026-09-27T00:00:00.000Z')
+    expect(feedDate('Mon, 27 Sep 2026 10:00:00 PDT')).toBe('2026-09-27T17:00:00.000Z')
+    expect(feedDate('Mon, 27 Sep 2026 10:00:00 QQQ')).toBe('2026-09-27T10:00:00.000Z') // unknown: as UTC
+    expect(feedDate('2026-09-27T10:00:00+02:00')).toBe('2026-09-27T08:00:00.000Z')
+    expect(feedDate('not a date')).toBeNull()
+    expect(feedDate(undefined)).toBeNull()
   })
 
   it('says why a document is not a feed', () => {

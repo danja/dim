@@ -23,6 +23,7 @@ import { NEWS_CONFIG } from '../config/preferences.js'
  *   node bin/news.js export > feeds.opml
  *   node bin/news.js list                       subscriptions and their status
  *   node bin/news.js poll [--all] [--feed <slug>] [--limit N] [--quiet]
+ *   node bin/news.js poll --all --refetch        whole feeds, even if unchanged (fills in missing item dates)
  *   node bin/news.js prune [--days 90]          delete old unstarred items
  *   node bin/news.js remove <slug>
  *
@@ -40,7 +41,7 @@ const option = (name, fallback = null) => {
 const TAKES_VALUE = new Set(['--tags', '--feed', '--limit', '--days'])
 const positional = rest.filter((a, i) => !a.startsWith('--') && !TAKES_VALUE.has(rest[i - 1]))
 const usage = () => {
-  console.error('Usage: node bin/news.js add <url> [--tags a,b] | import <file> | export | list | poll [--all] [--feed slug] [--limit N] [--quiet] | prune [--days N] | remove <slug>')
+  console.error('Usage: node bin/news.js add <url> [--tags a,b] | import <file> | export | list | poll [--all] [--refetch] [--feed slug] [--limit N] [--quiet] | prune [--days N] | remove <slug>')
   process.exit(1)
 }
 if (!command) usage()
@@ -103,6 +104,7 @@ switch (command) {
     const totals = await poller.pollDue({
       feeds,
       force: rest.includes('--all') || Boolean(slug),
+      refetch: rest.includes('--refetch'),
       limit: Number(option('--limit', Infinity)),
       onResult: quiet ? null : (feed, r) => console.log(`  ${r.status.padEnd(12)} ${String(r.fresh).padStart(3)} new  ${feed.title}${r.error ? `  — ${r.error}` : ''}`)
     })

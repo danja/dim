@@ -35,6 +35,34 @@ describe('Poller', () => {
     expect(calls[1].headers['User-Agent']).toMatch(/^dim-news/)
   })
 
+  it('fills in dates earlier polls could not read, on a refetch that skips the conditional GET', async () => {
+    const bst = rss.replace('Tue, 22 Sep 2026 10:00:00 +0000', 'Tue, 22 Sep 2026 11:00:00 BST')
+    let version = 'old'
+    const sent = []
+    const { store, poller } = await setup({
+      'https://e.org/f': init => {
+        sent.push(init.headers['If-None-Match'] ?? null)
+        return init.headers['If-None-Match'] === '"v1"' ? { status: 304 } : { body: version === 'old' ? rss.replace(/<pubDate>.*<\/pubDate>/, '') : bst, headers: { etag: '"v1"' } }
+      }
+    })
+    const feed = await store.addFeed({ url: 'https://e.org/f', title: 'E' }, 'test')
+    await poller.pollFeed(feed)
+    const vco = () => store.itemList({ view: 'all' }).then(r => r.items.find(i => i.guid === 'post-123'))
+    expect((await vco()).published).toBeNull()
+    version = 'new'
+    expect(await poller.pollFeed(feed)).toMatchObject({ status: 'not-modified' })
+    expect(await poller.pollDue({ force: true, refetch: true })).toMatchObject({ ok: 1, fresh: 0 })
+    expect(sent).toEqual([null, '"v1"', null])
+    expect((await vco()).published).toBe('2026-09-22T10:00:00.000Z') // BST is +0100
+  })
+
+  it('treats a date more than a day ahead as no date', async () => {
+    const future = rss.replace('Tue, 22 Sep 2026 10:00:00 +0000', 'Tue, 22 Sep 2027 10:00:00 +0000')
+    const { store, poller } = await setup({ 'https://e.org/f': { body: future } })
+    await poller.pollFeed(await store.addFeed({ url: 'https://e.org/f', title: 'E' }, 'test'))
+    expect((await store.itemList({ view: 'all' })).items.find(i => i.guid === 'post-123').published).toBeNull()
+  })
+
   it('starts old items as read on the first poll', async () => {
     const old = rss.replace('Tue, 22 Sep 2026', 'Tue, 01 Sep 2026')
     const { store, poller } = await setup({ 'https://e.org/f': { body: old } })
@@ -91,4 +119,3 @@ describe('Poller', () => {
     expect(poller.isDue(feed)).toBe(false)
   })
 })
-

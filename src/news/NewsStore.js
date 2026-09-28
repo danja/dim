@@ -1,8 +1,8 @@
-import { iri } from '../common/store/SPARQLHelper.js'
+import { iri, typedLiteral } from '../common/store/SPARQLHelper.js'
 import { insertGroups, writeFlag, deleteSubjects, replaceDirect } from './writes.js'
 import QueryService from '../common/store/QueryService.js'
 import { NAMESPACES } from '../common/rdf/NamespaceManager.js'
-import { FEED_PREDICATES, POLL_PREDICATES, feedTriples, pollTriples, itemTriples, feedSlug, feedIri, itemId, itemIri } from './rdf.js'
+import { P, FEED_PREDICATES, POLL_PREDICATES, feedTriples, pollTriples, itemTriples, feedSlug, feedIri, itemId, itemIri } from './rdf.js'
 import { loadNews } from './load.js'
 import { listItems, countItems } from './itemViews.js'
 import { absoluteUrl } from './formats/feed.js'
@@ -34,7 +34,6 @@ export function cleanTags (value) {
   const raw = Array.isArray(value) ? value : String(value ?? '').split(',')
   return [...new Set(raw.map(t => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, MAX_TAGS)
 }
-
 
 export class NewsStore {
   constructor ({ client, repository, links = null, queries = new QueryService(), now = () => new Date() }) {
@@ -157,17 +156,30 @@ export class NewsStore {
 
   // ── Items ────────────────────────────────────────────────────────────
 
-  /** Parsed items not seen before → stored. → the new items. */
+  /**
+   * Parsed items not seen before → stored. Items already stored without a
+   * date get the feed's date for them, if it now has one. → the new items.
+   */
   async addItems (feed, parsed) {
     await this.#load()
     const at = this.now().toISOString()
+    // A date more than a day ahead is a feed's mistake; it would pin the item to the top.
+    const soon = new Date(this.now().getTime() + 86400000).toISOString()
     let fresh = []
     const ids = new Set()
+    const redate = []
     for (const p of parsed) {
       const id = itemId(feed.iri, p.guid)
-      if (this.items.has(id) || ids.has(id)) continue
+      const published = p.published && p.published <= soon ? p.published : null
+      const known = this.items.get(id)
+      if (known && !known.published && published) redate.push([known, published])
+      if (known || ids.has(id)) continue
       ids.add(id)
-      fresh.push({ id, iri: itemIri(id), feed: feed.iri, title: p.title, link: p.link ? absoluteUrl(p.link, null) : null, guid: p.guid.slice(0, 2000), published: p.published, firstSeen: at, author: p.author, summary: p.summary, snippet: p.summary?.slice(0, 400) ?? null, categories: p.categories, read: false, starred: false })
+      fresh.push({ id, iri: itemIri(id), feed: feed.iri, title: p.title, link: p.link ? absoluteUrl(p.link, null) : null, guid: p.guid.slice(0, 2000), published, firstSeen: at, author: p.author, summary: p.summary, snippet: p.summary?.slice(0, 400) ?? null, categories: p.categories, read: false, starred: false })
+    }
+    for (const [item, published] of redate) {
+      await replaceDirect(this.client, await this.itemGraph(), item.iri, [P.issued], [`${iri(item.iri)} ${iri(P.issued)} ${typedLiteral(new Date(published))} .`])
+      item.published = published
     }
     if (!fresh.length) return []
     const validator = this.repository.validator

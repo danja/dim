@@ -29,6 +29,7 @@ node bin/news.js poll                  # every feed that is due
 node bin/news.js poll --all            # every feed, due or not
 node bin/news.js poll --feed <slug>
 node bin/news.js poll --limit 20 --quiet
+node bin/news.js poll --all --refetch  # whole feeds even if unchanged: fills in item dates earlier polls couldn't read
 node bin/news.js prune --days 90       # delete items first seen >90 days ago, unless starred
 ```
 
@@ -46,6 +47,10 @@ How polling behaves (`NEWS_CONFIG` in `config/preferences.js`):
 - **Failures:** the wait doubles after each one, up to a day, and a server's
   `Retry-After` is respected. `410 Gone` stops polling that feed.
   `401/403/404/451` show as **refused**.
+- **Dates:** the river is newest first by each item's own date. Timezone
+  abbreviations (BST, CEST, AEST…) are understood; an item with no date sorts
+  by when it was first seen, and one dated more than a day ahead is treated as
+  undated. A later poll fills in a date that was missing.
 - **Caps:** at most 100 items per poll, newest first, and 5 MB per fetch.
 - **New subscriptions:** items older than 14 days start as read, so a new
   feed doesn't bury the river.
