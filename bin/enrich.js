@@ -216,4 +216,4 @@ for (const { row, enrichment } of enrichedRows) {
 index.compact()
 await index.save()
 console.log(`\nRe-embedded ${done - failed}/${done} bookmarks in ${((Date.now() - embedStarted) / 1000).toFixed(1)}s (index: ${index.size} vectors, ${failed} failed).`)
-console.log('Restart the app so it reloads documents + index.')
+console.log('A running app picks this up within a minute.')

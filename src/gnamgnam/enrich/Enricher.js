@@ -37,7 +37,7 @@ export class Enricher {
    * observers: [{ observe({ bookmarkIri, url, fetched }) }], shown every page
    * fetched (e.g. to look for its feeds); their failures are only logged.
    */
-  constructor ({ fetchers = [], extractors = [], summarisers = [], writers = [], observers = [], cache = null, cacheTtlMs = ENRICH_CONFIG.cacheTtlMs } = {}) {
+  constructor ({ fetchers = [], extractors = [], summarisers = [], writers = [], observers = [], cache = null, cacheTtlMs = ENRICH_CONFIG.cacheTtlMs, deadlineMs = ENRICH_CONFIG.bookmarkDeadlineMs } = {}) {
     if (!fetchers.length) throw new EnrichError('Enricher needs fetchers')
     if (!extractors.length) throw new EnrichError('Enricher needs extractors')
     if (!summarisers.length) throw new EnrichError('Enricher needs summarisers')
@@ -46,6 +46,7 @@ export class Enricher {
     this.summarisers = summarisers
     this.writers = writers
     this.observers = observers
+    this.deadlineMs = deadlineMs
     this.cache = cache
     this.cacheTtlMs = cacheTtlMs
   }
@@ -59,8 +60,26 @@ export class Enricher {
    *   status: enriched | restored | unchanged | fresh | refused | failed
    *   enrichment: { summary?, summaryModel?, summarisedAt, keywords?,
    *     markdown?, contentHash?, contentLength?, fetchStatus?, catalogue? }
+   *
+   * One bookmark gets deadlineMs at most: a connection that stalls without
+   * failing would otherwise hang a run (or the server's queue), and since
+   * request timeouts don't keep Node running, a command-line run can simply
+   * stop ("Detected unsettled top-level await"). The deadline's timer does
+   * keep it running; the bookmark is reported failed and the run goes on.
    */
-  async run (bookmark, { force = false } = {}) {
+  async run (bookmark, options = {}) {
+    let timer
+    const deadline = new Promise(resolve => {
+      timer = setTimeout(() => resolve({ status: 'failed', iri: bookmark.iri, url: bookmark.url, error: `timed out after ${Math.round(this.deadlineMs / 1000)}s` }), this.deadlineMs)
+    })
+    try {
+      return await Promise.race([this.#run(bookmark, options), deadline])
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  async #run (bookmark, { force = false } = {}) {
     const { iri: bookmarkIri, graph, url } = bookmark
     if (!bookmarkIri || !graph || !url) {
       throw new EnrichError(`Enricher needs iri+graph+url, got ${JSON.stringify(bookmark)}`)

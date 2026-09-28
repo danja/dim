@@ -100,7 +100,6 @@ resumes via checkpoints; the full set takes hours on CPU-only Ollama):
 
 ```sh
 docker compose run --rm app node bin/ingest.js --only-new --limit 200
-docker compose restart app
 ```
 
 Second-pass enrichment (docs/enricher.md) follows the same pattern —
@@ -109,11 +108,14 @@ sample first, review, then run wide:
 ```sh
 docker compose run --rm app node bin/enrich.js --limit 50 --summariser extractive
 docker compose run --rm app node bin/enrich.js --only-new --reembed --limit 200
-docker compose restart app
 ```
 
-The app loads documents and the index once at start, not per request,
-so restart it after any ingest or re-embed.
+The app holds bookmark texts and vectors in memory. When a tool saves the
+bookmark index (an ingest that embeds, `enrich --reembed`) the app reloads
+both within a minute, and its own later saves merge with the tool's rather
+than overwrite them. After a run that saves no vectors (`ingest
+--skip-embeddings`, `enrich` without `--reembed`), restart the app to see
+the new text: `docker compose restart app`.
 
 Validate every registered graph against `vocabs/shapes.ttl`:
 
@@ -142,9 +144,9 @@ alongside the server in the same container:
 # sync from running at once; the server picks up the result at its next sync.
 docker compose exec app node bin/related.js            # --limit 1000, --status
 
-# Bookmarks saved before automatic enrichment, or ones that failed.
+# Bookmarks saved before automatic enrichment, or ones that failed. The app
+# picks up the new summaries and vectors within a minute of each save.
 docker compose exec app node bin/enrich.js --only-new --reembed --summariser remote
-docker compose restart app                             # see the caution below
 
 # Feeds on bookmarks you already had: sites in parallel, one page at a time
 # per site, only the start of each page, at most 3 pages per site (stopping
@@ -157,16 +159,16 @@ docker compose exec app node bin/feed-scan.js          # --limit N, --rescan
 docker compose exec app node bin/topics.js --dry-run
 ```
 
-**Two cautions:**
+**Several writers, one index.** The server and the tools can save the
+bookmark index (`data/dim.index`) at the same time: each save takes a short
+lock, and if another process saved since, it reloads that and re-applies
+its own changes, so nobody's vectors are lost. The server looks for saves by
+the tools every minute.
 
-- **After `enrich --reembed` or `ingest`, restart the app promptly.** Those
-  tools rewrite the bookmark index file (`data/dim.index`). The server holds
-  its own copy in memory, and when it next embeds a newly saved bookmark it
-  writes that copy back, overwriting what the tool just wrote. The related
-  index doesn't have this problem (it has a lock and reloads when needed).
-- **Use `exec`, not `run`, for `bin/related.js`.** Its lock records a process
-  id, and a `docker compose run` container can't see the server's processes,
-  so the lock can't stop two syncs running at once.
+**Use `exec`, not `run`, for `bin/related.js`.** Its lock (held for the
+whole sync, not just a save) records a process id, and a `docker compose
+run` container can't see the server's processes, so the lock can't stop two
+syncs running at once.
 
 Where it all lives: the `app-data` volume (`/app/data`), not `./data` on the
 host.

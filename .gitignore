@@ -150,3 +150,5 @@ data/cache/
 data/blog-site/
 data/backups/
 data/sessions.json
+data/*.lock
+data/*.tmp
