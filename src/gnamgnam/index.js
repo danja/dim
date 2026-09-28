@@ -17,7 +17,8 @@ function canonical (url) {
   try { return canonicalUrl(url) } catch { return null }
 }
 
-export function createGnamgnamFacet ({ search }) {
+/** autoEnrich: an AutoEnricher; bookmarks saved elsewhere are fetched, summarised and embedded. */
+export function createGnamgnamFacet ({ search, autoEnrich = null }) {
   if (!search) throw new Error('GnamGnam needs a SearchService')
 
   // url → iri, rebuilt when the document map is replaced (loadDocuments).
@@ -43,11 +44,11 @@ export function createGnamgnamFacet ({ search }) {
     types: { bookmark: `${BASE_PATH}/bookmark/` },
 
     routes (router, ctx) {
-      registerRoutes(router, { search, ...ctx })
+      registerRoutes(router, { search, autoEnrich, ...ctx })
     },
 
     health () {
-      return { status: 'ok', bookmarks: search.documents.size, index: search.index.size }
+      return { status: 'ok', bookmarks: search.documents.size, index: search.index.size, autoEnrich: autoEnrich ? { queued: autoEnrich.queue.length } : 'off' }
     },
 
     /** Your own tags on bookmarks (the source's tags are mostly domains). */
@@ -78,9 +79,14 @@ export function createGnamgnamFacet ({ search }) {
       return doc ? { iri, href: href(doc), label: doc.name, status: doc.linkStatus, archivedAt: doc.archivedAt ?? null } : null
     },
 
-    /** A bookmark was written elsewhere (e.g. saved from News): load it now. */
+    /**
+     * A bookmark was written elsewhere (saved from News, captured in Squirt):
+     * load it now, and fetch, summarise and embed it in the background.
+     */
     async refresh (resourceIri) {
-      return search.loadDocument?.(resourceIri) ?? null
+      const doc = (await search.loadDocument?.(resourceIri)) ?? null
+      if (autoEnrich?.needs(doc)) autoEnrich.enqueue(resourceIri)
+      return doc
     },
 
     lookup (resourceIri) {

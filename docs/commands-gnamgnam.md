@@ -26,6 +26,24 @@ Background: `docs/tools.md` (all tools and the HTTP API), `docs/enricher.md`
 `validate`, `search`, `serve` and `pipeline`; add flags after `--`
 (`npm run enrich -- --limit 50`).
 
+## Bookmarks saved in DIM are enriched as they are saved
+
+A bookmark saved inside DIM (Squirt capture or share, News **Save as
+bookmark**) goes through the same steps as `enrich --reembed`, straight
+away and in the background, one at a time: GET the page (its HTTP status is
+the link check), extract, summarise, patch the store, then embed it into the
+bookmark index (written a few seconds later, and on shutdown). Its page says
+*Fetching and summarising…* until it's done; reload after a minute.
+
+| `.env` | |
+|---|---|
+| `ENRICH_SUMMARISER` | `ollama` (default; `OLLAMA_URL`, model `ENRICH_CONFIG.model`), `remote` (the `LLM_*` settings), or `extractive` (offline). An LLM that fails falls back to the offline summarisers, so there's always a summary. |
+| `AUTO_ENRICH=0` | off: saved bookmarks wait for the next `enrich` run |
+
+If embedding fails (Ollama down), the bookmark is still found by its words;
+the next `enrich --reembed` adds its vector. `/health` shows the queue
+(`facets.gnamgnam.autoEnrich`).
+
 ## retrieve — first-pass link check
 
 ```sh

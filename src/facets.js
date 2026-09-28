@@ -18,11 +18,12 @@ import { stubFacet } from './common/facets/stubFacet.js'
  * WikiStore (likewise). news: { store, poller } (likewise). blog:
  * { store, title, author } (likewise). client: the SPARQL client, for
  * Squirt's timeline and bookmark capture. advisor: the "What next?" Advisor
- * (shown in Farelo and on Squirt).
+ * (shown in Farelo and on Squirt). autoEnrich: fetches, summarises and
+ * embeds bookmarks saved in DIM (src/gnamgnam/AutoEnricher.js).
  */
-export function createFacets ({ search, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, client = null, advisor = null }) {
+export function createFacets ({ search, autoEnrich = null, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, client = null, advisor = null }) {
   return [
-    createGnamgnamFacet({ search }),
+    createGnamgnamFacet({ search, autoEnrich }),
     outlines
       ? createTrestleFacet({ store: outlines })
       : stubFacet({ id: 'trestle', label: 'Trestle', phase: 5, description: 'Outliner: the Workflowy outline, editable, with every link one click away.' }),

@@ -90,6 +90,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     clearInterval(pollTimer)
     clearInterval(relatedTimer)
-    server.close(() => process.exit(0))
+    // A bookmark embedded in the last few seconds: write the index before going.
+    Promise.resolve(app.autoEnrich?.flush()).catch(() => {}).finally(() => server.close(() => process.exit(0)))
   })
 }
