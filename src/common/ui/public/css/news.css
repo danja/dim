@@ -40,7 +40,6 @@ button.danger.secondary { color: var(--bad); }
 .select-all { display: inline-flex; align-items: center; min-height: 44px; }
 .select-all[hidden] { display: none; }
 
-a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
 
 @media (max-width: 40rem) {
   .news-item .snippet { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

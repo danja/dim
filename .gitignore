@@ -149,3 +149,4 @@ data/related.state.json
 data/cache/
 data/blog-site/
 data/backups/
+data/sessions.json

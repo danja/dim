@@ -131,6 +131,10 @@ input[type="search"], input[type="text"], select {
   border-radius: var(--radius);
 }
 
+/* A link that looks like a button (secondary: quieter, like button.secondary). */
+a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
+a.button.secondary { color: var(--text); background: var(--surface); border: 1px solid var(--border); font-weight: normal; }
+
 button {
   min-height: 44px;
   padding: 0.5rem 1rem;

@@ -16,5 +16,4 @@
 .timeline .meta { margin: 0.15rem 0 0; overflow-wrap: anywhere; }
 
 .install { margin-top: 2rem; }
-a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 1rem; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: var(--radius); text-decoration: none; }
 .bookmarklet { font-weight: 600; }

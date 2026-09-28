@@ -1,7 +1,7 @@
 /**
  * Response helpers shared by every facet. Dependency-free node:http,
- * CORS-open for reading (cookies are SameSite=Strict, so other sites never
- * read as the owner). Nothing is cacheable by shared caches: much of what
+ * CORS-open for reading (cookies are SameSite=Lax, never sent on another
+ * site's fetches, so other sites never read as the owner). Nothing is cacheable by shared caches: much of what
  * DIM serves is personal (docs/security.md).
  */
 

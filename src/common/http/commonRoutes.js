@@ -87,7 +87,7 @@ export function registerCommonRoutes (router, { registry, services, config, defa
 
   // ── Log in / out ─────────────────────────────────────────────────────
   router.get('/login', ({ response, url, tabs, session }) =>
-    sendHtml(response, 200, renderLoginPage({ tabs, session, returnPath: safeReturn(url.searchParams.get('return'), '/') })))
+    sendHtml(response, 200, renderLoginPage({ tabs, session, returnPath: safeReturn(url.searchParams.get('return'), '/'), privateReads: services.auth.privateReads })))
 
   router.add(['POST'], '/login', async ({ request, response, tabs, session }) => {
     let body
@@ -100,7 +100,7 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     if (!services.auth.verify(body.token)) {
       await new Promise(resolve => setTimeout(resolve, LOGIN_FAILURE_DELAY_MS))
       return sendHtml(response, services.auth.writesEnabled ? 401 : 403,
-        renderLoginPage({ tabs, session, returnPath, error: services.auth.writesEnabled ? 'That is not the write token.' : null }))
+        renderLoginPage({ tabs, session, returnPath, privateReads: services.auth.privateReads, error: services.auth.writesEnabled ? 'That is not the write token.' : null }))
     }
     response.setHeader('Set-Cookie', services.auth.login())
     return redirect(response, 303, returnPath)

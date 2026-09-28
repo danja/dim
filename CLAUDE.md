@@ -73,6 +73,8 @@ backup/restore, deadlinks, validate).
 - **Derived data** (`data/*.index`, `data/related.*`, `data/cache/`) is
   rebuildable but slow: embedding everything takes hours on a CPU. It's
   backed up by `bin/backup.js`.
+- **Login sessions** persist in `data/sessions.json` (hashed ids, mode 600,
+  dropped when the token changes). It isn't backed up.
 
 ## Testing notes
 

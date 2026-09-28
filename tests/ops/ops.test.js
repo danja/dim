@@ -174,4 +174,12 @@ describe('hardening', () => {
     expect(() => new Auth({ privateReads: true })).toThrow('DIM_WRITE_TOKEN')
     expect(Auth.fromEnv({ DIM_WRITE_TOKEN: TOKEN, DIM_ORIGIN: 'https://dim.example', DIM_PRIVATE: '1' })).toMatchObject({ secureCookie: true, privateReads: true })
   })
+
+  it('offers to carry on read-only from the login page, unless reads are private', async () => {
+    const open = await (await fetch(`${await listen(new Auth({ token: TOKEN }))}/login?return=%2Fwiki%2F`)).text()
+    expect(open).toContain('<a class="button secondary" href="/wiki/">Ignore — continue read-only</a>')
+    const closed = await (await fetch(`${await listen(new Auth({ token: TOKEN, privateReads: true }))}/login?return=%2Fwiki%2F`)).text()
+    expect(closed).not.toContain('Ignore')
+    expect(closed).toContain('DIM_PRIVATE')
+  })
 })

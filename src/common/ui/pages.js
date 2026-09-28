@@ -3,7 +3,7 @@ import { renderPage } from './layout.js'
 
 /** Shared pages: log in, and search across facets. */
 
-export function renderLoginPage ({ tabs, session, returnPath = '/', error = null }) {
+export function renderLoginPage ({ tabs, session, returnPath = '/', error = null, privateReads = false }) {
   const body = session?.writesEnabled
     ? `<h1>Log in</h1>
 ${error ? `<p class="status" role="alert">${esc(error)}</p>` : ''}
@@ -13,7 +13,10 @@ ${error ? `<p class="status" role="alert">${esc(error)}</p>` : ''}
 <input type="password" id="token" name="token" required autocomplete="current-password">
 <button>Log in</button>
 </form>
-<p class="meta">Reading needs no login. Logging in lets this browser edit notes, tags and links.</p>`
+${privateReads
+  ? '<p class="meta">This DIM is private (<code>DIM_PRIVATE</code>): every page needs a login. Remove it from <code>.env</code> to let anyone read.</p>'
+  : `<p><a class="button secondary" href="${esc(returnPath)}">Ignore — continue read-only</a></p>
+<p class="meta">Reading needs no login. Logging in lets this browser edit notes, tags, tasks and links.</p>`}`
     : `<h1>Log in</h1>
 <p>Writing is switched off. Set <code>DIM_WRITE_TOKEN</code> in <code>.env</code> (16+ characters) and restart the server.</p>`
   return renderPage({ title: 'Log in', tabs, active: null, session, body })

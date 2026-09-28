@@ -9,17 +9,6 @@
   white-space: nowrap;
 }
 
-a.button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-radius: var(--radius);
-  text-decoration: none;
-}
 
 .wiki-content { overflow-wrap: anywhere; }
 .wiki-content pre { overflow-x: auto; }
