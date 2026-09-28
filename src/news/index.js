@@ -46,11 +46,10 @@ export function createNewsFacet ({ store, poller, inbox = null, tasks = null, fe
         .map(f => ({ label: f.title, href: feedPath(f), kind: 'feed' }))
     },
 
-    /** Recent items (a month) and starred ones; older ones leave the index as they're pruned. */
+    /** Every item kept (NEWS_CONFIG.retentionDays); they leave the index as they're pruned. */
     async documents () {
-      const since = new Date(Date.now() - 30 * 86400000).toISOString()
       const { items } = await store.itemList({ view: 'all', limit: Infinity })
-      return items.filter(i => i.starred || i.firstSeen >= since).map(i => ({ iri: i.iri, text: [i.title, i.snippet].filter(Boolean).join('\n\n') }))
+      return items.map(i => ({ iri: i.iri, text: [i.title, i.snippet].filter(Boolean).join('\n\n') }))
     },
 
     /** For the day view: what arrived, by feed (arrivals aren't changes of yours). */

@@ -17,9 +17,21 @@ opened. Background: `docs/plan-detail.md` (Phase 10).
 | a URL, with or without words | a GnamGnam bookmark (tag `squirt`); the words become its title |
 | anything else | a note at the top of the wiki page **Inbox**, under a time heading; `[[Title]]` links work |
 
-Bookmarks go into `graph:facet/gnamgnam` and are searchable at once; run
-`node bin/ingest.js --only-new` to embed them. A URL that is already
-bookmarked isn't duplicated.
+Bookmarks go into `graph:facet/gnamgnam` and are searchable at once; they
+are fetched, summarised and embedded in the background as they are saved
+(`docs/commands-gnamgnam.md`). A URL that is already bookmarked isn't
+duplicated.
+
+## Search
+
+The box at the top searches everything, one ranked list (`/find`): by
+meaning, over everything DIM embeds — bookmarks, wiki pages, blog posts,
+tasks, outline items and news items — and by words, over each facet's own
+search. A hit found both ways ranks first; each says where it's from and
+how it matched, and the links above the results narrow to one facet. New
+and changed things are embedded by the server's related sync
+(`RELATED_SYNC_MINUTES`, default every 30 minutes; `node bin/related.js`
+by hand). While Ollama is down the search uses words only, and says so.
 
 From a script:
 

@@ -12,6 +12,7 @@ import { activity, week, dayRange, weekStart, isoDay } from '../journal/journal.
 import QueryService from '../store/QueryService.js'
 import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
+import { searchEverything } from '../search/everything.js'
 import { latestBackup } from '../ops/backup.js'
 import { backupPaths } from '../ops/backupPaths.js'
 
@@ -116,9 +117,11 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     const q = (url.searchParams.get('q') ?? '').trim()
     return { q, groups: q ? await registry.find(q, { limit: clampLimit(url.searchParams.get('limit'), 10) }) : [] }
   }
+  // One ranked list, by meaning and by words (the link picker uses /find.json, words only, as you type).
+  const ranked = url => searchEverything(url.searchParams.get('q'), { registry, related: services.related, facet: url.searchParams.get('facet') || null, limit: clampLimit(url.searchParams.get('limit'), 30, 100) })
   router.get('/find', async ({ response, url, tabs, session }) => {
-    const { q, groups } = await find(url)
-    return sendHtml(response, 200, renderFindPage({ tabs, session, query: q, groups }))
+    const q = (url.searchParams.get('q') ?? '').trim()
+    return sendHtml(response, 200, renderFindPage({ tabs, session, query: q, facet: url.searchParams.get('facet') || null, ...(await ranked(url)) }))
   })
   // What you did: /day/<date> and /week/<date> (owner only; from the change log).
   const journalQueries = new QueryService()
@@ -188,6 +191,7 @@ export function registerCommonRoutes (router, { registry, services, config, defa
   })
 
   router.get('/find.json', async ({ response, url }) => {
+    if (url.searchParams.has('ranked')) return send(response, 200, { query: (url.searchParams.get('q') ?? '').trim(), ...(await ranked(url)) })
     const { q, groups } = await find(url)
     return send(response, 200, { query: q, groups })
   })

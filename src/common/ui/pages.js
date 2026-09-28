@@ -22,19 +22,28 @@ ${privateReads
   return renderPage({ title: 'Log in', tabs, active: null, session, body })
 }
 
-export function renderFindPage ({ tabs, session, query, groups }) {
-  const sections = groups.map(g => `<section>
-<h2>${esc(g.label)}</h2>${g.error ? `\n<p class="muted">Search unavailable here: ${esc(g.error)}</p>` : ''}
-<ul class="results">${g.results.map(r => `<li class="card"><h3><a href="${esc(r.href)}">${esc(r.label)}</a></h3>${r.snippet ? `<p class="meta">${esc(r.snippet)}</p>` : ''}</li>`).join('')}</ul>
-</section>`).join('\n')
-  const status = query ? (groups.some(g => g.results.length) ? '' : '<p class="muted">Nothing found.</p>') : ''
+const BY = { both: 'words and meaning', meaning: 'similar meaning', words: 'matching words' }
+
+/** Everything, one ranked list (src/common/search/everything.js), with a facet filter. */
+export function renderFindPage ({ tabs, session, query, facet = null, results = [], facets = [], semanticError = null }) {
+  const q = encodeURIComponent(query ?? '')
+  const total = facets.reduce((n, f) => n + f.count, 0)
+  const filter = facets.length > 1
+    ? `<nav class="views find-facets" aria-label="Where">${[{ facet: null, label: 'All', count: total }, ...facets].map(f =>
+      `<a href="/find?q=${q}${f.facet ? `&amp;facet=${encodeURIComponent(f.facet)}` : ''}"${(facet ?? null) === f.facet ? ' aria-current="page"' : ''}>${esc(f.label)} <span class="count">${f.count}</span></a>`).join('')}</nav>`
+    : ''
+  const list = results.map(r => `<li class="card"><h2><a href="${esc(r.href)}">${esc(r.label)}</a></h2>
+<p class="meta">${esc(r.facetLabel)} · ${BY[r.by]}${r.snippet ? ` — ${esc(r.snippet)}` : ''}</p></li>`).join('\n')
+  const status = !query ? '' : results.length ? '' : '<p class="muted">Nothing found.</p>'
   const body = `<h1>Find</h1>
 <form class="search" method="get" action="/find" role="search">
-<input type="search" name="q" value="${esc(query ?? '')}" placeholder="search everything…" aria-label="Search everything">
+<input type="search" name="q" value="${esc(query ?? '')}" placeholder="search everything…" aria-label="Search everything" enterkeyhint="search">
 <button>Find</button>
 </form>
+${semanticError && query ? `<p class="meta" role="status">Searching by words only: ${esc(semanticError)}.</p>` : ''}
+${filter}
 ${status}
-<div class="groups">${sections}</div>`
+${list ? `<ol class="results">${list}</ol>` : ''}`
   return renderPage({ title: query ? `${query} — Find` : 'Find', tabs, active: null, session, body })
 }
 

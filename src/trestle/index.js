@@ -38,7 +38,7 @@ export function createTrestleFacet ({ store }) {
       for (const outline of await store.list()) {
         for (const node of outline.nodes.values()) {
           const text = [plainText(node.title), node.note].filter(Boolean).join('\n\n')
-          if (text.length >= 25) out.push({ iri: node.iri, text })
+          if (text.length >= 12) out.push({ iri: node.iri, text })
         }
       }
       return out

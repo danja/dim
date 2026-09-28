@@ -156,6 +156,12 @@ button {
 
 .results { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
 
+/* Find: where the hits are, as a filter. */
+.find-facets { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.5rem 0 var(--gap); }
+.find-facets a { padding: 0.5rem 0.75rem; min-height: 44px; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: var(--radius); text-decoration: none; color: var(--muted); }
+.find-facets a[aria-current] { color: var(--text); background: var(--surface); border: 1px solid var(--border); font-weight: 600; }
+.find-facets .count { font-size: 0.8rem; }
+
 .card {
   padding: 0.75rem 1rem;
   background: var(--surface);

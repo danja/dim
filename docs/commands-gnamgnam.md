@@ -242,7 +242,7 @@ PORT=4111 node bin/serve.js
 | `/gnamgnam/bookmark/<slug>` | detail page (`.json`, `.ttl` for data) |
 | `/gnamgnam/search?q=…` | JSON results |
 | `/gnamgnam/facets` | facet counts |
-| `/find?q=…` | search every facet |
+| `/find?q=…` | search everything, by meaning and by words, one ranked list |
 | `/health` | per-facet status |
 
 The server loads bookmarks and vectors at start: restart it after an

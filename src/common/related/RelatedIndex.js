@@ -91,6 +91,12 @@ export class RelatedIndex {
     return vector ? this.nearest(vector, { ...options, exclude: new Set([iri]) }) : []
   }
 
+  /** What a query means, across both indexes (src/common/search/everything.js). → [{ iri, score }] */
+  async search (text, options = {}) {
+    const vector = await this.vectorFor(text)
+    return vector ? this.nearest(vector, options) : []
+  }
+
   /** How close a news item is to your own things (0–1), if known. */
   interest (iri) {
     return this.state.get(iri)?.interest ?? null
