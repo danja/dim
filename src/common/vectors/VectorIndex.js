@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import faiss from 'faiss-node'
 import VectorOperations, { VectorError } from './VectorOperations.js'
+import { withFileLock, writeWhole, savedWriteId, newWriteId } from './indexFile.js'
 
 /**
  * The vector index: persisted, incrementally updated, and on the hot path.
@@ -58,6 +59,11 @@ export class VectorIndex {
     // compact().
     this.orphans = new Set()
     this.dirty = false
+    // Changes made here since this process last read or wrote the file
+    // (iri → normalised vector, or null for a removal): re-applied if another
+    // process saved in between, so neither overwrites the other.
+    this.pending = new Map()
+    this.writeId = null
   }
 
   /** Live entries. Orphaned positions awaiting compaction do not count. */
@@ -88,6 +94,7 @@ export class VectorIndex {
     const position = this.index.ntotal() - 1
     this.iriByPosition[position] = iri
     this.positionByIri.set(iri, position)
+    this.pending.set(iri, Float32Array.from(normalised))
     this.dirty = true
     return position
   }
@@ -95,6 +102,8 @@ export class VectorIndex {
   /** Forget one IRI (its position is reclaimed by compact()). → whether it was there */
   remove (iri) {
     const position = this.positionByIri.get(iri)
+    // Recorded even when unknown here: another process may have added it since.
+    this.pending.set(iri, null)
     if (position === undefined) return false
     this.orphans.add(position)
     this.positionByIri.delete(iri)
@@ -177,22 +186,67 @@ export class VectorIndex {
    * Persist index and sidecar. The sidecar carries the IRI mapping and the
    * model identity — an index whose model is unknown is not safely reusable,
    * because vectors from two models are not comparable.
+   *
+   * Several processes may use one index file (the server embeds bookmarks as
+   * they're saved; bin/enrich.js --reembed runs beside it). A save takes a
+   * short lock; if someone else saved since this process last read or wrote
+   * the file, it reloads that first and re-applies its own changes.
    */
   async save () {
-    const dir = path.dirname(this.path)
-    await fs.promises.mkdir(dir, { recursive: true })
-    await fs.promises.writeFile(this.path, this.index.toBuffer())
-    await fs.promises.writeFile(this.sidecarPath, JSON.stringify({
-      version: SIDECAR_VERSION,
-      model: this.model,
-      dimension: this.dimension,
-      count: this.size,
-      savedAt: new Date().toISOString(),
-      iriByPosition: this.iriByPosition,
-      orphans: [...this.orphans]
-    }, null, 2))
-    this.dirty = false
-    return this.path
+    await fs.promises.mkdir(path.dirname(this.path), { recursive: true })
+    return withFileLock(`${this.path}.lock`, async () => {
+      const onDisk = await savedWriteId(this.sidecarPath)
+      if (onDisk && onDisk !== this.writeId) await this.#mergeFromDisk()
+      const saving = new Map(this.pending) // changes made while writing stay pending
+      const writeId = newWriteId()
+      await writeWhole(this.path, this.index.toBuffer())
+      await writeWhole(this.sidecarPath, JSON.stringify({
+        version: SIDECAR_VERSION,
+        model: this.model,
+        dimension: this.dimension,
+        count: this.size,
+        savedAt: new Date().toISOString(),
+        writeId,
+        iriByPosition: this.iriByPosition,
+        orphans: [...this.orphans]
+      }, null, 2))
+      this.writeId = writeId
+      for (const [iri, vector] of saving) if (this.pending.get(iri) === vector) this.pending.delete(iri)
+      this.dirty = this.pending.size > 0
+      return this.path
+    })
+  }
+
+  /** Take on what's on disk, then this process's own changes again. */
+  async #mergeFromDisk () {
+    const mine = [...this.pending]
+    this.#adopt(await VectorIndex.load(this) ?? new VectorIndex(this))
+    for (const [iri, vector] of mine) {
+      if (vector) this.add(iri, Array.from(vector))
+      else this.remove(iri)
+    }
+    this.compact()
+  }
+
+  /** Swap in another instance's contents, keeping this object (others hold it). */
+  #adopt (other) {
+    Object.assign(this, { index: other.index, iriByPosition: other.iriByPosition, positionByIri: other.positionByIri, orphans: other.orphans, writeId: other.writeId })
+    this.pending = new Map()
+  }
+
+  /**
+   * Pick up a save made by another process (the server calls this every
+   * minute). Waits for this process's own changes to be saved first; that
+   * save merges anyway. → whether it reloaded
+   */
+  async refresh () {
+    if (this.pending.size) return false
+    const onDisk = await savedWriteId(this.sidecarPath)
+    if (!onDisk || onDisk === this.writeId) return false
+    const loaded = await VectorIndex.load(this)
+    if (!loaded || this.pending.size) return false
+    this.#adopt(loaded)
+    return true
   }
 
   /**
@@ -229,6 +283,7 @@ export class VectorIndex {
       if (instance.orphans.has(position)) return
       instance.positionByIri.set(iri, position)
     })
+    instance.writeId = sidecar.writeId ?? null
     instance.dirty = false
     return instance
   }

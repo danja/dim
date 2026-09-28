@@ -92,4 +92,6 @@ backup/restore, deadlinks, validate).
   `docs/commands-*.md` page when behaviour or CLI flags change.
 - Commit messages: a summary line, then what changed and why.
 - The server caches facet data in memory. After a CLI tool writes to the
-  store, restart the server (or use the web UI).
+  store, restart the server (or use the web UI). Exception: the bookmark
+  index (`VectorIndex`) merges saves from several processes under a lock and
+  the server reloads it (and the bookmark texts) within a minute.

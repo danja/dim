@@ -43,6 +43,20 @@ if (relatedEvery > 0) {
   setTimeout(syncRelated, 30000)
   relatedTimer = setInterval(syncRelated, relatedEvery * 60000)
 }
+// Bookmark vectors and texts saved by the tools (bin/enrich.js --reembed,
+// bin/ingest.js) while this runs: picked up within a minute, no restart.
+const indexTimer = setInterval(async () => {
+  try {
+    if (await index.refresh()) {
+      await search.loadDocuments()
+      console.log(`[index] reloaded after a save elsewhere: ${search.documents.size} bookmarks, ${index.size} vectors`)
+    }
+  } catch (error) {
+    console.error('[index] reload failed:', error.message)
+  }
+}, 60000)
+indexTimer.unref()
+
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`)
   console.log(auth.writesEnabled
@@ -90,6 +104,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     clearInterval(pollTimer)
     clearInterval(relatedTimer)
+    clearInterval(indexTimer)
     // A bookmark embedded in the last few seconds: write the index before going.
     Promise.resolve(app.autoEnrich?.flush()).catch(() => {}).finally(() => server.close(() => process.exit(0)))
   })
