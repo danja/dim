@@ -55,6 +55,17 @@ describe('the feed inbox', () => {
     expect(await inbox.list({ status: 'dismissed' })).toHaveLength(1)
   })
 
+  it('gives up on a bookmark whose fetch never settles, and carries on', async () => {
+    const enricher = new Enricher({
+      fetchers: [{ canHandle: () => true, fetch: url => url.includes('stuck') ? new Promise(() => {}) : Promise.resolve({ url, body: 'Plenty of words about synths here.', contentType: 'text/plain', httpStatus: 200 }) }],
+      extractors: [{ canHandle: () => true, extract: async f => ({ text: f.body }) }],
+      summarisers: [{ id: 'fake', summarise: async () => ({ summary: 'Synths.', model: 'fake' }) }],
+      deadlineMs: 50
+    })
+    expect(await enricher.run({ iri: `${B}s`, graph: 'g', url: 'https://stuck.example/' })).toEqual({ status: 'failed', iri: `${B}s`, url: 'https://stuck.example/', error: 'timed out after 0s' })
+    expect((await enricher.run({ iri: `${B}f`, graph: 'g', url: 'https://fine.example/' })).status).toBe('enriched')
+  })
+
   it('is shown every page the enricher fetches', async () => {
     const seen = []
     const enricher = new Enricher({

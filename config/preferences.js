@@ -59,6 +59,9 @@ export const ENRICH_CONFIG = {
   remoteRetryCapMs: 60000,
   // LLM_PROVIDERS rotation: longest wait for one bookmark when every provider is cooling down.
   rotationMaxWaitMs: 180000,
+  // Longest one bookmark may take (fetch + summarise, including the rotation
+  // wait above); a stalled connection is then given up on, not waited for forever.
+  bookmarkDeadlineMs: 300000,
   checkpointEvery: 100
 }
 
