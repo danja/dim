@@ -1,5 +1,6 @@
 import { iri } from '../common/store/SPARQLHelper.js'
 import { slugOf } from './rdf.js'
+import { shouldPark } from './parking.js'
 
 /** Read feeds, items and flags from the store into Maps (NewsStore's cache). */
 
@@ -23,7 +24,9 @@ function feedFromRow (r) {
     lastError: r.lastError ?? null,
     httpStatus: num(r.httpStatus),
     etag: r.etag ?? null,
-    lastModified: r.lastModified ?? null
+    lastModified: r.lastModified ?? null,
+    // Feeds stored before parking existed: parked if they would be now.
+    parked: r.parked !== undefined ? truthy(r.parked) : shouldPark({ status: r.status, failures: num(r.failures) ?? 0 })
   }
 }
 

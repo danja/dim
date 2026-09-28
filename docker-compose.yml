@@ -125,6 +125,10 @@ services:
       LLM_MODEL: ${LLM_MODEL:-}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-}
       LLM_PROVIDERS: ${LLM_PROVIDERS:-}
+      # Bookmarks saved in DIM are fetched, summarised and embedded at once
+      # (AUTO_ENRICH=0: off), with this summariser: ollama | remote | extractive.
+      AUTO_ENRICH: ${AUTO_ENRICH:-}
+      ENRICH_SUMMARISER: ${ENRICH_SUMMARISER:-}
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}

@@ -34,7 +34,7 @@ export function createFareloFacet ({ store, rolls = null, rng, advisor = null })
     },
 
     async documents () {
-      return (await store.list()).filter(t => !t.isProject || t.note).map(t => ({ iri: t.iri, text: [label(t), t.note].filter(Boolean).join('\n\n') }))
+      return (await store.list()).map(t => ({ iri: t.iri, text: [label(t), t.note].filter(Boolean).join('\n\n') }))
     },
 
     async tags () {

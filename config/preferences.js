@@ -73,5 +73,11 @@ export const NEWS_CONFIG = {
   maxItemsPerPoll: 100, // newest first; a feed dumping its archive is capped
   firstPollUnreadDays: 14, // on subscribing, older items start as read
   retentionDays: 90, // prune: items first seen longer ago go, unless starred
+  parkAfterFailures: 3, // failures in a row before a feed is set aside (refused and gone: at once)
+  // Feeds found on bookmarked pages (the feed inbox; bin/feed-scan.js):
+  discoverMaxPerPage: 3, // a page's own feeds, comment feeds left out
+  discoverSkipHosts: ['github.com', 'gist.github.com', 'gitlab.com'], // every page has a feed of little interest (commits)
+  scanPagesPerHost: 3, // pages tried per site before giving up on it (stops at the first that has a feed)
+  scanMaxBytes: 512 * 1024, // feed links are in the <head>; no need for the whole page
   userAgent: 'dim-news/0.1 (+http://localhost:4110/about/crawler)'
 }

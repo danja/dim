@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import path from 'path'
 import Config from '../src/common/Config.js'
 import { createServer } from '../src/server.js'
 import Auth from '../src/common/http/auth.js'
@@ -23,7 +24,8 @@ const newsStore = app.stores.news
 console.log(`Loaded ${search.documents.size} bookmarks, ${index.size} vectors from ${index.path}`)
 console.log(`Related index: ${related.index.size} vectors (wiki, tasks, outline items, posts, recent news)`)
 
-const auth = Auth.fromEnv()
+// Sessions survive restarts (beside the indexes: the app-data volume in Docker).
+const auth = Auth.fromEnv(process.env, { sessionFile: path.join(path.dirname(index.path), 'sessions.json') })
 const server = createServer({ facets, config, projectRoot: Config.projectRoot, services: { auth, repository, links, related, topics }, logRequests: logging.requests })
 
 // Keep the related index in step: shortly after start, then every
@@ -88,6 +90,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     clearInterval(pollTimer)
     clearInterval(relatedTimer)
-    server.close(() => process.exit(0))
+    // A bookmark embedded in the last few seconds: write the index before going.
+    Promise.resolve(app.autoEnrich?.flush()).catch(() => {}).finally(() => server.close(() => process.exit(0)))
   })
 }

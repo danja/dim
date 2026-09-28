@@ -273,7 +273,16 @@ dim:FeedShape a sh:NodeShape ;
     sh:property [ sh:path dim:lastPolled ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path dim:nextPoll ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path dim:httpStatus ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 100 ; sh:maxInclusive 999 ] ;
+    sh:property [ sh:path dim:feedParked ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
     sh:property [ sh:path dim:tag ; sh:datatype xsd:string ; sh:pattern "^[^A-Z]*$" ] .
+
+dim:FeedSuggestionShape a sh:NodeShape ;
+    sh:targetClass dim:FeedSuggestion ;
+    sh:property [ sh:path dim:suggestedFeed ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "^https?://" ] ;
+    sh:property [ sh:path dim:suggestionStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "new" "dismissed" ) ] ;
+    sh:property [ sh:path dim:foundOn ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path dcterms:title ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dcterms:created ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
 
 dim:FeedItemShape a sh:NodeShape ;
     sh:targetClass dim:FeedItem ;

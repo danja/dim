@@ -15,7 +15,9 @@ node bin/news.js add https://example.org/feed.xml --tags synth,diy
 node bin/news.js import feeds.opml                        # OPML (folders become tags)
 node bin/news.js import ~/github/NewsMonitor/src/main/resources/feedlists/feedlist-2023.txt   # one URL per line
 node bin/news.js export > feeds.opml
-node bin/news.js list                                     # status, unread/total, slug, title
+node bin/news.js list                                     # status, unread/total, slug, title (* = failing, set aside)
+node bin/news.js park <slug>                              # set a feed aside: not polled
+node bin/news.js unpark <slug>                            # return it to reading (starts afresh)
 node bin/news.js remove <slug>                            # unsubscribe; deletes its items
 ```
 
@@ -29,6 +31,8 @@ node bin/news.js poll                  # every feed that is due
 node bin/news.js poll --all            # every feed, due or not
 node bin/news.js poll --feed <slug>
 node bin/news.js poll --limit 20 --quiet
+node bin/news.js poll --all --refetch  # whole feeds even if unchanged: fills in item dates earlier polls couldn't read
+node bin/news.js poll --all --include-failing   # failing feeds too
 node bin/news.js prune --days 90       # delete items first seen >90 days ago, unless starred
 ```
 
@@ -44,11 +48,47 @@ How polling behaves (`NEWS_CONFIG` in `config/preferences.js`):
 - **Politeness:** one request at a time per host with a 2 s pause, 4 hosts
   at once, and an honest user-agent.
 - **Failures:** the wait doubles after each one, up to a day, and a server's
-  `Retry-After` is respected. `410 Gone` stops polling that feed.
-  `401/403/404/451` show as **refused**.
+  `Retry-After` is respected. `401/403/404/451` show as **refused**.
+- **Failing feeds are set aside:** refused or gone at once, anything else
+  after 3 failures in a row (`parkAfterFailures`). A feed set aside isn't
+  polled (not by the server, `poll` or `poll --all`) and is listed apart on
+  **Manage feeds**. Trying it again (there, on its page, or `poll --feed`)
+  brings it back if it works; **Return to reading** gives it a fresh start.
+- **Dates:** the river is newest first by each item's own date. Timezone
+  abbreviations (BST, CEST, AEST…) are understood; an item with no date sorts
+  by when it was first seen, and one dated more than a day ahead is treated as
+  undated. A later poll fills in a date that was missing.
 - **Caps:** at most 100 items per poll, newest first, and 5 MB per fetch.
 - **New subscriptions:** items older than 14 days start as read, so a new
   feed doesn't bury the river.
+
+## Feeds found on your bookmarks (the inbox)
+
+When a bookmark is saved in DIM (Squirt, **Save as bookmark**) its page is
+fetched anyway (to check and summarise it), and if it's a web page its
+feeds go into the inbox at the top of **Manage feeds**: **Subscribe to
+ticked** (read straight away; one that doesn't work is set aside as
+failing) or **Dismiss ticked** (not suggested again). Left out: comment
+feeds, feeds you already read, and sites where every page has a feed of
+little interest (`discoverSkipHosts`: GitHub's commit feeds). One suggestion
+per feed, listing every bookmark it was on.
+
+For bookmarks you already have:
+
+```sh
+node bin/feed-scan.js --dry-run --limit 50   # what it would find; stores nothing
+node bin/feed-scan.js                        # every site not looked at yet
+node bin/feed-scan.js --limit 500            # in chunks
+node bin/feed-scan.js --rescan               # look again at pages seen before
+```
+
+It is polite and quick: sites in parallel, one page at a time per site with
+a pause, only the start of each page (`scanMaxBytes`), and at most 3 pages
+per site (`scanPagesPerHost`), stopping at the first that has a feed. Sites
+you already read or have a suggestion from are skipped, as are PDFs and
+dead links. Pages looked at are remembered in `data/cache/feed-scan.json`,
+so Ctrl-C and run again carries on. The server shows new suggestions within
+a minute. In Docker: `docker compose exec app node bin/feed-scan.js`.
 
 ## In the browser
 
@@ -56,7 +96,7 @@ How polling behaves (`NEWS_CONFIG` in `config/preferences.js`):
 |---|---|
 | `/news/` | the river: **Unread** / **For you** / **Starred** / **All**, by feed or tag; **Older →** pages back. **For you**: unread items closest to your own bookmarks, pages and tasks first (needs the related index: `node bin/related.js`) |
 | `/news/item/<id>` | one item: full text, **Read the original**, **Save as bookmark**, **Make a task**, links |
-| `/news/feeds` | subscriptions: subscribe (paste a site or feed URL), import (paste OPML or URLs), poll, export OPML |
+| `/news/admin` | **Manage feeds** (linked from the river): add a feed, import OPML or URLs, the inbox of feeds found on your bookmarks (subscribe / dismiss), and two lists — feeds being read, and failing ones set aside — with reread, set aside / return, and delete for whatever is ticked. `/news/feeds` redirects here |
 | `/news/feed/<slug>` | one feed: status, last error, next poll, settings (title, tags), its items, unsubscribe |
 | `/news/items.json?view=&feed=&tag=&before=&limit=` | the river as JSON |
 

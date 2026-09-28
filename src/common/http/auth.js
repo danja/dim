@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { randomBytes, timingSafeEqual, createHash } from 'crypto'
 
 /**
@@ -7,8 +8,13 @@ import { randomBytes, timingSafeEqual, createHash } from 'crypto'
  *   - Scripts: `Authorization: Bearer <token>`, or HTTP Basic with the token
  *     as the password (any user name).
  *   - Browser: POST /login with the token sets a session cookie (HttpOnly,
- *     SameSite=Strict). Every form then carries a per-session CSRF token,
- *     checked on each write — the cookie alone never authorises one.
+ *     SameSite=Lax, so opening DIM from another app keeps you logged in).
+ *     Every form then carries a per-session CSRF token, checked on each
+ *     write — the cookie alone never authorises one.
+ *
+ * Sessions can be kept in a file (sessionFile) so a restart doesn't log
+ * every device out. It holds hashes of the session ids, never the ids, and
+ * is ignored once DIM_WRITE_TOKEN changes.
  *
  * With no DIM_WRITE_TOKEN, writes are disabled (every write answers 403 and
  * says why) rather than open.
@@ -50,7 +56,7 @@ export class Auth {
    * for anything beyond localhost). secureCookie: the session cookie is
    * https-only (set when DIM_ORIGIN is https).
    */
-  constructor ({ token = null, now = () => Date.now(), secureCookie = false, privateReads = false } = {}) {
+  constructor ({ token = null, now = () => Date.now(), secureCookie = false, privateReads = false, sessionFile = null } = {}) {
     if (token && token.length < MIN_TOKEN_LENGTH) {
       throw new Error(`DIM_WRITE_TOKEN must be at least ${MIN_TOKEN_LENGTH} characters`)
     }
@@ -59,15 +65,42 @@ export class Auth {
     this.now = now
     this.secureCookie = secureCookie
     this.privateReads = privateReads
-    this.sessions = new Map()
+    this.sessionFile = sessionFile
+    this.sessions = this.#load() // hash of session id → { csrf, expires }
   }
 
-  static fromEnv (env = process.env) {
+  static fromEnv (env = process.env, { sessionFile = null } = {}) {
     return new Auth({
       token: env.DIM_WRITE_TOKEN || null,
       secureCookie: /^https:/i.test(env.DIM_ORIGIN ?? ''),
-      privateReads: /^(1|true|yes)$/i.test(env.DIM_PRIVATE ?? '')
+      privateReads: /^(1|true|yes)$/i.test(env.DIM_PRIVATE ?? ''),
+      sessionFile
     })
+  }
+
+  get #tokenDigest () {
+    return this.token ? digest(`sessions:${this.token}`).toString('hex') : null
+  }
+
+  #load () {
+    if (!this.sessionFile) return new Map()
+    try {
+      const saved = JSON.parse(fs.readFileSync(this.sessionFile, 'utf8'))
+      if (saved.token !== this.#tokenDigest) return new Map() // a new token logs everyone out
+      return new Map(Object.entries(saved.sessions ?? {}).filter(([, s]) => s.expires > this.now()))
+    } catch {
+      return new Map()
+    }
+  }
+
+  #save () {
+    if (!this.sessionFile) return
+    try {
+      const sessions = Object.fromEntries([...this.sessions].filter(([, s]) => s.expires > this.now()))
+      fs.writeFileSync(this.sessionFile, JSON.stringify({ token: this.#tokenDigest, sessions }), { mode: 0o600 })
+    } catch (error) {
+      console.error(`[auth] could not save sessions to ${this.sessionFile}: ${error.message}`)
+    }
   }
 
   get writesEnabled () {
@@ -94,11 +127,15 @@ export class Auth {
       return this.verify(password) ? { user: 'owner', via: 'basic', csrf: null } : { user: null, via: null, csrf: null }
     }
     const id = parseCookies(request.headers.cookie)[SESSION_COOKIE]
-    const session = id ? this.sessions.get(id) : null
+    const key = id ? digest(id).toString('hex') : null
+    const session = key ? this.sessions.get(key) : null
     if (session && session.expires > this.now() && this.writesEnabled) {
       return { user: 'owner', via: 'session', csrf: session.csrf }
     }
-    if (session) this.sessions.delete(id)
+    if (session) {
+      this.sessions.delete(key)
+      this.#save()
+    }
     return { user: null, via: null, csrf: null }
   }
 
@@ -125,18 +162,19 @@ export class Auth {
   /** Start a browser session. → Set-Cookie header value. */
   login () {
     const id = randomBytes(32).toString('base64url')
-    this.sessions.set(id, { csrf: randomBytes(24).toString('base64url'), expires: this.now() + SESSION_TTL_MS })
+    this.sessions.set(digest(id).toString('hex'), { csrf: randomBytes(24).toString('base64url'), expires: this.now() + SESSION_TTL_MS })
+    this.#save()
     return this.#cookie(id, Math.floor(SESSION_TTL_MS / 1000))
   }
 
   logout (request) {
     const id = parseCookies(request.headers.cookie)[SESSION_COOKIE]
-    if (id) this.sessions.delete(id)
+    if (id && this.sessions.delete(digest(id).toString('hex'))) this.#save()
     return this.#cookie('', 0)
   }
 
   #cookie (value, maxAge) {
-    return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${this.secureCookie ? '; Secure' : ''}`
+    return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${this.secureCookie ? '; Secure' : ''}`
   }
 }
 

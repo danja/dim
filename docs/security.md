@@ -9,9 +9,12 @@ and what remains.
 
 - **One owner.** `DIM_WRITE_TOKEN` (16+ characters) is the credential,
   sent as a Bearer token or Basic password, or exchanged at `/login` for a
-  session cookie. Cookies are `HttpOnly`, `SameSite=Strict`, and
-  `Secure` when `DIM_ORIGIN` is https. Sessions last 30 days and are held
-  in memory, so a restart logs everyone out.
+  session cookie. Cookies are `HttpOnly`, `SameSite=Lax` (sent when you
+  open DIM from another app or site, never on another site's requests or
+  form posts), and `Secure` when `DIM_ORIGIN` is https. Sessions last 30
+  days and survive restarts: `data/sessions.json` (mode 600) holds hashes of
+  the session ids, not the ids, and is ignored once `DIM_WRITE_TOKEN`
+  changes, so changing the token logs every device out. It isn't backed up.
 - **Writes** always need the owner. A session must also send the form's
   CSRF token (`_csrf` or `X-CSRF-Token`); the cookie alone never authorises
   a write. Bearer/Basic callers need no CSRF token: a browser can't send

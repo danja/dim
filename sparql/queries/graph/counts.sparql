@@ -1,0 +1,4 @@
+# Triples in each named graph (for checking a backup against the store).
+SELECT ?g (COUNT(*) AS ?n)
+WHERE { GRAPH ?g { ?s ?p ?o } }
+GROUP BY ?g

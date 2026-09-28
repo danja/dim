@@ -100,4 +100,34 @@ describe('news routes', () => {
     expect((await fetch(`${base}/find.json?q=vco`).then(r => r.json())).groups.find(g => g.facet === 'news').results[0].href).toBe(`/news/item/${item.id}`)
     expect((await fetch(`${base}/health`).then(r => r.json())).facets.news).toMatchObject({ feeds: 2, items: 3 })
   })
+
+  it('manages feeds on the admin page: two lists, and actions on what is ticked', async () => {
+    const { base, store } = await listen()
+    await post(base, '/news/feeds', { url: 'https://example.org/feed/' })
+    await post(base, '/news/feeds/import', { list: 'https://other.example/rss\nhttps://third.example/rss' })
+    const byUrl = url => store.feedList().then(list => list.find(f => f.url === url))
+    const [a, b, c] = [await byUrl('https://example.org/feed/'), await byUrl('https://other.example/rss'), await byUrl('https://third.example/rss')]
+    await store.recordPoll(b, { status: 'refused', lastError: 'HTTP 403', failures: 1, parked: true })
+
+    const redirected = await fetch(`${base}/news/feeds?notice=hi`, { redirect: 'manual' })
+    expect([redirected.status, redirected.headers.get('location')]).toEqual([301, '/news/admin?notice=hi'])
+    const page = await (await fetch(`${base}/news/admin`, { headers: { Authorization: `Bearer ${TOKEN}` } })).text()
+    expect(page).toContain('Being read (2)')
+    expect(page).toContain('Failing, set aside (1)')
+    expect(page).toContain('HTTP 403')
+    expect(page).toContain(`name="slugs" value="${b.slug}"`)
+    expect(await (await fetch(`${base}/news/`)).text()).toContain('Manage feeds (3, 1 failing)')
+    // Strangers see the lists, without the ticks and buttons.
+    expect(await (await fetch(`${base}/news/admin`)).text()).not.toContain('name="slugs"')
+
+    expect((await post(base, '/news/admin', { action: 'park', slugs: [c.slug] })).json.notice).toBe('Set aside: 1 feed.')
+    expect(c.parked).toBe(true)
+    expect((await post(base, '/news/admin', { action: 'unpark', slugs: [b.slug, c.slug] })).json.notice).toBe('Returned to reading: 2 feeds.')
+    expect([b.parked, c.parked]).toEqual([false, false])
+    expect((await post(base, '/news/admin', { action: 'reread', slugs: [] })).json.notice).toBe('Nothing ticked.')
+    expect((await post(base, '/news/admin', { action: 'reread', slugs: a.slug })).json.notice).toBe('Rereading 1 feed in the background.')
+    expect((await post(base, '/news/admin', { action: 'delete', slugs: [b.slug, c.slug] })).json.notice).toBe('Deleted 2 feeds and 0 items.')
+    expect((await store.feedList()).map(f => f.slug)).toEqual([a.slug])
+    expect((await post(base, '/news/admin', { action: 'explode', slugs: [a.slug] })).status).toBe(400)
+  })
 })

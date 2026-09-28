@@ -1,3 +1,6 @@
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { describe, it, expect } from 'vitest'
 import { Readable } from 'stream'
 import Auth, { safeEqual, parseCookies, SESSION_COOKIE } from '../../../src/common/http/auth.js'
@@ -34,7 +37,7 @@ describe('Auth', () => {
   it('sessions need the CSRF token for every write', () => {
     const auth = new Auth({ token: TOKEN })
     const cookie = auth.login()
-    expect(cookie).toMatch(/HttpOnly; SameSite=Strict/)
+    expect(cookie).toMatch(/HttpOnly; SameSite=Lax/)
     const id = cookie.split(';')[0].split('=')[1]
     const request = req({ cookie: `${SESSION_COOKIE}=${id}` })
     const { csrf } = auth.identify(request)
@@ -85,5 +88,28 @@ describe('request bodies', () => {
     const auth = new Auth({ token: 'test-token-0123456789abcdef' })
     expect(parseCookies('other=%E0%A4%A; dim_session=abc')).toEqual({ dim_session: 'abc' })
     expect(auth.identify({ headers: { cookie: 'other=%E0%A4%A' } })).toMatchObject({ user: null })
+  })
+
+  it('keeps sessions across restarts in a file of hashes, until the token changes', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dim-auth-'))
+    const sessionFile = path.join(dir, 'sessions.json')
+    const first = new Auth({ token: TOKEN, sessionFile })
+    const id = first.login().split(';')[0].split('=')[1]
+    const request = req({ cookie: `${SESSION_COOKIE}=${id}` })
+    const { csrf } = first.identify(request)
+    expect(fs.readFileSync(sessionFile, 'utf8')).not.toContain(id)
+    expect(fs.statSync(sessionFile).mode & 0o777).toBe(0o600)
+
+    const restarted = new Auth({ token: TOKEN, sessionFile })
+    expect(restarted.identify(request)).toMatchObject({ user: 'owner', via: 'session', csrf })
+    restarted.logout(request)
+    expect(new Auth({ token: TOKEN, sessionFile }).identify(request).user).toBeNull()
+
+    new Auth({ token: TOKEN, sessionFile }).login()
+    const id2 = JSON.parse(fs.readFileSync(sessionFile, 'utf8'))
+    expect(Object.keys(id2.sessions)).toHaveLength(1)
+    expect(new Auth({ token: `${TOKEN}-changed`, sessionFile }).sessions.size).toBe(0) // a new token: nobody
+    const later = new Auth({ token: TOKEN, sessionFile, now: () => Date.now() + 31 * 86400000 })
+    expect(later.sessions.size).toBe(0) // expired
   })
 })

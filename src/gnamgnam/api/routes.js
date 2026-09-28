@@ -35,7 +35,7 @@ function pageSize (params, fallback) {
   return Math.min(Number(params.get('limit')) || fallback, RETRIEVAL_CONFIG.maxPageSize)
 }
 
-export function registerRoutes (router, { search, tabs, services, registry, origin }) {
+export function registerRoutes (router, { search, autoEnrich = null, tabs, services, registry, origin }) {
   router.get(BASE_PATH, async ({ response, url, started, session }) => {
     const q = url.searchParams.get('q')
     const facets = facetParams(url.searchParams)
@@ -101,7 +101,7 @@ export function registerRoutes (router, { search, tabs, services, registry, orig
       const alsoHere = (await registry.aboutDomain(host)).filter(a => a.facet !== 'gnamgnam')
       const site = { alsoHere, offerFeed: registry.get('news')?.aboutDomain ? originOf(doc.url) : null }
       const source = doc.source && !doc.source.startsWith('file:') ? await registry.lookup(doc.source) : null
-      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, links, related: await relatedFor({ services, registry }, bookmarkIri, [doc.name, doc.summary ?? doc.description].filter(Boolean).join('\n\n')), site, source }))
+      return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, enriching: autoEnrich?.status(bookmarkIri) ?? null, links, related: await relatedFor({ services, registry }, bookmarkIri, [doc.name, doc.summary ?? doc.description].filter(Boolean).join('\n\n')), site, source }))
     }
     return send(response, 200, { ...doc, data: bookmarkDataUrl(doc), licence: LICENCE })
   })

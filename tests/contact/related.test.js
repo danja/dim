@@ -75,12 +75,38 @@ describe('RelatedIndex', () => {
   it('stays quiet when embeddings are down', async () => {
     const down = wordEmbeddings({ failing: true })
     const r = await relatedIndex({ embeddings: down })
-    const docs = Array.from({ length: 10 }, (_, i) => ({ iri: `${P}page/p${i}`, text: `page ${i} words` }))
-    expect(await r.sync([facet('wiki', docs)])).toMatchObject({ embedded: 0, failed: 3, stopped: true })
+    const docs = Array.from({ length: 60 }, (_, i) => ({ iri: `${P}page/p${i}`, text: `page ${i} words` }))
+    expect(await r.sync([facet('wiki', docs)])).toMatchObject({ embedded: 0, failed: 48, stopped: true }) // three batches of 16
     expect(await r.related(`${P}page/x`, 'anything')).toEqual([])
     const calls = down.calls
     expect(await r.related(`${P}page/y`, 'something else')).toEqual([])
     expect(down.calls).toBe(calls) // not retried within five minutes
+  })
+})
+
+describe('RelatedIndex sync between processes', () => {
+  it('embeds in batches when it can, and picks up what another process saved', async () => {
+    const words = wordEmbeddings()
+    const batches = []
+    const batching = { embed: t => words.embed(t), embedBatch: async texts => { batches.push(texts.length); return Promise.all(texts.map(t => words.embed(t))) } }
+    const docs = Array.from({ length: 20 }, (_, i) => ({ iri: `${P}page/b${i}`, text: `page ${i} about modular synths` }))
+    const first = await relatedIndex({ embeddings: batching })
+    let started = null
+    expect(await first.sync([facet('wiki', docs)], { onStart: t => { started = t } })).toMatchObject({ embedded: 20 })
+    expect(started).toEqual({ todo: 20, unchanged: 0, removed: 0 })
+    expect(batches).toEqual([16, 4])
+    // A second process opened the same files before the first one synced.
+    const second = await new RelatedIndex({ index: await VectorIndex.open({ dimension: DIM, path: first.index.path, model: MODEL }), embeddings: words, statePath: first.statePath })
+    expect(await second.sync([facet('wiki', docs)])).toMatchObject({ embedded: 0, unchanged: 20 })
+  })
+
+  it('stands aside while another live process holds the lock', async () => {
+    const r = await relatedIndex()
+    fs.writeFileSync(`${r.statePath}.lock`, String(process.ppid))
+    expect(await r.sync([facet('wiki', [{ iri: `${P}page/l`, text: 'locked out' }])])).toMatchObject({ busy: true, embedded: 0 })
+    fs.writeFileSync(`${r.statePath}.lock`, '999999999') // a dead process
+    expect(await r.sync([facet('wiki', [{ iri: `${P}page/l`, text: 'locked out' }])])).toMatchObject({ embedded: 1 })
+    expect(fs.existsSync(`${r.statePath}.lock`)).toBe(false)
   })
 })
 

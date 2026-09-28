@@ -2,6 +2,7 @@ import logger from 'loglevel'
 import { NEWS_CONFIG } from '../../config/preferences.js'
 import { readCapped, statusCode } from '../common/http/fetch.js'
 import { parseFeed } from './formats/feed.js'
+import { shouldPark } from './parking.js'
 
 /**
  * Polls feeds politely: conditional GET (ETag / Last-Modified), an honest
@@ -29,19 +30,24 @@ export class Poller {
   }
 
   isDue (feed) {
-    return feed.status !== 'gone' && (!feed.nextPoll || feed.nextPoll <= this.now().toISOString())
+    return !feed.parked && feed.status !== 'gone' && (!feed.nextPoll || feed.nextPoll <= this.now().toISOString())
   }
 
-  /** One feed, now. → { status, fresh, error? } */
-  async pollFeed (feed) {
+  /**
+   * One feed, now. refetch: ask for the whole feed even if unchanged (to
+   * fill in what earlier polls missed). → { status, fresh, error? }
+   */
+  async pollFeed (feed, { refetch = false } = {}) {
     const at = this.now().toISOString()
     const headers = { 'User-Agent': this.config.userAgent, Accept: ACCEPT }
-    if (feed.etag) headers['If-None-Match'] = feed.etag
-    if (feed.lastModified) headers['If-Modified-Since'] = feed.lastModified
+    if (feed.etag && !refetch) headers['If-None-Match'] = feed.etag
+    if (feed.lastModified && !refetch) headers['If-Modified-Since'] = feed.lastModified
     const fail = async (status, message, httpStatus = null, retryAfter = null) => {
       const failures = (feed.failures ?? 0) + 1
-      await this.store.recordPoll(feed, { status, lastError: message, httpStatus, lastPolled: at, failures, nextPoll: status === 'gone' ? null : this.nextPoll(failures, retryAfter) })
-      return { status, fresh: 0, error: message }
+      const parked = Boolean(feed.parked) || shouldPark({ status, failures }, this.config.parkAfterFailures)
+      const newlyParked = parked && !feed.parked
+      await this.store.recordPoll(feed, { status, lastError: message, httpStatus, lastPolled: at, failures, parked, nextPoll: status === 'gone' ? null : this.nextPoll(failures, retryAfter) })
+      return { status, fresh: 0, error: message, ...(newlyParked ? { parked: true } : {}) }
     }
 
     let response
@@ -52,7 +58,7 @@ export class Poller {
     }
     const code = statusCode(response.status)
     if (code === 304) {
-      await this.store.recordPoll(feed, { status: 'not-modified', lastError: null, httpStatus: 304, lastPolled: at, failures: 0, nextPoll: this.nextPoll(0) })
+      await this.store.recordPoll(feed, { status: 'not-modified', lastError: null, httpStatus: 304, lastPolled: at, failures: 0, parked: false, nextPoll: this.nextPoll(0) })
       return { status: 'not-modified', fresh: 0 }
     }
     if (code === 410) return fail('gone', 'HTTP 410: the feed has been removed', 410)
@@ -96,25 +102,27 @@ export class Poller {
       lastError: null,
       lastPolled: at,
       failures: 0,
+      parked: false,
       nextPoll: this.nextPoll(0)
     })
     return { status: 'ok', fresh: fresh.length }
   }
 
   /**
-   * Every due feed (or `feeds`, or all with force). Hosts in parallel, each
+   * Every due feed; with force, every feed due or not. Parked feeds are left
+   * out of both, but polled when named in `feeds`. Hosts in parallel, each
    * host's feeds one after another. Only one run at a time; a second call
    * while one runs gets the running one.
    */
-  pollDue ({ feeds = null, force = false, limit = Infinity, onResult = null } = {}) {
+  pollDue ({ feeds = null, force = false, refetch = false, limit = Infinity, onResult = null } = {}) {
     if (this.running) return this.running
-    this.running = this.#run({ feeds, force, limit, onResult }).finally(() => { this.running = null })
+    this.running = this.#run({ feeds, force, refetch, limit, onResult }).finally(() => { this.running = null })
     return this.running
   }
 
-  async #run ({ feeds, force, limit, onResult }) {
+  async #run ({ feeds, force, refetch, limit, onResult }) {
     const all = feeds ?? await this.store.feedList()
-    const due = all.filter(f => force || this.isDue(f)).slice(0, limit)
+    const due = (feeds ? all : all.filter(f => !f.parked && (force || this.isDue(f)))).slice(0, limit)
     const byHost = new Map()
     for (const feed of due) {
       let host = 'unknown'
@@ -123,14 +131,14 @@ export class Poller {
       byHost.get(host).push(feed)
     }
     const queue = [...byHost.values()]
-    const totals = { polled: 0, fresh: 0, ok: 0, 'not-modified': 0, error: 0, refused: 0, gone: 0 }
+    const totals = { polled: 0, fresh: 0, ok: 0, 'not-modified': 0, error: 0, refused: 0, gone: 0, parked: 0 }
     const worker = async () => {
       for (let group = queue.shift(); group; group = queue.shift()) {
         for (const [i, feed] of group.entries()) {
           if (i > 0) await this.sleep(this.config.perHostIntervalMs)
           let result
           try {
-            result = await this.pollFeed(feed)
+            result = await this.pollFeed(feed, { refetch })
           } catch (error) {
             logger.error(`[news] ${feed.url}:`, error)
             result = { status: 'error', fresh: 0, error: error.message }
@@ -138,6 +146,7 @@ export class Poller {
           totals.polled++
           totals.fresh += result.fresh
           totals[result.status]++
+          if (result.parked) totals.parked++
           onResult?.(feed, result)
         }
       }

@@ -1,5 +1,5 @@
 # Every feed with its subscription details and last poll, one row each.
-SELECT ?feed ?url ?title ?siteUrl ?created ?format ?status ?lastPolled ?nextPoll ?failures ?lastError ?httpStatus ?etag ?lastModified
+SELECT ?feed ?url ?title ?siteUrl ?created ?format ?status ?lastPolled ?nextPoll ?failures ?lastError ?httpStatus ?etag ?lastModified ?parked
        (GROUP_CONCAT(DISTINCT ?tag; separator=", ") AS ?tags)
 WHERE {
   GRAPH ${graph} {
@@ -15,7 +15,8 @@ WHERE {
     OPTIONAL { ?feed dim:httpStatus ?httpStatus }
     OPTIONAL { ?feed dim:etag ?etag }
     OPTIONAL { ?feed dim:lastModifiedHeader ?lastModified }
+    OPTIONAL { ?feed dim:feedParked ?parked }
     OPTIONAL { ?feed dim:tag ?tag }
   }
 }
-GROUP BY ?feed ?url ?title ?siteUrl ?created ?format ?status ?lastPolled ?nextPoll ?failures ?lastError ?httpStatus ?etag ?lastModified
+GROUP BY ?feed ?url ?title ?siteUrl ?created ?format ?status ?lastPolled ?nextPoll ?failures ?lastError ?httpStatus ?etag ?lastModified ?parked

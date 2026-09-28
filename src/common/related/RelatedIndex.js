@@ -1,6 +1,8 @@
 import fs from 'fs'
 import logger from 'loglevel'
 import { textHash } from '../embeddings/EmbeddingService.js'
+import VectorIndex from '../vectors/VectorIndex.js'
+import { takeLock } from './syncLock.js'
 
 /**
  * Meaning shared across facets. Wiki pages, tasks, outline items, blog posts
@@ -12,9 +14,11 @@ import { textHash } from '../embeddings/EmbeddingService.js'
  * sync() embeds what is new or changed (by a hash of the text) and forgets
  * what has gone; a state file keeps the hashes, the owning facet and, for
  * news items, an interest score (how close the item is to your own things).
+ * A lock file beside the state keeps two processes from syncing at once.
  */
 
 const MAX_TEXT = 2000
+const BATCH = 16
 
 export class RelatedIndex {
   constructor ({ index, bookmarks = null, embeddings, statePath, minScore = 0.55 }) {
@@ -28,16 +32,27 @@ export class RelatedIndex {
     try {
       const saved = JSON.parse(await fs.promises.readFile(this.statePath, 'utf8'))
       this.state = new Map(Object.entries(saved.entries ?? {}))
+      this.savedAt = saved.savedAt
     } catch {
       this.state = new Map()
     }
     return this
   }
 
+  /** Pick up what another process saved since we loaded, rather than redo it. */
+  async #catchUp () {
+    const savedAt = await fs.promises.readFile(this.statePath, 'utf8').then(t => JSON.parse(t).savedAt, () => undefined)
+    if (!savedAt || savedAt === this.savedAt) return
+    const { dimension, path, model } = this.index
+    this.index = await VectorIndex.open({ dimension, path, model })
+    await this.load()
+  }
+
   async #save () {
     this.index.compact()
     await this.index.save()
-    await fs.promises.writeFile(this.statePath, JSON.stringify({ savedAt: new Date().toISOString(), entries: Object.fromEntries(this.state) }))
+    this.savedAt = new Date().toISOString()
+    await fs.promises.writeFile(this.statePath, JSON.stringify({ savedAt: this.savedAt, entries: Object.fromEntries(this.state) }))
   }
 
   /** A text's vector, or null when there's no text or embeddings are down (retried after 5 min). */
@@ -76,6 +91,12 @@ export class RelatedIndex {
     return vector ? this.nearest(vector, { ...options, exclude: new Set([iri]) }) : []
   }
 
+  /** What a query means, across both indexes (src/common/search/everything.js). → [{ iri, score }] */
+  async search (text, options = {}) {
+    const vector = await this.vectorFor(text)
+    return vector ? this.nearest(vector, options) : []
+  }
+
   /** How close a news item is to your own things (0–1), if known. */
   interest (iri) {
     return this.state.get(iri)?.interest ?? null
@@ -87,11 +108,22 @@ export class RelatedIndex {
    */
   sync (facets, options = {}) {
     if (this.running) return this.running
-    this.running = this.#sync(facets, options).finally(() => { this.running = null })
+    this.running = this.#locked(facets, options).finally(() => { this.running = null })
     return this.running
   }
 
-  async #sync (facets, { limit = Infinity, onProgress = null } = {}) {
+  async #locked (facets, options) {
+    const release = await takeLock(`${this.statePath}.lock`)
+    if (!release) return { embedded: 0, removed: 0, unchanged: 0, failed: 0, stopped: false, busy: true }
+    try {
+      await this.#catchUp()
+      return await this.#sync(facets, options)
+    } finally {
+      await release()
+    }
+  }
+
+  async #sync (facets, { limit = Infinity, onProgress = null, onStart = null } = {}) {
     const totals = { embedded: 0, removed: 0, unchanged: 0, failed: 0, stopped: false }
     const live = new Set()
     const todo = []
@@ -115,14 +147,18 @@ export class RelatedIndex {
     }
     // Your own things first, so news interest can be measured against them.
     todo.sort((a, b) => (a.facet === 'news') - (b.facet === 'news'))
+    const work = todo.slice(0, limit)
+    onStart?.({ todo: work.length, unchanged: totals.unchanged, removed: totals.removed })
     let failuresInARow = 0
-    for (const item of todo.slice(0, limit)) {
-      let vector
+    let sinceSave = 0
+    for (let at = 0; at < work.length; at += BATCH) {
+      const batch = work.slice(at, at + BATCH)
+      let vectors
       try {
-        vector = await this.embeddings.embed(item.text)
+        vectors = await this.#embedAll(batch.map(item => item.text))
         failuresInARow = 0
       } catch (error) {
-        totals.failed++
+        totals.failed += batch.length
         if (++failuresInARow >= 3) {
           logger.warn(`[related] embedding unavailable (${error.message}); stopping this run`)
           totals.stopped = true
@@ -130,16 +166,29 @@ export class RelatedIndex {
         }
         continue
       }
-      this.index.add(item.iri, vector)
-      const entry = { hash: item.hash, facet: item.facet }
-      if (item.facet === 'news') entry.interest = Math.round((this.nearest(vector, { k: 1, minScore: 0, skipFacet: 'news', exclude: new Set([item.iri]) })[0]?.score ?? 0) * 1000) / 1000
-      this.state.set(item.iri, entry)
-      totals.embedded++
+      batch.forEach((item, i) => this.#store(item, vectors[i]))
+      totals.embedded += batch.length
+      sinceSave += batch.length
       onProgress?.(totals)
-      if (totals.embedded % 200 === 0) await this.#save()
+      if (sinceSave >= 200) {
+        sinceSave = 0
+        await this.#save()
+      }
     }
     if (totals.embedded || totals.removed) await this.#save()
     return totals
+  }
+
+  #embedAll (texts) {
+    if (typeof this.embeddings.embedBatch === 'function') return this.embeddings.embedBatch(texts)
+    return Promise.all(texts.map(text => this.embeddings.embed(text)))
+  }
+
+  #store (item, vector) {
+    this.index.add(item.iri, vector)
+    const entry = { hash: item.hash, facet: item.facet }
+    if (item.facet === 'news') entry.interest = Math.round((this.nearest(vector, { k: 1, minScore: 0, skipFacet: 'news', exclude: new Set([item.iri]) })[0]?.score ?? 0) * 1000) / 1000
+    this.state.set(item.iri, entry)
   }
 }
 

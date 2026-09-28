@@ -49,6 +49,25 @@ export class OllamaEmbeddingProvider {
     return body.embedding
   }
 
+  /** Several texts in one request (Ollama /api/embed). → vectors, in order */
+  async embedBatch (texts) {
+    const response = await fetch(`${this.baseUrl}/api/embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: this.model, input: texts }),
+      signal: AbortSignal.timeout(EMBEDDING_CONFIG.requestTimeoutMs * texts.length)
+    })
+    if (!response.ok) {
+      const detail = await response.text()
+      throw new EmbeddingError(`Ollama returned HTTP ${response.status}: ${detail}`)
+    }
+    const body = await response.json()
+    if (!Array.isArray(body.embeddings) || body.embeddings.length !== texts.length) {
+      throw new EmbeddingError('Ollama batch response did not hold one embedding per text')
+    }
+    return body.embeddings
+  }
+
   async isAvailable () {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`, {
@@ -100,6 +119,27 @@ export class EmbeddingService {
       `Embedding failed after ${EMBEDDING_CONFIG.maxRetries} attempts: ${lastError?.message}`,
       { cause: lastError }
     )
+  }
+
+  /**
+   * Embed several texts at once; falls back to one at a time if the batch
+   * endpoint fails (older Ollama). → vectors, in order
+   */
+  async embedBatch (texts) {
+    if (!this.batchUnsupported) {
+      try {
+        const vectors = await this.provider.embedBatch(texts)
+        for (const v of vectors) VectorOperations.validate(v, this.dimension)
+        return vectors
+      } catch (error) {
+        if (error.type === 'DIMENSION_ERROR') throw error
+        logger.warn(`[embedding] batch failed (${error.message}); embedding one at a time`)
+        if (/HTTP 404/.test(error.message)) this.batchUnsupported = true
+      }
+    }
+    const vectors = []
+    for (const text of texts) vectors.push(await this.embed(text))
+    return vectors
   }
 
   /** Embed composed text and return the vector with its bookkeeping. */

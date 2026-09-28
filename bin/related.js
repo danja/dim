@@ -13,9 +13,12 @@ import { buildApp } from '../src/app.js'
  *   node bin/related.js --limit 500      at most 500 embeddings this run
  *   node bin/related.js --status         counts only
  *
- * The first run embeds everything (the outline alone can be thousands of
- * items: minutes on a CPU). Stop the server first, or restart it after, so
- * it sees the new index.
+ * The first run embeds everything: the outline alone can be thousands of
+ * items, and on a CPU nomic-embed-text takes around a second per item or
+ * more (texts are sent in batches of 16). Progress is saved every 200, so
+ * it's safe to stop with Ctrl-C and run again (or use --limit). A lock file
+ * keeps this and the server's own sync from running at once; the server
+ * picks up what this saved at its next sync.
  */
 
 logger.setLevel('warn')
@@ -41,15 +44,26 @@ if (!(await embeddings.provider.isAvailable())) {
   process.exit(1)
 }
 const started = Date.now()
+let total = 0
 let last = 0
+const minutes = s => s < 90 ? `${Math.round(s)}s` : `${Math.round(s / 60)} min`
 const totals = await related.sync(facets, {
   limit,
+  onStart: t => {
+    total = t.todo
+    console.log(`${t.todo} to embed, ${t.unchanged} unchanged, ${t.removed} removed.`)
+  },
   onProgress: t => {
-    if (t.embedded - last >= 100) {
-      last = t.embedded
-      console.log(`  ${t.embedded} embedded (${((Date.now() - started) / 1000).toFixed(0)}s)`)
-    }
+    if (t.embedded - last < 100 && t.embedded < total) return
+    last = t.embedded
+    const took = (Date.now() - started) / 1000
+    const left = (total - t.embedded) * took / t.embedded
+    console.log(`  ${t.embedded}/${total} embedded (${minutes(took)}; ~${minutes(left)} left, ${(took / t.embedded).toFixed(2)}s each)`)
   }
 })
-console.log(`Done in ${((Date.now() - started) / 1000).toFixed(1)}s: ${JSON.stringify(totals)}`)
+if (totals.busy) {
+  console.error('Another process (probably the server) is syncing the related index now; try again when it has finished, or run the server with RELATED_SYNC_MINUTES=0.')
+  process.exit(1)
+}
+console.log(`Done in ${minutes((Date.now() - started) / 1000)}: ${JSON.stringify(totals)}`)
 process.exit(0)

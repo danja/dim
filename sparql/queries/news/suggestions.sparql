@@ -1,0 +1,13 @@
+# Feeds found on bookmarked pages (the feed inbox), with where they were found.
+SELECT ?suggestion ?feed ?title ?foundOn ?created ?status
+       (GROUP_CONCAT(DISTINCT STR(?source); separator=" ") AS ?sources)
+WHERE {
+  GRAPH ${graph} {
+    ?suggestion a dim:FeedSuggestion ; dim:suggestedFeed ?feed ; dim:suggestionStatus ?status .
+    OPTIONAL { ?suggestion dcterms:title ?title }
+    OPTIONAL { ?suggestion dim:foundOn ?foundOn }
+    OPTIONAL { ?suggestion dcterms:created ?created }
+    OPTIONAL { ?suggestion dcterms:source ?source }
+  }
+}
+GROUP BY ?suggestion ?feed ?title ?foundOn ?created ?status

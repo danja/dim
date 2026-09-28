@@ -33,6 +33,7 @@ export const P = Object.freeze({
   httpStatus: dim + 'httpStatus',
   etag: dim + 'etag',
   lastModified: dim + 'lastModifiedHeader',
+  parked: dim + 'feedParked',
   inFeed: dim + 'inFeed',
   guid: dim + 'guid',
   category: dim + 'category',
@@ -43,7 +44,7 @@ export const C = Object.freeze({ Feed: dim + 'Feed', FeedItem: dim + 'FeedItem' 
 
 /** What a subscription edit owns, and what a poll owns, on a feed. */
 export const FEED_PREDICATES = Object.freeze([P.type, P.feedUrl, P.title, P.siteUrl, P.tag, P.created])
-export const POLL_PREDICATES = Object.freeze([P.feedFormat, P.pollStatus, P.lastPolled, P.nextPoll, P.pollFailures, P.lastError, P.httpStatus, P.etag, P.lastModified])
+export const POLL_PREDICATES = Object.freeze([P.feedFormat, P.pollStatus, P.lastPolled, P.nextPoll, P.pollFailures, P.lastError, P.httpStatus, P.etag, P.lastModified, P.parked])
 
 export function feedSlug (url) {
   let label = 'feed'
@@ -85,6 +86,7 @@ export function pollTriples (feed) {
   add(P.httpStatus, Number.isInteger(feed.httpStatus) && feed.httpStatus >= 100 && feed.httpStatus <= 999 ? typedLiteral(feed.httpStatus) : null)
   add(P.etag, feed.etag ? literal(feed.etag) : null)
   add(P.lastModified, feed.lastModified ? literal(feed.lastModified) : null)
+  add(P.parked, typeof feed.parked === 'boolean' ? typedLiteral(feed.parked) : null)
   return t
 }
 

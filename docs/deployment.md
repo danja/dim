@@ -121,6 +121,82 @@ Validate every registered graph against `vocabs/shapes.ttl`:
 docker compose run --rm app node bin/validate.js
 ```
 
+## Indexing and the feed finder
+
+Most of this happens by itself once the app is running:
+
+| When | What happens | Setting |
+|---|---|---|
+| A bookmark is saved in DIM (Squirt capture or share, News **Save as bookmark**) | Its page is fetched (the link check), summarised and embedded in the background; if it's a web page, the feeds it offers go into the feed inbox on **Manage feeds** | `ENRICH_SUMMARISER`, `AUTO_ENRICH` |
+| Every `RELATED_SYNC_MINUTES` (30) | New and changed wiki pages, posts, tasks, outline items and news items are embedded into the related index, which serves **Find**, Related panels and News **For you** | `RELATED_SYNC_MINUTES` |
+| Every `NEWS_POLL_MINUTES` | Due feeds are polled; failing ones are set aside | `NEWS_POLL_MINUTES` |
+
+By hand, after a first install, an upgrade that widens what is indexed, or
+a large import. Use `docker compose exec` (not `run`) so the tool runs
+alongside the server in the same container:
+
+```sh
+# Everything not yet in the related index. The first run is long on a CPU
+# (about 1–2 s per item); it prints a total and an estimate, saves every 200,
+# and can be stopped and run again. A lock keeps it and the server's own
+# sync from running at once; the server picks up the result at its next sync.
+docker compose exec app node bin/related.js            # --limit 1000, --status
+
+# Bookmarks saved before automatic enrichment, or ones that failed.
+docker compose exec app node bin/enrich.js --only-new --reembed --summariser remote
+docker compose restart app                             # see the caution below
+
+# Feeds on bookmarks you already had: sites in parallel, one page at a time
+# per site, only the start of each page, at most 3 pages per site (stopping
+# at the first with a feed). Resumable; suggestions show on Manage feeds
+# within a minute, no restart needed.
+docker compose exec app node bin/feed-scan.js --dry-run --limit 50
+docker compose exec app node bin/feed-scan.js          # --limit N, --rescan
+
+# Topic concepts from enrichment keywords (after a big enrichment run).
+docker compose exec app node bin/topics.js --dry-run
+```
+
+**Two cautions:**
+
+- **After `enrich --reembed` or `ingest`, restart the app promptly.** Those
+  tools rewrite the bookmark index file (`data/dim.index`). The server holds
+  its own copy in memory, and when it next embeds a newly saved bookmark it
+  writes that copy back, overwriting what the tool just wrote. The related
+  index doesn't have this problem (it has a lock and reloads when needed).
+- **Use `exec`, not `run`, for `bin/related.js`.** Its lock records a process
+  id, and a `docker compose run` container can't see the server's processes,
+  so the lock can't stop two syncs running at once.
+
+Where it all lives: the `app-data` volume (`/app/data`), not `./data` on the
+host.
+
+| File | What | Backed up |
+|---|---|---|
+| `dim.index` (+ `.json`) | bookmark vectors | yes |
+| `related.index` (+ `.json`), `related.state.json` | everything else's vectors, and what has been embedded | yes |
+| `cache/enrichment.json`, `cache/enrichment/` | fetched text and summaries (30 days) | with `bin/backup.js --with-cache` |
+| `cache/feed-scan.json` | pages the feed finder has looked at | with `--with-cache` |
+| `sessions.json` | login sessions | never |
+
+To bring indexes built outside Docker into the volume, for example after
+running `bin/related.js` on the host:
+
+```sh
+docker compose stop app
+for f in dim.index dim.index.json related.index related.index.json related.state.json; do
+  docker compose cp data/$f app:/app/data/$f
+done
+docker compose run --rm --user root app sh -c 'chown 1001:1001 /app/data/*.index* /app/data/related.state.json'
+docker compose up -d app
+```
+
+The model must be pulled in the compose Ollama for any of this:
+`docker compose exec ollama ollama pull nomic-embed-text:v1.5`. Embedding
+is slow on a CPU, so large runs are best started by hand as above rather
+than left to the server's sync. If the app is killed while a sync runs,
+raise `NODE_HEAP` and `APP_MEM` (see below).
+
 ## Settings
 
 Beyond the store and model settings above, all optional (`.env`):
@@ -132,6 +208,9 @@ Beyond the store and model settings above, all optional (`.env`):
 | `DIM_ORIGIN` | the address DIM is reached at, e.g. `https://dim.example.ts.net`; used in feeds and the bookmarklet, and makes the session cookie https-only |
 | `NEWS_POLL_MINUTES` | poll due feeds from the server every N minutes |
 | `RELATED_SYNC_MINUTES` | keep the cross-facet related index in step every N minutes (default 30; 0 = off; `bin/related.js` by hand) |
+| `ENRICH_SUMMARISER` | summariser for bookmarks enriched as they are saved: `ollama` (default), `remote` (the `LLM_*` settings) or `extractive` (offline); an LLM that fails falls back to the offline one |
+| `AUTO_ENRICH=0` | don't fetch, summarise and embed bookmarks as they are saved (leave them for `bin/enrich.js`); this also turns off the feed finder for new bookmarks |
+| `NODE_HEAP`, `APP_MEM`, `APP_MEMSWAP` | the app container's memory (defaults 256 MB heap, 384 MB); raise to e.g. `1024` / `1536m` / `2g` if it restarts during a sync |
 | `BLOG_TITLE`, `BLOG_AUTHOR`, `BLOG_BASE_URL` | blog name, author, public URL of the static export |
 | `LOG_LEVEL`, `LOG_FORMAT=json`, `LOG_REQUESTS=1` | logging (below) |
 | `BACKUP_DIR` (tools), `BACKUP_HOST_DIR` (compose) | where backups go |
@@ -168,48 +247,9 @@ proxy. See `docs/security.md`.
 
 ## Backups
 
-The store holds work that exists nowhere else: the wiki, tasks, outlines as
-edited, notes, links, news subscriptions, blog posts. Back it up.
-
-```sh
-node bin/backup.js                         # store (all graphs, TriG, gzipped) + vector index → data/backups/<time>/
-node bin/backup.js --with-cache            # …and data/cache (enrichment/retrieval caches)
-node bin/backup.js --keep 30               # keep the newest 30 (default 14)
-node bin/restore.js --list
-node bin/restore.js <backup> --yes         # REPLACES the store; saves the current state first
-node bin/restore.js <backup> --yes --store-only
-```
-
-With Docker, backups go to `./backups` on the host (`BACKUP_HOST_DIR`). The
-directory must be writable by the container's user:
-
-```sh
-mkdir -p backups && sudo chown 1001:1001 backups
-docker compose run --rm app node bin/backup.js
-```
-
-Nightly, from the host's crontab (`crontab -e`):
-
-```
-17 3 * * *  cd /path/to/dim && docker compose run --rm app node bin/backup.js >> backups/backup.log 2>&1
-```
-
-Each backup has a `manifest.json` with a checksum. Restore refuses a store
-file that doesn't match it.
-
-**Restore drill.** Rehearse this once, and again after upgrades:
-
-1. `node bin/backup.js`.
-2. Count triples per graph:
-   `curl -s -u admin:$SPARQL_PASSWORD localhost:3031/dim/query --data-urlencode 'query=SELECT ?g (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s ?p ?o } } GROUP BY ?g ORDER BY ?g' -H 'Accept: text/csv' > before.csv`
-3. Break something, for example
-   `curl -s -u admin:$SPARQL_PASSWORD localhost:3031/dim/update --data-urlencode 'update=DROP GRAPH <graph:facet/wiki>'`.
-4. `node bin/restore.js <that backup> --yes`, then count again into
-   `after.csv` and `diff before.csv after.csv` — no difference.
-5. Restart the app (it caches in memory).
-
-(Rehearsed 2026-09-26 on a 17-graph store: identical counts; the restore
-took about 11 s.)
+See `docs/backup.md`: nightly snapshots (`bin/backup.js`), a check of each
+(`bin/restore.js latest --check`), a copy off the machine (restic), and
+restoring everything or one facet's graphs.
 
 ## Health and logs
 

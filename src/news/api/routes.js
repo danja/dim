@@ -8,7 +8,9 @@ import { hostOf } from '../../common/links/urls.js'
 import { saveAsBookmark, makeTask } from '../saveAs.js'
 import { itemPath, feedPath } from './common.js'
 import { renderRiver, renderItemPage, riverQuery } from './river.js'
-import { renderFeedsPage, renderFeedPage } from './feedsPage.js'
+import { renderFeedPage } from './feedsPage.js'
+import { ADMIN_PATH } from './adminPage.js'
+import { registerAdminRoutes } from './adminRoutes.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { relatedFor } from '../../common/related/relatedFor.js'
 
@@ -28,7 +30,7 @@ function queryOf (url) {
   return { view, feed: p.get('feed') || null, tag: p.get('tag') || null, before: p.get('before') || null }
 }
 
-export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs, services, registry }) {
+export function registerRoutes (router, { store, poller, inbox = null, tasks, fetchImpl, tabs, services, registry }) {
   const feedMap = async () => new Map((await store.feedList()).map(f => [f.iri, f]))
   // Items whose link is already a bookmark: id → { href, label }.
   const bookmarkedOf = async items => {
@@ -58,7 +60,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     }
     const unread = [...(await store.counts()).values()].reduce((n, c) => n + c.unread, 0)
     const tags = [...new Set(feedList.flatMap(f => f.tags))].sort()
-    return sendHtml(response, 200, renderRiver({ items, more, forYou: Boolean(related), feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
+    return sendHtml(response, 200, renderRiver({ items, more, forYou: Boolean(related), feeds: new Map(feedList.map(f => [f.iri, f])), feedList, tags, unread, found: inbox ? (await inbox.list()).length : 0, query, polling: url.searchParams.has('polling'), tabs, session, returnPath: `/news/${riverQuery(query)}`, bookmarked: await bookmarkedOf(items) }))
   })
 
   router.get('/news/items.json', async ({ response, url }) => {
@@ -75,8 +77,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
     return sendHtml(response, 200, renderItemPage({ item: it, feed: await store.feedByIri(it.feed), text, links: await resolvedLinks({ services, registry }, it.iri), related: await relatedFor({ services, registry }, it.iri, [it.title, text ?? it.snippet].filter(Boolean).join('\n\n')), bookmark, tabs, session }))
   })
 
-  router.get('/news/feeds', async ({ response, url, session }) =>
-    sendHtml(response, 200, renderFeedsPage({ feeds: await store.feedList(), counts: await store.counts(), notice: url.searchParams.get('notice'), tabs, session })))
+  registerAdminRoutes(router, { store, poller, inbox, tabs, registry })
 
   router.get('/news/feeds.opml', async ({ response }) =>
     sendText(response, 200, toOpml(await store.feedList()), 'text/x-opml; charset=utf-8'))
@@ -133,7 +134,7 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
       added++
     }
     const notice = `Imported ${added} of ${entries.length} feeds; they are polled on the next run.`
-    return { redirect: `/news/feeds?notice=${encodeURIComponent(notice)}`, json: { ok: true, added, found: entries.length } }
+    return { redirect: `${ADMIN_PATH}?notice=${encodeURIComponent(notice)}`, json: { ok: true, added, found: entries.length } }
   }))
 
   router.add(['POST'], new RegExp(`^/news/feed/${SLUG}$`), writeRoute(async ({ match, body, identity }) => {
@@ -149,7 +150,13 @@ export function registerRoutes (router, { store, poller, tasks, fetchImpl, tabs,
 
   router.add(['POST'], new RegExp(`^/news/feed/${SLUG}/delete$`), writeRoute(async ({ match, identity }) => {
     const deleted = await store.deleteFeed(await feed(match[1]), identity.user)
-    return { redirect: '/news/feeds', json: { ok: true, deleted } }
+    return { redirect: ADMIN_PATH, json: { ok: true, deleted } }
+  }))
+
+  router.add(['POST'], new RegExp(`^/news/feed/${SLUG}/(park|unpark)$`), writeRoute(async ({ match }) => {
+    const f = await feed(match[1])
+    await store.setParked(f, match[2] === 'park')
+    return { redirect: feedPath(f), json: { ok: true, parked: f.parked } }
   }))
 
   router.add(['POST'], '/news/poll', writeRoute(async () => {

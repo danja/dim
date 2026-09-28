@@ -93,7 +93,7 @@ function renderSite ({ site, session }) {
   return `<form class="inline-buttons" method="post" action="/news/feeds">${formFields(session, '')}<input type="hidden" name="url" value="${esc(site.offerFeed)}"><button>Look for this site's feed</button></form>`
 }
 
-export function renderBookmarkPage (doc, { tabs, session = null, links = null, related = null, site = null, source = null }) {
+export function renderBookmarkPage (doc, { tabs, session = null, enriching = null, links = null, related = null, site = null, source = null }) {
   const slug = bookmarkSlug(doc.iri)
   const text = doc.summary || doc.description
   const facts = [
@@ -107,7 +107,7 @@ ${renderLinkStatus(doc)}
 ${facts ? `<p class="meta">${facts}</p>` : ''}
 ${source?.href ? `<p class="meta">Saved from <a href="${esc(source.href)}">${esc(source.label)}</a>${source.facetLabel ? ` (${esc(source.facetLabel)})` : ''}</p>` : ''}
 ${renderSite({ site, session })}
-${text ? `<p>${esc(text)}</p>` : '<p class="muted">No summary yet.</p>'}
+${text ? `<p>${esc(text)}</p>` : enriching ? '<p class="muted" role="status">Fetching and summarising this page in the background; reload in a minute.</p>' : '<p class="muted">No summary yet.</p>'}
 ${(doc.topics ?? []).length ? `<p class="meta">topics: ${doc.topics.map(t => `<a href="${BASE_PATH}/?topic=${encodeURIComponent(t)}">${esc(t)}</a>`).join(', ')}</p>` : ''}
 ${(doc.keywords ?? []).length ? `<p class="meta">key terms: ${esc(doc.keywords.join(', '))}</p>` : ''}
 ${renderAnnotations(doc, { session, slug })}

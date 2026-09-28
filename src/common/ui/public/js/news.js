@@ -55,3 +55,10 @@ document.addEventListener('click', event => {
   const id = link.dataset.readId
   setFlags([id], { read: true }).then(result => result.items.forEach(item => show(item.id, item))).catch(() => {})
 })
+
+// Manage feeds: "Select all" ticks every feed in its list.
+for (const all of document.querySelectorAll('[data-select-all]')) {
+  const boxes = () => document.querySelectorAll(`input[data-group="${all.dataset.selectAll}"]`)
+  all.closest('.select-all').hidden = false
+  all.addEventListener('change', () => { for (const box of boxes()) box.checked = all.checked })
+}

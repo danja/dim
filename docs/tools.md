@@ -83,7 +83,8 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
 | `GET /static/…` | Shared UI kit (CSS, JS). |
 | `GET /health` | Per-facet status (`facets.gnamgnam` has bookmark/vector counts), whether writes are enabled, embedding model. |
-| `GET /find?q=…` / `GET /find.json?q=…&limit=` | Search every facet; results grouped by facet. |
+| `GET /find?q=…&facet=` / `GET /find.json?ranked=1&q=…&facet=&limit=` | Search everything, one ranked list: by meaning (the related index — wiki pages, tasks, outline items, posts, news items — and the bookmark index) and by words (each facet's own search), with a filter by facet. Squirt's search box. Words only (and says so) while Ollama is down. |
+| `GET /find.json?q=…&limit=` | Words only, grouped by facet (fast; the link picker's type-ahead). |
 | `GET /r/<type>/<slug>`, `GET /r?iri=…` | Redirect to the page of any DIM resource. |
 | `GET /login`, `POST /login`, `POST /logout` | Browser session for writing (`token` = `DIM_WRITE_TOKEN`). |
 | `GET /links?iri=…` | Links touching a resource, both directions, with labels and pages. |

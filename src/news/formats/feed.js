@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser'
 import { htmlToText, decodeEntities } from '../../common/text/html.js'
+import { feedDate } from './dates.js'
 
 /**
  * RSS 2.0, RSS 1.0 (RDF), Atom and JSON Feed → one shape:
@@ -55,12 +56,7 @@ function absolute (href, base) {
   }
 }
 
-function isoDate (value) {
-  const s = String(value ?? '').trim()
-  if (!s) return null
-  const t = Date.parse(s)
-  return Number.isNaN(t) ? null : new Date(t).toISOString()
-}
+const isoDate = feedDate
 
 const cleanTitle = value => htmlToText(value, { max: TITLE_MAX }).replace(/\s+/g, ' ')
 /** The fullest of the candidate bodies (description is often a teaser for content). */
