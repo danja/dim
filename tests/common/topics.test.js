@@ -30,6 +30,8 @@ describe('topic terms', () => {
     expect(termKey('en.wikipedia.org')).toBeNull()
     expect(termKey('node.js')).toBe('node.js')
     expect(termKey('2024')).toBeNull()
+    expect(termKey('constructor')).toBe('constructor') // not Object.prototype's
+    expect(termKey('toString')).toBe('tostring')
     expect(termKey('Open Source')).toBeNull()
   })
 })

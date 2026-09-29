@@ -20,7 +20,9 @@ import { slugify } from '../rdf/URIMinter.js'
  *     bookmarks first).
  */
 
+// Null prototype: a term like "constructor" mustn't find Object's methods.
 export const ARXIV_NAMES = Object.freeze({
+  __proto__: null,
   'cs.ai': 'artificial intelligence',
   'cs.cl': 'natural language processing',
   'cs.lg': 'machine learning',
