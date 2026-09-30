@@ -5,6 +5,7 @@ import FacetRegistry from './common/facets/FacetRegistry.js'
 import Auth from './common/http/auth.js'
 import { JSON_HEADERS, send, redirect } from './common/http/respond.js'
 import { registerCommonRoutes } from './common/http/commonRoutes.js'
+import { registerMcpRoutes } from './mcp/routes.js'
 
 export { VOCABULARIES, STATIC_ROOT } from './common/http/commonRoutes.js'
 
@@ -12,7 +13,8 @@ export { VOCABULARIES, STATIC_ROOT } from './common/http/commonRoutes.js'
  * DIM HTTP server. Adapted from plugin-universe src/api/server.js.
  *
  * Common routes (src/common/http/commonRoutes.js): `/` (→ default facet),
- * `/health`, `/ns`, `/static/*`, `/login`, `/find`, `/r/…`, `/links`.
+ * `/health`, `/ns`, `/static/*`, `/login`, `/find`, `/r/…`, `/links`, and
+ * `/mcp` (agents; src/mcp).
  * Everything else is registered by a facet under `/<facet-id>/` — see
  * src/facets.js for the list.
  *
@@ -37,6 +39,7 @@ export function createRouter ({ facets, config = null, defaultFacet = null, proj
   const router = new Router()
   registerCommonRoutes(router, { registry, services: allServices, config, defaultFacet: home, projectRoot, origin })
   registry.mount(router, { services: allServices, registry, origin })
+  registerMcpRoutes(router, { services: allServices, origin })
   return { router, registry, services: allServices }
 }
 

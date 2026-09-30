@@ -23,6 +23,11 @@ and what remains.
   `DIM_PRIVATE=1`. With it, only these are public: `/login`, `/logout`,
   `/health` (status only), `/static/*`, `/ns/*`, and the app manifest,
   service worker and offline page (browsers fetch those without cookies).
+- **MCP** (`POST /mcp`, docs/mcp.md) gives an agent the owner's reach, so it
+  needs the token as Bearer/Basic every time, even when reads are open. A
+  session cookie is refused and so is a browser `Origin` that isn't DIM's own,
+  so a web page can't drive it. It calls DIM's own routes over loopback with
+  the caller's credentials: no separate permissions to get wrong.
 - **Drafts** (blog) are owner-only even with open reads. So are the Squirt
   timeline and capture.
 

@@ -3,6 +3,10 @@
 All commands run from the repository root. Scripts are `node bin/*.js`;
 service topology (ports, datasets) lives in `docker-compose.yml` and `.env`.
 
+## Agents
+
+`POST /mcp` on the running app is an MCP server giving an agent the same reach as the owner in the browser: search, read any page, every write. See `docs/mcp.md`.
+
 ## Indexing & retrieval pipeline
 
 | Command | What it does |
