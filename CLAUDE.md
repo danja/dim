@@ -91,6 +91,9 @@ backup/restore, deadlinks, validate).
 
 ## Working in this repo
 
+- `HUMANS.md` holds instructions for Danny (manual steps such as installs). When a
+  task needs one, write it there and mention it in your reply. Currently: installing
+  axe-core and Playwright, which the UI axe check depends on.
 - Add a line to the work log in `docs/plan-detail.md` for each meaningful
   step: date · phase · what · commit ref. Update the matching
   `docs/commands-*.md` page when behaviour or CLI flags change.
