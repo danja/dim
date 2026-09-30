@@ -26,8 +26,16 @@ async function send (item) {
   return { ok: response.ok, status: response.status }
 }
 
-async function sync () {
-  if (!queued(localStorage).length || !csrf()) return
+let syncing = null
+
+// One flush at a time: two at once would each send the first queued capture.
+function sync () {
+  if (!navigator.onLine || !queued(localStorage).length || !csrf()) return syncing
+  syncing ??= run().finally(() => { syncing = null })
+  return syncing
+}
+
+async function run () {
   const { sent, dropped, left } = await flush(localStorage, send)
   if (sent || dropped) say(`Synced ${sent}${dropped ? `, ${dropped} refused by the server` : ''}${left ? `; ${left} still waiting` : ''}.`)
   else pending()
