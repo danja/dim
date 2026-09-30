@@ -25,11 +25,12 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('/squirt/sw.js', { scope: '/' }).catch(() => {})
 }
 
-// Logging out forgets the pages kept for offline reading.
+// Logging out forgets the pages, news and unsent notes kept for offline use.
 document.addEventListener('submit', e => {
   const form = e.target
   if (!form.matches('form[action="/logout"]') || !('caches' in window) || form.dataset.cleared) return
   e.preventDefault()
+  for (const key of ['dim.offline.news', 'dim.offline.queue']) { try { localStorage.removeItem(key) } catch { /* ignore */ } }
   caches.keys()
     .then(keys => Promise.all(keys.map(k => caches.delete(k))))
     .catch(() => {})

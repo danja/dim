@@ -7,8 +7,9 @@ import { nextCard } from '../../advisor/api/page.js'
 
 const KIND_LABELS = [['auto', 'Guess'], ['bookmark', 'Bookmark'], ['task', 'Task'], ['note', 'Note']]
 
-function squirtPage ({ title, body, tabs, session }) {
-  return renderPage({ title, tabs, active: 'squirt', session, body, head: '<link rel="stylesheet" href="/static/css/squirt.css">\n<link rel="stylesheet" href="/static/css/advisor.css">' })
+function squirtPage ({ title, body, tabs, session, offline = false }) {
+  const script = offline ? '\n<script type="module" src="/static/js/offline.js"></script>' : ''
+  return renderPage({ title, tabs, active: 'squirt', session, body, head: `<link rel="stylesheet" href="/static/css/squirt.css">\n<link rel="stylesheet" href="/static/css/advisor.css">${script}` })
 }
 
 const searchForm = `<form class="search squirt-search" method="get" action="/find" role="search">
@@ -61,10 +62,12 @@ export function renderHome ({ items, next = null, captured, origin, tabs, sessio
 ${searchForm}
 ${done}
 ${captureForm({ session })}
+${session?.user ? '<p id="offline-status" class="meta" role="status"></p>' : ''}
 ${nextCard(next)}
 ${session?.user ? `<p class="meta"><a href="/day">Today</a> · <a href="/week">This week</a> · <a href="/topics">Topics</a></p>\n<h2>Lately</h2>\n${timeline(items)}` : ''}
+${session?.user ? '<section id="offline-news" hidden></section>' : ''}
 ${extras(origin)}`
-  return squirtPage({ title: 'Squirt', body, tabs, session })
+  return squirtPage({ title: 'Squirt', body, tabs, session, offline: Boolean(session?.user) })
 }
 
 export function renderShare ({ values, guess, existing = null, tabs, session }) {

@@ -78,5 +78,18 @@ selected text, to the capture form.
 A service worker (`/squirt/sw.js`, scope `/`) fetches from the network
 first. It keeps the last copy of each page you open (up to 300) and shows
 that copy when DIM can't be reached. A page you haven't opened on that
-device shows an offline notice. Nothing is saved offline: writes need the
-server. **Log out** clears the saved copies.
+device shows an offline notice. **Log out** clears the saved copies.
+
+### News and notes offline
+
+When logged in, `/squirt/` keeps the summaries of the 10 newest news items
+in the browser's localStorage (refreshed on each visit and when the
+connection returns) and lists them under **News on this device**. Each has
+an **Add a note** box, and the capture box also works offline. Both go into
+a queue on the device (`dim.offline.queue`) and are sent to
+`/squirt/capture` when you're back online, in order. A note on a news item
+lands in the wiki Inbox as `Re: <title>`, with the item's link. Captures
+the server refuses (4xx other than 401/403) are dropped; a server error or
+an expired session leaves them queued. Notes are only synced by an open
+Squirt page, not in the background. Logging out clears the stored news and
+the queue.

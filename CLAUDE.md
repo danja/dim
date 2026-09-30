@@ -6,6 +6,10 @@ share one shell with tabs: bookmarks, outliner, tasks, wiki, news, blog,
 and a phone/PWA view. The plan and a dated work log with commit refs are in
 `docs/plan-detail.md`.
 
+* Periodically read INBOX.md and insert as actionable tasks into TODO.md
+* When asked to work onthe project, review TODO.md to determine the next task
+
+
 ## Commands
 
 ```sh

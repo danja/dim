@@ -17,3 +17,6 @@
 
 .install { margin-top: 2rem; }
 .bookmarklet { font-weight: 600; }
+
+#offline-news details { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+#offline-news summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
