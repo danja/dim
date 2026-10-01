@@ -51,19 +51,30 @@ ${list ? `<ol class="results">${list}</ol>` : ''}`
 export function renderTagsPage ({ tags, tabs, session }) {
   const items = tags.map(t => `<li><a href="/tags/${encodeURIComponent(t.tag)}">${esc(t.tag)}</a> <small class="meta">${t.count} · ${esc(t.facets.join(', '))}</small></li>`).join('')
   const body = `<h1>Tags</h1>
-<p class="meta">Tags on bookmarks, tasks, wiki pages, feeds and published posts. Pick one to see everything that has it. See also <a href="/topics">topics</a>.</p>
+<p class="meta">Tags on bookmarks, tasks, wiki pages, feeds and published posts, and #hashtags written in notes, pages, tasks, outlines and posts. Pick one to see everything that has it. See also <a href="/topics">topics</a>.</p>
 ${items ? `<ul class="tag-cloud">${items}</ul>` : '<p class="muted">No tags yet.</p>'}`
   return renderPage({ title: 'Tags', tabs, active: null, session, body })
 }
 
+const tagLink = t => `<a href="/tags/${encodeURIComponent(t)}">#${esc(t)}</a>`
+
+/** #a/b is under #a: the tag above and the tags below, as SKOS broader/narrower. */
+function tagFamily ({ broader, narrower }) {
+  const parts = []
+  if (broader) parts.push(`Under ${tagLink(broader)}`)
+  if (narrower.length) parts.push(`Narrower: ${narrower.map(tagLink).join(', ')}`)
+  return parts.length ? `<p class="meta">${parts.join(' · ')}</p>` : ''
+}
+
 /** Everything with one tag, grouped by facet. */
-export function renderTagPage ({ tag, groups, topic = null, tabs, session }) {
+export function renderTagPage ({ tag, groups, topic = null, family = { broader: null, narrower: [] }, tabs, session }) {
   const sections = groups.map(g => `<section>
 <h2>${esc(g.label)}</h2>
 <ul class="results">${g.results.map(r => `<li class="card"><h3><a href="${esc(r.href)}">${esc(r.label)}</a></h3>${r.snippet ? `<p class="meta">${esc(r.snippet)}</p>` : ''}</li>`).join('')}</ul>
 </section>`).join('\n')
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/tags">Tags</a></nav>
 <h1>Tagged “${esc(tag)}”</h1>
+${tagFamily(family)}
 ${topic ? `<p class="meta">Also a topic: <a href="/topics/${encodeURIComponent(topic.slug)}">${esc(topic.label)}</a></p>` : ''}
 ${sections || '<p class="muted">Nothing has this tag.</p>'}
 <p class="meta"><a href="/find?q=${encodeURIComponent(tag)}">Search everything for “${esc(tag)}”</a></p>`

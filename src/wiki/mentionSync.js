@@ -1,7 +1,8 @@
 import { resolveMentions, parseMentions } from '../common/links/mentions.js'
+import { parseHashtags } from '../common/hashtags/parse.js'
 
 /**
- * Keep a page's dim:mentions links in step with its text. [[Title]] means a
+ * Keep a page's dim:mentions links and #hashtags in step with its text. [[Title]] means a
  * wiki page first, then anything else of that title (registry, optional).
  */
 export function mentionSync ({ store, links, registry = null, origin = null }) {
@@ -15,6 +16,7 @@ export function mentionSync ({ store, links, registry = null, origin = null }) {
     if (!links) return []
     const targets = (await resolveMentions(page.content, { registry: resolver, origin })).filter(t => t !== page.iri)
     await links.syncMentions({ from: page.iri, targets, actor })
+    await links.syncHashtags({ from: page.iri, tags: parseHashtags(page.content), actor })
     return targets
   }
 

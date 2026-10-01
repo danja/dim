@@ -33,6 +33,7 @@ function stubServices () {
     },
     links: {
       syncMentions: async args => calls.push(['mentions', args]),
+      syncHashtags: async args => calls.push(['hashtags', args]),
       add: async args => calls.push(['add', args]),
       remove: async args => calls.push(['remove', args]),
       linksOf: async () => []

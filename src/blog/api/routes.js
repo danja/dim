@@ -3,6 +3,7 @@ import { negotiate } from '../../common/http/negotiate.js'
 import { writeRoute } from '../../common/http/write.js'
 import { wantsJson } from '../../common/http/body.js'
 import { toIri, resolveMentions } from '../../common/links/mentions.js'
+import { parseHashtags } from '../../common/hashtags/parse.js'
 import { draftFrom } from '../sources.js'
 import { appPath, datedPath, atomFeed, postHtml } from '../render.js'
 import { renderIndex, renderTag, renderPost } from './pages.js'
@@ -28,6 +29,7 @@ export function registerRoutes (router, { store, wiki, outlines, blogTitle, blog
     if (!services?.links) return
     const targets = (await resolveMentions(post.content, { registry, origin })).filter(t => t !== post.iri)
     await services.links.syncMentions({ from: post.iri, targets, actor }).catch(() => {})
+    await services.links.syncHashtags({ from: post.iri, tags: parseHashtags(post.content), actor }).catch(() => {})
   }
   const visible = async (slug, session) => {
     const post = await store.get(slug)

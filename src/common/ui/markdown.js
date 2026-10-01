@@ -1,12 +1,14 @@
 import { Marked } from 'marked'
 import { esc } from '../http/respond.js'
+import { hashtagPattern, cleanTag } from '../hashtags/parse.js'
 
 /**
  * Markdown → safe HTML for notes and pages.
  *
  * Raw HTML in the source is shown as text, never rendered; link and image
  * targets must be http(s), mailto or a local path. [[type/slug]] becomes a
- * link to the resolver, [[Title]] a link to a search for it.
+ * link to the resolver, [[Title]] a link to a search for it, #tag a link to
+ * the tag's page.
  */
 
 // Relative paths (./ ../) are safe too: the static blog export links posts that way.
@@ -45,7 +47,7 @@ const marked = new Marked({
 const findHref = title => `/find?q=${encodeURIComponent(title)}`
 
 function linkWikiRefs (markdown, titleHref = findHref) {
-  // Leave fenced and inline code alone; rewrite [[…]] everywhere else.
+  // Leave fenced and inline code alone; rewrite [[…]] and #tags everywhere else.
   return String(markdown ?? '').split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => i % 2
     ? part
     : part.replace(/\[\[([^\]\n]{1,200})\]\]/g, (_m, inner) => {
@@ -54,6 +56,9 @@ function linkWikiRefs (markdown, titleHref = findHref) {
       const href = ts ? `/r/${ts[1]}/${ts[2]}` : titleHref(value)
       const text = value.replace(/[[\]]/g, '')
       return href ? `[${text}](${href})` : text
+    }).replace(hashtagPattern(), (m, raw) => {
+      const tag = cleanTag(raw)
+      return tag ? `[${m}](/tags/${encodeURIComponent(tag)})` : m
     })
   ).join('')
 }

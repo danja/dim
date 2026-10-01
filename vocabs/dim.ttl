@@ -92,6 +92,8 @@ dim:resource a owl:ObjectProperty ;
     rdfs:comment "Something useful for the subject — e.g. a task or note pointing at a bookmark, page or feed item." .
 dim:mentions a owl:ObjectProperty ;
     rdfs:comment "The subject's Markdown refers to the object ([[type/slug]] or a DIM URL). Derived on save; not edited directly." .
+dim:hashtag a owl:ObjectProperty ; rdfs:subPropertyOf dcterms:subject ; rdfs:range skos:Concept ;
+    rdfs:comment "The subject's text uses this #hashtag. Derived on save, like dim:mentions. Each hashtag is a skos:Concept in the scheme dim:hashtags (IRI dim:concept/tag-<tag>, with / written as --); #a/b is skos:broader #a." .
 dim:partOf a owl:ObjectProperty, owl:TransitiveProperty ;
     rdfs:comment "Containment: an outline node in an outline, a task in a project." .
 

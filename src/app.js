@@ -21,6 +21,7 @@ import Poller from './news/Poller.js'
 import RollLog from './farelo/RollLog.js'
 import { openRelated } from './common/related/openRelated.js'
 import TopicStore from './common/topics/TopicStore.js'
+import HashtagStore from './common/hashtags/HashtagStore.js'
 import AutoEnricher from './gnamgnam/AutoEnricher.js'
 import { createEnricher, SUMMARISER_CHOICES } from './gnamgnam/enrich/registry.js'
 import { ENRICH_CONFIG } from '../config/preferences.js'
@@ -62,7 +63,8 @@ export async function buildApp ({ config, projectRoot, env = process.env }) {
   const facets = createFacets({ search, autoEnrich, outlines, tasks, rolls, wiki, news: { store: newsStore, poller, inbox }, blog, client, advisor })
 
   const topics = new TopicStore({ client })
-  return { client, index, embeddings, search, autoEnrich, related, topics, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, rolls }, inbox, poller, advisor, facets }
+  const hashtags = new HashtagStore({ client })
+  return { client, index, embeddings, search, autoEnrich, related, topics, hashtags, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, rolls }, inbox, poller, advisor, facets }
 }
 
 /**

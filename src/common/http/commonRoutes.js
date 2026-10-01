@@ -178,16 +178,25 @@ export function registerCommonRoutes (router, { registry, services, config, defa
   })
 
   // Tags across facets: /tags (all), /tags/<tag> (everything with it); .json too.
+  // #hashtags in text (services.hashtags) count with the tags facets hold; a
+  // store that can't answer for them leaves the facets' tags as they are.
+  const withHashtags = async (fallback, fn) => {
+    if (!services.hashtags) return fallback
+    try { return await fn(services.hashtags) } catch { return fallback }
+  }
   router.get(/^\/tags(\.json)?$/, async ({ response, match, tabs, session }) => {
-    const tags = await registry.tags()
+    const base = await registry.tags()
+    const tags = await withHashtags(base, h => h.addCounts(base, registry))
     return match[1] ? send(response, 200, { tags }) : sendHtml(response, 200, renderTagsPage({ tags, tabs, session }))
   })
   router.get(/^\/tags\/([^/]+?)(\.json)?$/, async ({ response, match, tabs, session }) => {
     let tag
-    try { tag = decodeURIComponent(match[1]).trim().toLowerCase() } catch { return send(response, 400, { error: 'Bad tag' }) }
-    const groups = await registry.tagged(tag)
+    try { tag = decodeURIComponent(match[1]).trim().toLowerCase().replace(/^#/, '') } catch { return send(response, 400, { error: 'Bad tag' }) }
+    const tagged = await registry.tagged(tag)
+    const groups = await withHashtags(tagged, h => h.addTagged(tagged, tag, registry))
+    const family = await withHashtags({ broader: null, narrower: [] }, h => h.family(tag))
     const topic = await services.topics?.forTag(tag)
-    return match[2] ? send(response, 200, { tag, groups, topic: topic?.slug ?? null }) : sendHtml(response, 200, renderTagPage({ tag, groups, topic, tabs, session }))
+    return match[2] ? send(response, 200, { tag, groups, topic: topic?.slug ?? null, ...family }) : sendHtml(response, 200, renderTagPage({ tag, groups, topic, family, tabs, session }))
   })
 
   router.get('/find.json', async ({ response, url }) => {

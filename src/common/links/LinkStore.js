@@ -1,6 +1,8 @@
 import { NAMESPACES } from '../rdf/NamespaceManager.js'
 import { iri } from '../store/SPARQLHelper.js'
 import QueryService from '../store/QueryService.js'
+import { withAncestors } from '../hashtags/parse.js'
+import { HASHTAG_PREDICATE, HASHTAG_SCHEME, schemeTriples, conceptTriples, topConceptTriple, tagIri, usageTriples } from '../hashtags/triples.js'
 
 /**
  * Links between any two resources, in any facets, kept in one shared graph
@@ -76,6 +78,34 @@ export class LinkStore {
       triples: unique.map(to => this.#triple(from, 'mentions', to)),
       actor,
       summary: `mentions: ${unique.length}`
+    })
+  }
+
+  /**
+   * Replace the #hashtags `from` uses (src/common/hashtags). Tags new to the
+   * store get their SKOS concept first, with the tags above them (#a/b → #a).
+   */
+  async syncHashtags ({ from, tags, actor }) {
+    const graph = await this.graph()
+    const unique = [...new Set(tags)]
+    const want = [...new Set(unique.flatMap(withAncestors))]
+    if (!unique.length && !(await this.repository.describe(graph, from)).some(t => t.includes(`<${HASHTAG_PREDICATE}>`))) return null
+    if (want.length) {
+      this.knownTags ??= new Set((await this.client.select(this.queries.get('hashtags/concepts', { graph: iri(graph) }))).map(r => r.label))
+      for (const tag of want.filter(t => !this.knownTags.has(t))) {
+        if (this.knownTags.size === 0) await this.repository.add({ graph, subject: HASHTAG_SCHEME, triples: schemeTriples(), actor, summary: 'hashtag scheme' })
+        await this.repository.add({ graph, subject: tagIri(tag), triples: conceptTriples(tag), actor, summary: `hashtag #${tag}` })
+        if (!tag.includes('/')) await this.repository.add({ graph, subject: HASHTAG_SCHEME, triples: [topConceptTriple(tag)], actor, summary: `top hashtag #${tag}` })
+        this.knownTags.add(tag)
+      }
+    }
+    return this.repository.replace({
+      graph,
+      subject: from,
+      predicates: [HASHTAG_PREDICATE],
+      triples: usageTriples(from, unique),
+      actor,
+      summary: `hashtags: ${unique.length}`
     })
   }
 

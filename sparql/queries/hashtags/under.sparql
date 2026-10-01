@@ -1,0 +1,8 @@
+# The resources with a hashtag or any tag narrower than it (#music includes #music/synth).
+SELECT DISTINCT ?s
+WHERE {
+  GRAPH ${graph} {
+    ?s dim:hashtag ?concept .
+    ?concept skos:broader* ${concept} .
+  }
+}

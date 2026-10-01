@@ -1,0 +1,8 @@
+# Every use of a hashtag, one row per resource and tag.
+SELECT ?s ?label
+WHERE {
+  GRAPH ${graph} {
+    ?s dim:hashtag ?concept .
+    ?concept skos:prefLabel ?label .
+  }
+}

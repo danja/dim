@@ -1,0 +1,8 @@
+# Every hashtag concept (to tell which already exist) with its broader tag.
+SELECT ?label ?broader
+WHERE {
+  GRAPH ${graph} {
+    ?concept skos:inScheme dim:hashtags ; skos:prefLabel ?label .
+    OPTIONAL { ?concept skos:broader/skos:prefLabel ?broader }
+  }
+}

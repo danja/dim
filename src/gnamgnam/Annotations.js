@@ -1,6 +1,7 @@
 import { NAMESPACES } from '../common/rdf/NamespaceManager.js'
 import { iri, literal } from '../common/store/SPARQLHelper.js'
 import { resolveMentions } from '../common/links/mentions.js'
+import { parseHashtags } from '../common/hashtags/parse.js'
 
 /**
  * The owner's own tags and note on a bookmark. Stored in graph:facet/gnamgnam
@@ -69,6 +70,7 @@ export async function saveAnnotations ({ search, repository, links, registry, or
   })
   const targets = await resolveMentions(note ?? '', { registry, origin })
   if (links) await links.syncMentions({ from: doc.iri, targets, actor })
+  if (links) await links.syncHashtags({ from: doc.iri, tags: parseHashtags(note), actor })
 
   doc.userTags = tags
   doc.note = note

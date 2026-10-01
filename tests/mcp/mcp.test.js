@@ -14,7 +14,7 @@ const AUTH = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/js
 let servers = []
 async function listen () {
   const { store } = memoryWiki()
-  const links = { async syncMentions () {}, async linksOf () { return [] } }
+  const links = { async syncMentions () {}, async syncHashtags () {}, async linksOf () { return [] } }
   const search = { documents: new Map(), index: { size: 0 }, async facets () { return {} } }
   const facets = [createGnamgnamFacet({ search }), createWikiFacet({ store })]
   const server = createServer({ facets, defaultFacet: 'wiki', services: { auth: new Auth({ token: TOKEN }), links } })

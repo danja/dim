@@ -5,6 +5,7 @@ import { renderIndex, renderOutlinePage, renderNodePage, outlinePath } from './p
 import { visibleNodes, titleHtml, nodePath, renderTree } from './treeView.js'
 import { ancestors, childrenOf, toMarkdown } from '../tree.js'
 import { resolveMentions } from '../../common/links/mentions.js'
+import { parseHashtags } from '../../common/hashtags/parse.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { relatedFor } from '../../common/related/relatedFor.js'
 import { plainText } from '../../common/outline/OutlineParser.js'
@@ -117,9 +118,10 @@ export function registerRoutes (router, { store, tabs, services, registry, origi
     const fields = {}
     for (const key of ['title', 'note', 'collapsed']) if (key in body) fields[key] = body[key]
     await store.updateNode(outline, node, fields, identity.user)
-    if ('note' in fields && services.links) {
+    if (('note' in fields || 'title' in fields) && services.links) {
       const targets = await resolveMentions(node.note ?? '', { registry, origin })
       await services.links.syncMentions({ from: node.iri, targets, actor: identity.user })
+      await services.links.syncHashtags({ from: node.iri, tags: parseHashtags(node.title, node.note), actor: identity.user })
     }
     return { redirect: nodePath(node), json: { ok: true, node: nodeJson(outline, node) } }
   }))

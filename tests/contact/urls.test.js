@@ -52,7 +52,7 @@ async function listen () {
   await wiki.save({ title: 'Origin', content: 'Links: https://old.example/page and https://synth.example/posts/2', actor: 'o' })
   const { store: posts } = memoryPosts()
   const synced = []
-  const links = { async linksOf () { return [] }, async syncMentions (c) { synced.push(c) }, async add () {} }
+  const links = { async linksOf () { return [] }, async syncMentions (c) { synced.push(c) }, async syncHashtags () {}, async add () {} }
   const facets = [createGnamgnamFacet({ search }), createWikiFacet({ store: wiki }), createNewsFacet({ store: news, poller }), createBlogFacet({ store: posts, wiki }), createSquirtFacet({})]
   const server = createServer({ facets, defaultFacet: 'wiki', services: { auth: new Auth({ token: TOKEN }), links } })
   servers.push(server)

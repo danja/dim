@@ -12,13 +12,14 @@ let servers = []
 async function listen () {
   const { store } = memoryWiki()
   const synced = []
-  const links = { async syncMentions (change) { synced.push(change) }, async linksOf () { return [] } }
+  const hashtags = []
+  const links = { async syncMentions (change) { synced.push(change) }, async syncHashtags (change) { hashtags.push(change) }, async linksOf () { return [] } }
   const search = { documents: new Map(), index: { size: 0 }, async facets () { return {} } }
   const facets = [createGnamgnamFacet({ search }), createWikiFacet({ store })]
   const server = createServer({ facets, defaultFacet: 'wiki', services: { auth: new Auth({ token: TOKEN }), links } })
   servers.push(server)
   await new Promise(resolve => server.listen(0, resolve))
-  return { base: `http://localhost:${server.address().port}`, store, synced }
+  return { base: `http://localhost:${server.address().port}`, store, synced, hashtags }
 }
 afterEach(async () => {
   for (const s of servers) await new Promise(resolve => s.close(resolve))
@@ -28,6 +29,12 @@ afterEach(async () => {
 const save = (base, slug, body) => fetch(`${base}/wiki/page/${slug}`, { method: 'POST', headers: JSON_AUTH, body: JSON.stringify(body) })
 
 describe('wiki routes', () => {
+  it('syncs the #hashtags in a page\'s text when it is saved', async () => {
+    const { base, hashtags } = await listen()
+    await save(base, 'home', { title: 'Home', content: 'Notes on #Synth/diy and `#code`, issue #12', base: 0 })
+    expect(hashtags.at(-1)).toMatchObject({ from: 'http://purl.org/stuff/dim/page/home', tags: ['synth/diy'] })
+  })
+
   it('offers to create a missing page, then shows it once saved', async () => {
     const { base, synced } = await listen()
     const missing = await fetch(`${base}/wiki/page/new-idea?title=New%20Idea`)

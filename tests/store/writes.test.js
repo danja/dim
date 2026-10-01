@@ -6,6 +6,7 @@ import ShapeValidator from '../../src/common/store/ShapeValidator.js'
 import ChangeLog from '../../src/common/store/ChangeLog.js'
 import Repository from '../../src/common/store/Repository.js'
 import LinkStore from '../../src/common/links/LinkStore.js'
+import HashtagStore from '../../src/common/hashtags/HashtagStore.js'
 import { annotationTriples, TAG_PREDICATE, NOTE_PREDICATE } from '../../src/gnamgnam/Annotations.js'
 
 /**
@@ -82,5 +83,30 @@ describe('LinkStore against the store', () => {
     await links.remove({ from: A, kind: 'resource', to: B, actor: 'test' })
     await links.remove({ from: B, kind: 'related', to: A, actor: 'test' })
     expect(await links.linksOf(A)).toEqual([])
+  })
+})
+
+describe('Hashtags against the store', () => {
+  it('writes SKOS concepts and uses, and reads them back with the tags above', async () => {
+    const links = new LinkStore({ client, repository })
+    links.graph = async () => graph
+    const hashtags = new HashtagStore({ client, graph })
+    await links.syncHashtags({ from: A, tags: ['music/synth', 'diy'], actor: 'test' })
+    await links.syncHashtags({ from: B, tags: ['music'], actor: 'test' })
+
+    expect(await hashtags.concepts()).toEqual(new Map([['music', null], ['music/synth', 'music'], ['diy', null]]))
+    expect((await hashtags.uses()).filter(u => u.iri === A).map(u => u.tag).sort()).toEqual(['diy', 'music/synth'])
+    expect((await hashtags.under('music')).sort()).toEqual([A, B])
+    expect(await hashtags.under('music/synth')).toEqual([A])
+    expect(await hashtags.family('music')).toEqual({ broader: null, narrower: ['music/synth'] })
+
+    // A second save keeps the one concept per tag, and changing the text changes the uses.
+    const fresh = new LinkStore({ client, repository })
+    fresh.graph = async () => graph
+    await fresh.syncHashtags({ from: A, tags: ['diy'], actor: 'test' })
+    expect(await hashtags.under('music/synth')).toEqual([])
+    expect((await hashtags.concepts()).size).toBe(3)
+    const scheme = await client.select(`SELECT ?t WHERE { GRAPH <${graph}> { <http://purl.org/stuff/dim/hashtags> <http://www.w3.org/2004/02/skos/core#hasTopConcept> ?t } }`)
+    expect(scheme.map(r => r.t).sort()).toEqual(['http://purl.org/stuff/dim/concept/tag-diy', 'http://purl.org/stuff/dim/concept/tag-music'])
   })
 })

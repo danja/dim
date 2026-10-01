@@ -2,6 +2,7 @@ import { send, sendHtml } from '../../common/http/respond.js'
 import { negotiate } from '../../common/http/negotiate.js'
 import { writeRoute } from '../../common/http/write.js'
 import { resolveMentions } from '../../common/links/mentions.js'
+import { parseHashtags } from '../../common/hashtags/parse.js'
 import { renderBoard } from './boardPage.js'
 import { renderTaskPage } from './taskPage.js'
 import { renderDicePage } from './dicePage.js'
@@ -24,6 +25,7 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
     if (!services.links) return
     const targets = await resolveMentions(task.note ?? '', { registry, origin })
     await services.links.syncMentions({ from: task.iri, targets, actor })
+    await services.links.syncHashtags({ from: task.iri, tags: parseHashtags(task.title, task.note), actor })
   }
 
   router.get('/farelo', async ({ response, url, session }) =>
@@ -57,7 +59,7 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
 
   router.add(['POST'], '/farelo/tasks', writeRoute(async ({ body, identity }) => {
     const task = await store.create(body, identity.user)
-    if (task.note) await syncMentions(task, identity.user)
+    if (task.note || parseHashtags(task.title).length) await syncMentions(task, identity.user)
     return { redirect: '/farelo/', json: { ok: true, task } }
   }))
 
@@ -65,7 +67,7 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
     const fields = {}
     for (const key of ['title', 'note', 'priority', 'due', 'estimate', 'tags', 'project', 'isProject', 'dependsOn']) if (key in body) fields[key] = body[key]
     const task = await store.update(await find(match[1]), fields, identity.user)
-    if ('note' in fields) await syncMentions(task, identity.user)
+    if ('note' in fields || 'title' in fields) await syncMentions(task, identity.user)
     return { redirect: taskPath(task), json: { ok: true, task } }
   }))
 
