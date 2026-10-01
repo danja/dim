@@ -13,6 +13,11 @@ claude mcp add --transport http dim http://localhost:4110/mcp \
   --header "Authorization: Bearer $DIM_WRITE_TOKEN"
 ```
 
+```sh
+claude mcp add --transport http --scope user dim http://localhost:4110/mcp \
+  --header "Authorization: Bearer $DIM_WRITE_TOKEN"
+```
+
 Any MCP client that speaks HTTP works the same way. Behind a proxy use the
 `DIM_ORIGIN` address.
 
