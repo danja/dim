@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import faiss from 'faiss-node'
-import VectorOperations, { VectorError } from './VectorOperations.js'
+import VectorOperations from './VectorOperations.js'
 import { withFileLock, writeWhole, savedWriteId, newWriteId } from './indexFile.js'
 
 /**

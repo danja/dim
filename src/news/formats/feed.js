@@ -143,7 +143,7 @@ function parseJsonFeed (json, base) {
 
 /** text: the fetched document; url: where it came from (for relative links). */
 export function parseFeed (body, { url = null } = {}) {
-  const source = String(body ?? '').replace(/^﻿/, '').trim()
+  const source = String(body ?? '').replace(/^\uFEFF/, '').trim()
   if (!source) throw new FeedParseError('Empty document')
   let feed
   if (source.startsWith('{')) {

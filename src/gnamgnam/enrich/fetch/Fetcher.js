@@ -26,13 +26,10 @@ export class FetchError extends Error {
  */
 export const REFUSALS = new Set([401, 403, 404, 410, 429, 451, 999])
 
-
 export class Fetcher {
   canHandle (_ctx) { return false }
   async fetch (_url, _ctx) { throw new FetchError(`${this.constructor.name} does not implement fetch()`) }
 }
-
-
 
 export async function fetchJson (url, { userAgent, timeoutMs, headers = {} }) {
   const response = await fetch(url, {

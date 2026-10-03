@@ -14,7 +14,6 @@ const rdfs = NAMESPACES.rdfs
 const dcterms = NAMESPACES.dcterms
 const schema = NAMESPACES.schema
 const skos = NAMESPACES.skos
-const prov = NAMESPACES.prov
 
 export function serialiseBookmark (bookmark, bookmarkIri) {
   const s = iri(bookmarkIri)

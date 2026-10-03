@@ -29,6 +29,7 @@ export function escapeLiteral (value) {
     .replace(/\t/g, '\\t')
     // Remaining C0 controls have no SPARQL escape and are never meaningful in
     // this data; a raw one would produce a syntactically invalid query.
+    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '')
 }
 
@@ -40,6 +41,7 @@ export function iri (value) {
   if (typeof value !== 'string' || value.length === 0) {
     throw new SPARQLSyntaxError(`IRI must be a non-empty string, got ${JSON.stringify(value)}`)
   }
+  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u0020<>"{}|^`\\]/.test(value)) {
     throw new SPARQLSyntaxError(`IRI contains characters that are illegal in a SPARQL IRIREF: ${JSON.stringify(value)}`)
   }

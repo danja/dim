@@ -5,10 +5,36 @@
  */
 
 const NAMED = Object.freeze({
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—',
-  hellip: '…', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', laquo: '«', raquo: '»',
-  copy: '©', reg: '®', trade: '™', middot: '·', bull: '•', eacute: 'é', egrave: 'è',
-  agrave: 'à', aacute: 'á', ouml: 'ö', uuml: 'ü', auml: 'ä', szlig: 'ß', ccedil: 'ç', deg: '°'
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: '\u00a0',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  laquo: '«',
+  raquo: '»',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  middot: '·',
+  bull: '•',
+  eacute: 'é',
+  egrave: 'è',
+  agrave: 'à',
+  aacute: 'á',
+  ouml: 'ö',
+  uuml: 'ü',
+  auml: 'ä',
+  szlig: 'ß',
+  ccedil: 'ç',
+  deg: '°'
 })
 
 export function decodeEntities (text) {
@@ -28,7 +54,7 @@ export function htmlToText (html, { max = Infinity } = {}) {
     .replace(/<\s*br\s*\/?>/gi, '\n')
     .replace(/<\/?(p|div|h[1-6]|li|ul|ol|blockquote|pre|tr|table|section|article|figure|header|footer)\b[^>]*>/gi, '\n\n')
     .replace(/<[^>]+>/g, ''))
-    .replace(/[ \t\f\v ]+/g, ' ')
+    .replace(/[ \t\f\v\u00a0]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()

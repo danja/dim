@@ -1,3 +1,4 @@
+/* global CSS */
 // News: read/star toggles in place, and opening an item marks it read.
 // Without this script the same forms post and reload the page.
 
