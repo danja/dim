@@ -7,6 +7,9 @@ and a phone/PWA view. The plan and a dated work log with commit refs are in
 `docs/plan-detail.md`.
 
 * Periodically read INBOX.md and insert as actionable tasks into TODO.md
+* Periodically use the dim MCP tools (`dim_search`, `dim_get`; start with `dim_endpoints`) to check
+  DIM's own task list (Farelo, status To do) for tasks relevant to the dim project, and add any
+  to TODO.md. Read only: don't change or complete tasks in DIM unless asked
 * When asked to work onthe project, review TODO.md to determine the next task
 
 
