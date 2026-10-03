@@ -10,10 +10,6 @@ import { resolvedLinks } from '../../common/links/resolvedLinks.js'
 import { hostOf } from '../../common/links/urls.js'
 import { relatedFor } from '../../common/related/relatedFor.js'
 
-function originOf (url) {
-  try { return new URL(url).origin + '/' } catch { return null }
-}
-
 /**
  * GnamGnam HTTP routes, mounted at /gnamgnam: search page, search/facets/
  * browse JSON, one bookmark. The pre-facet URLs (/search, /bookmark/…)
@@ -99,7 +95,7 @@ export function registerRoutes (router, { search, autoEnrich = null, tabs, servi
       const links = await resolvedLinks({ services, registry }, bookmarkIri)
       const host = hostOf(doc.url)
       const alsoHere = (await registry.aboutDomain(host)).filter(a => a.facet !== 'gnamgnam')
-      const site = { alsoHere, offerFeed: registry.get('news')?.aboutDomain ? originOf(doc.url) : null }
+      const site = { alsoHere, offerFeed: registry.get('news')?.aboutDomain ? doc.url : null }
       const source = doc.source && !doc.source.startsWith('file:') ? await registry.lookup(doc.source) : null
       return sendHtml(response, 200, renderBookmarkPage(doc, { tabs, session, enriching: autoEnrich?.status(bookmarkIri) ?? null, links, related: await relatedFor({ services, registry }, bookmarkIri, [doc.name, doc.summary ?? doc.description].filter(Boolean).join('\n\n')), site, source }))
     }

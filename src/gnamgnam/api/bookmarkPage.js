@@ -82,15 +82,18 @@ function renderLinks (doc, { links, session, slug }) {
 }
 
 /**
- * site: { alsoHere: [{ label, href, facetLabel }] (e.g. its feed), offerFeed: origin URL or null }
+ * site: { alsoHere: [{ label, href, facetLabel }] (e.g. its feed), offerFeed: the page's URL or null }
  * source: where the bookmark came from, resolved ({ label, href, facetLabel }) or null.
+ * Subscribe checks the bookmarked page for an Atom/RSS feed and adds it to the
+ * news feeds (it lands on that feed's page, or says none was found).
  */
 function renderSite ({ site, session }) {
   if (!site) return ''
   const here = site.alsoHere.map(a => `<a href="${esc(a.href)}">${esc(a.label)}</a> <small class="meta">${esc(a.facetLabel ?? '')}</small>`).join(', ')
-  if (here) return `<p class="meta">From this site: ${here}</p>`
-  if (!site.offerFeed || !session?.user) return ''
-  return `<form class="inline-buttons" method="post" action="/news/feeds">${formFields(session, '')}<input type="hidden" name="url" value="${esc(site.offerFeed)}"><button>Look for this site's feed</button></form>`
+  const subscribe = site.offerFeed && session?.user
+    ? `<form class="inline-buttons" method="post" action="/news/feeds">${formFields(session, '')}<input type="hidden" name="url" value="${esc(site.offerFeed)}"><button title="Look for an Atom or RSS feed on this page and add it to News">Subscribe</button></form>`
+    : ''
+  return `${here ? `<p class="meta">From this site: ${here}</p>` : ''}${subscribe}`
 }
 
 export function renderBookmarkPage (doc, { tabs, session = null, enriching = null, links = null, related = null, site = null, source = null }) {

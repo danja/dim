@@ -74,9 +74,12 @@ describe('URL contact between facets', () => {
 
     const bookmark = await (await fetch(`${base}/gnamgnam/bookmark/a`)).text()
     expect(bookmark).toContain(`From this site: <a href="/news/feed/${feed.slug}">Synth blog</a>`)
+    const owned = await (await fetch(`${base}/gnamgnam/bookmark/a`, { headers: OWNER })).text()
+    expect(owned).toContain('>Subscribe</button>')
     const lonely = await (await fetch(`${base}/gnamgnam/bookmark/lonely`, { headers: OWNER })).text()
-    expect(lonely).toContain('value="https://nofeed.example/"')
-    expect(lonely).toContain("Look for this site's feed")
+    expect(lonely).toMatch(/name="url" value="https:\/\/nofeed\.example\/[^"]*"><button[^>]*>Subscribe<\/button>/)
+    expect(await (await fetch(`${base}/gnamgnam/bookmark/lonely`)).text()).not.toContain('Subscribe')
+    expect(bookmark).not.toContain('Subscribe')
     expect(lonely).toContain('Saved from <a href="/wiki/page/origin">Origin</a>')
   })
 

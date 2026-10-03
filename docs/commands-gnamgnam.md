@@ -36,6 +36,13 @@ bookmark index (written a few seconds later, and on shutdown). A web page's
 feeds go into the News feed inbox (`docs/commands-news.md`). Its page says
 *Fetching and summarising…* until it's done; reload after a minute.
 
+When logged in, a bookmark's page has a **Subscribe** button. It fetches the
+bookmarked page and looks for an Atom, RSS or JSON feed (the page may itself
+be a feed). The first one that parses is added to the News feed list and
+polled, and you land on that feed's page; if the site is already subscribed
+you land there too, and if no feed is found you get a "Not saved" page saying
+so. Other feeds the page offers are listed as alternatives by the News API.
+
 | `.env` | |
 |---|---|
 | `ENRICH_SUMMARISER` | `ollama` (default; `OLLAMA_URL`, model `ENRICH_CONFIG.model`), `remote` (the `LLM_*` settings), or `extractive` (offline). An LLM that fails falls back to the offline summarisers, so there's always a summary. |
