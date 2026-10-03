@@ -75,7 +75,7 @@ export function renderShare ({ values, guess, existing = null, tabs, session }) 
 ${values.title ? `<p><strong>${esc(values.title)}</strong></p>` : ''}
 ${existing?.href ? `<p class="captured">Already bookmarked: <a href="${esc(existing.href)}">${esc(existing.label)}</a>. Saving again as a bookmark changes nothing; a task or note still works.</p>` : ''}
 ${captureForm({ session, values, guess })}`
-  return squirtPage({ title: 'Save to DIM', body, tabs, session })
+  return squirtPage({ title: 'Save to DIM', body, tabs, session, offline: Boolean(session?.user) })
 }
 
 export function renderOffline ({ tabs }) {

@@ -90,6 +90,11 @@ a queue on the device (`dim.offline.queue`) and are sent to
 `/squirt/capture` when you're back online, in order. A note on a news item
 lands in the wiki Inbox as `Re: <title>`, with the item's link. Captures
 the server refuses (4xx other than 401/403) are dropped; a server error or
-an expired session leaves them queued. Notes are only synced by an open
-Squirt page, not in the background. Logging out clears the stored news and
-the queue.
+an expired session leaves them queued. The capture box (and the share page) always tries the server first: if it
+can't be reached, whether the device is offline or just the server is down,
+or a proxy answers 5xx, the capture is kept in the queue and the page says
+so. While anything is waiting, an open Squirt page retries every 30 seconds
+and when it regains focus. A share opened while the server is down shows
+the last saved share page, filled in from the address. Notes are only
+synced by an open Squirt page, not in the background. Logging out clears
+the stored news and the queue.

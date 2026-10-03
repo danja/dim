@@ -3,7 +3,7 @@
 // notes and captures while offline, and send them when the connection is back.
 // Pages work without this; it only enhances them.
 
-import { saveNews, loadNews, queued, enqueue, noteOnItem, flush, NEWS_COUNT } from './offlineQueue.js'
+import { saveNews, loadNews, queued, enqueue, attempt, noteOnItem, flush, NEWS_COUNT } from './offlineQueue.js'
 
 const capture = document.querySelector('#capture')
 const panel = document.querySelector('#offline-news')
@@ -23,14 +23,14 @@ async function send (item) {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ ...item, _csrf: csrf() })
   })
-  return { ok: response.ok, status: response.status }
+  return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) }
 }
 
 let syncing = null
 
 // One flush at a time: two at once would each send the first queued capture.
 function sync () {
-  if (!navigator.onLine || !queued(localStorage).length || !csrf()) return syncing
+  if (!queued(localStorage).length || !csrf()) return syncing
   syncing ??= run().finally(() => { syncing = null })
   return syncing
 }
@@ -92,18 +92,42 @@ function render () {
   panel.hidden = false
 }
 
-// The capture form: if the request can't go, keep it here instead of losing it.
+// The capture form: send it, and if DIM can't be reached (offline, or the
+// server is down while the network is up) keep it here instead of losing it.
 capture?.addEventListener('submit', async e => {
-  if (navigator.onLine) return
   e.preventDefault()
   const data = Object.fromEntries(new FormData(capture))
   if (!String(data.text ?? '').trim() && !data.url) return
-  if (enqueue(localStorage, { text: data.text, url: data.url, title: data.title, kind: data.kind })) {
+  const item = { text: data.text, url: data.url, title: data.title, kind: data.kind }
+  const { state, result } = await attempt(localStorage, item, send)
+  if (state === 'sent') {
+    const { href, label } = result.body
+    location.assign(`/squirt/?captured=${encodeURIComponent(href ?? '')}&label=${encodeURIComponent(label ?? '')}`)
+  } else if (state === 'queued') {
     capture.reset()
-    pending()
-  } else say('Could not save on this device (storage full).')
+    say(`Saved on this device. ${queued(localStorage).length} waiting; they are sent when DIM can be reached.`)
+  } else if (state === 'refused') say(`Not saved: ${result.body.error ?? `the server refused it (${result.status})`}`)
+  else say('Could not save on this device (storage full).')
 })
 
+// The share target arrives as /squirt/share?title=…&url=…; when that page is
+// served from the offline copy its form is stale, so fill it from the address.
+if (capture && location.pathname === '/squirt/share') {
+  const params = new URLSearchParams(location.search)
+  for (const name of ['title', 'text', 'url']) {
+    if (!params.has(name)) continue
+    let field = capture.elements[name]
+    if (!field) {
+      field = Object.assign(document.createElement('input'), { type: 'hidden', name })
+      capture.append(field)
+    }
+    field.value = params.get(name)
+  }
+}
+
+// The server coming back raises no event, so while anything is waiting, retry.
+setInterval(() => { if (!document.hidden) sync() }, 30000)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) sync() })
 window.addEventListener('online', async () => { await sync(); await refreshNews(); render() })
 render()
 pending()

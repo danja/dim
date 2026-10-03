@@ -43,6 +43,24 @@ export function enqueue (storage, capture, now = () => new Date()) {
   return write(storage, QUEUE_KEY, list)
 }
 
+/** Whether a failed send is worth retrying later (server down or session expired), not a refusal. */
+export function retryable (status) {
+  return status >= 500 || status === 401 || status === 403
+}
+
+/**
+ * Send a capture now; if DIM can't be reached (network error, 5xx from a proxy
+ * with the app down, expired session) keep it in the queue instead.
+ * → { state: 'sent' | 'queued' | 'refused' | 'full', result? }
+ */
+export async function attempt (storage, item, send, now = () => new Date()) {
+  let result
+  try { result = await send(item) } catch { result = null }
+  if (result?.ok) return { state: 'sent', result }
+  if (result && !retryable(result.status)) return { state: 'refused', result }
+  return { state: enqueue(storage, item, now) ? 'queued' : 'full', result }
+}
+
 /** The capture for a note written offline on a news item. Always a note, never a bookmark. */
 export function noteOnItem (item, note) {
   const text = [`Re: ${item.title}`, String(note).trim(), item.link].filter(Boolean).join('\n\n')
@@ -61,7 +79,7 @@ export async function flush (storage, send) {
   while (list.length) {
     let result
     try { result = await send(list[0]) } catch { break }
-    if (!result.ok && (result.status >= 500 || result.status === 401 || result.status === 403)) break
+    if (!result.ok && retryable(result.status)) break
     if (result.ok) sent++
     else dropped++
     list.shift()

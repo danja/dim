@@ -38,7 +38,7 @@ self.addEventListener('fetch', event => {
       }
       return response
     } catch (error) {
-      const cached = await caches.match(request)
+      const cached = await caches.match(request, { ignoreSearch: url.pathname === '/squirt/share' })
       if (cached) return cached
       if (request.mode === 'navigate') return (await caches.match(OFFLINE)) ?? Response.error()
       throw error

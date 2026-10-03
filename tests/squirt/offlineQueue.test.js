@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { saveNews, loadNews, enqueue, queued, flush, noteOnItem, clearOffline } from '../../src/common/ui/public/js/offlineQueue.js'
+import { saveNews, loadNews, enqueue, queued, flush, noteOnItem, clearOffline, attempt } from '../../src/common/ui/public/js/offlineQueue.js'
 import { classify } from '../../src/squirt/capture.js'
 
 const memory = () => {
@@ -61,5 +61,35 @@ describe('offline queue', () => {
     clearOffline(s)
     expect(queued(s)).toEqual([])
     expect(loadNews(s).items).toEqual([])
+  })
+})
+
+describe('attempt', () => {
+  const item = { text: 'https://example.org/', kind: 'bookmark' }
+
+  it('sends straight away when the server answers', async () => {
+    const s = memory()
+    expect((await attempt(s, item, async () => ({ ok: true, status: 200 }))).state).toBe('sent')
+    expect(queued(s)).toEqual([])
+  })
+
+  it('queues when the server is unreachable or answers 5xx/401', async () => {
+    const s = memory()
+    expect((await attempt(s, item, async () => { throw new TypeError('Failed to fetch') })).state).toBe('queued')
+    expect((await attempt(s, item, async () => ({ ok: false, status: 502 }))).state).toBe('queued')
+    expect((await attempt(s, item, async () => ({ ok: false, status: 401 }))).state).toBe('queued')
+    expect(queued(s)).toHaveLength(3)
+  })
+
+  it('does not queue what the server refuses', async () => {
+    const s = memory()
+    expect((await attempt(s, item, async () => ({ ok: false, status: 400 }))).state).toBe('refused')
+    expect(queued(s)).toEqual([])
+  })
+
+  it('syncs the queue once the server is back', async () => {
+    const s = memory()
+    await attempt(s, item, async () => { throw new TypeError('down') })
+    expect(await flush(s, async () => ({ ok: true, status: 200 }))).toEqual({ sent: 1, dropped: 0, left: 0 })
   })
 })
