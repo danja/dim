@@ -23,16 +23,53 @@ it from a phone, and [`docs/security.md`](docs/security.md) before doing so.
 ## Requirements
 
 - Node ≥ 20.11
-- A SPARQL 1.1 store (Fuseki; `docker compose up -d fuseki` provides one on :3031)
+- Docker with Compose v2, for the store and embeddings (or your own SPARQL 1.1
+  store and Ollama)
+- Fuseki (`docker compose up -d fuseki` provides one on :3031)
 - Ollama with `nomic-embed-text:v1.5` for embeddings
 
-## Setup
+## Install and run
 
 ```sh
+git clone https://github.com/danja/dim.git && cd dim
 npm install
-cp .env.example .env      # then fill it in — there are no defaults
-docker compose up -d fuseki
+cp .env.example .env        # fill it in: there are no defaults
+                            # set DIM_WRITE_TOKEN (16+ chars) to enable writes
+docker compose up -d --wait fuseki ollama
+docker compose exec ollama ollama pull nomic-embed-text:v1.5   # once
+npm test                    # core tests: offline, fast
+node bin/serve.js           # http://localhost:4110
 ```
+
+Fuseki and Ollama are published on loopback only. The `dim` dataset is created
+by the assembler that compose mounts. A fresh store is empty; load data with the
+tools below (`ingest`, `trestle-import`, …) or just start saving things in the
+web UI. After a CLI tool writes to the store, restart the server.
+
+### Start at boot (systemd)
+
+`deploy/dim.service` starts the store and embeddings, then the app, when the
+computer starts. Check `User`, `WorkingDirectory` and the `node` path in it
+(`command -v node`), then:
+
+```sh
+sudo cp deploy/dim.service /etc/systemd/system/dim.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now dim
+journalctl -u dim -f        # logs
+```
+
+After a `git pull`: `sudo systemctl restart dim`.
+
+### Everything in Docker
+
+```sh
+docker compose up -d --build app    # rebuild after every git pull
+```
+
+The app's data lives in the `app-data` volume rather than `./data`. Use this
+or the systemd service, not both: each wants :4110. Backups, phone access and
+the rest are in [`docs/deployment.md`](docs/deployment.md).
 
 ## Use
 

@@ -23,3 +23,18 @@ Then tell Claude it's done. The open item in `TODO.md` ("Run axe on /squirt/
 
 Commit `package.json` and `package-lock.json` afterwards. They're dev
 dependencies, so the app and `npm test` don't change.
+
+## Install the boot service (systemd)
+
+`deploy/dim.service` starts DIM when the computer boots. It needs root, so run
+it yourself (from the repo root, after checking the paths in the file):
+
+```sh
+sudo cp deploy/dim.service /etc/systemd/system/dim.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now dim
+systemctl status dim
+```
+
+Stop anything already on :4110 first (a `node bin/serve.js` in a terminal, or
+the `dim-app` container).

@@ -1,0 +1,38 @@
+# DIM at boot: the store and embeddings (Docker), then the app (Node).
+#
+# Install (as root; see docs/deployment.md, "Starting at boot"):
+#   sudo cp deploy/dim.service /etc/systemd/system/dim.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now dim
+#
+# Edit first if your setup differs: User, WorkingDirectory, and the node path
+# (`command -v node`; with nvm the path holds the Node version, so update it
+# when you change versions). The user needs to be in the `docker` group.
+# Settings come from .env in WorkingDirectory, which the app reads itself.
+# Do not also run the app container (`docker compose up app`): both want :4110.
+
+[Unit]
+Description=DIM (Danny's Information Manager)
+Documentation=file:///chalet/github/dim/docs/deployment.md
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=danny
+WorkingDirectory=/chalet/github/dim
+# Fuseki and Ollama; --wait returns once their healthchecks pass, so the app
+# does not start against a store that is still loading.
+ExecStartPre=/usr/bin/docker compose up -d --wait fuseki ollama
+ExecStart=/home/danny/.nvm/versions/node/v25.2.1/bin/node bin/serve.js
+Restart=on-failure
+RestartSec=5
+# First start of Fuseki can be slow on a cold disk.
+TimeoutStartSec=300
+# The app only reads and writes under the project (data/, backups/).
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

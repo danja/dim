@@ -74,6 +74,31 @@ docker compose exec app node -e "fetch('http://localhost:4110/health').then(r=>r
 `/health` reports per-facet status; `facets.gnamgnam` has the corpus and index sizes. Both are zero until the
 first ingest.
 
+## Starting at boot
+
+To run the app on the host (Node, data in `./data`) rather than as the
+`app` container, `deploy/dim.service` is a systemd unit for it. It requires
+Docker, brings up `fuseki` and `ollama` (`docker compose up -d --wait`),
+then runs `node bin/serve.js` as your user, restarting on failure.
+Settings come from `.env`.
+
+Before installing, edit `User`, `WorkingDirectory` and the `node` path
+(with nvm the path contains the Node version, so update it when the
+version changes). The user must be in the `docker` group.
+
+```sh
+sudo cp deploy/dim.service /etc/systemd/system/dim.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now dim
+systemctl status dim
+journalctl -u dim -f
+```
+
+After `git pull`: `sudo systemctl restart dim`. Don't run the `app`
+container as well; both use :4110. (The containers themselves have
+`restart: unless-stopped`, so Docker alone brings the `app` container
+back at boot if you prefer that route.)
+
 ## Harvesting and enriching
 
 > **After any `git pull`, rebuild before running anything.** The
