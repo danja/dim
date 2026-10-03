@@ -347,7 +347,7 @@ textarea {
 .add-node input { flex: 1; }
 .node-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
 .inline-buttons { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.inline-buttons button { min-height: 36px; padding: 0.25rem 0.6rem; font-size: 0.875rem; font-weight: normal; color: var(--text); background: var(--surface); border: 1px solid var(--border); }
+.inline-buttons button { min-height: 44px; padding: 0.25rem 0.6rem; font-size: 0.875rem; font-weight: normal; color: var(--text); background: var(--surface); border: 1px solid var(--border); }
 .inline-buttons button.danger { color: var(--bad); }
 .keys { margin: 0 0 0.5rem; font-size: 0.875rem; }
 kbd { font-family: var(--mono); font-size: 0.8em; padding: 0 0.3em; border: 1px solid var(--border); border-radius: 3px; }
