@@ -69,6 +69,15 @@ available as JSON: `/squirt/recent.json`.
    title, text and link, with a guess of where it will go. Tap **Save**.
    You need to have logged in once on the phone; the session lasts 30 days.
 
+When the share page's **Save** succeeds, the window closes itself, so you
+drop back to the app you shared from. A browser only lets a page close a
+window it opened or one with no history, which is what a share launch is; in
+an ordinary tab the close is refused and you see the usual "Saved" page
+instead. If the save is kept on the device because DIM can't be reached, the
+page says so and closes after a moment. Capturing from `/squirt/` itself is
+unchanged. With JavaScript off, Save posts the form and shows the "Saved"
+page.
+
 The **bookmarklet** on `/squirt/` (under *On your phone, and from any page*)
 does the same from a desktop browser: it sends the current page, and any
 selected text, to the capture form.

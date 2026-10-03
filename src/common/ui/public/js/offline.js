@@ -94,6 +94,7 @@ function render () {
 
 // The capture form: send it, and if DIM can't be reached (offline, or the
 // server is down while the network is up) keep it here instead of losing it.
+const sharing = location.pathname === '/squirt/share'
 capture?.addEventListener('submit', async e => {
   e.preventDefault()
   const data = Object.fromEntries(new FormData(capture))
@@ -102,17 +103,22 @@ capture?.addEventListener('submit', async e => {
   const { state, result } = await attempt(localStorage, item, send)
   if (state === 'sent') {
     const { href, label } = result.body
-    location.assign(`/squirt/?captured=${encodeURIComponent(href ?? '')}&label=${encodeURIComponent(label ?? '')}`)
+    const done = `/squirt/?captured=${encodeURIComponent(href ?? '')}&label=${encodeURIComponent(label ?? '')}`
+    // Opened from "Share to…": there is nothing more to do here, so close the
+    // window. Browsers refuse when it isn't allowed to (a tab with history), so
+    // if we're still here a moment later, show the confirmation as usual.
+    if (sharing) { window.close(); setTimeout(() => location.assign(done), 400) } else location.assign(done)
   } else if (state === 'queued') {
     capture.reset()
     say(`Saved on this device. ${queued(localStorage).length} waiting; they are sent when DIM can be reached.`)
+    if (sharing) setTimeout(() => window.close(), 1500)
   } else if (state === 'refused') say(`Not saved: ${result.body.error ?? `the server refused it (${result.status})`}`)
   else say('Could not save on this device (storage full).')
 })
 
 // The share target arrives as /squirt/share?title=…&url=…; when that page is
 // served from the offline copy its form is stale, so fill it from the address.
-if (capture && location.pathname === '/squirt/share') {
+if (capture && sharing) {
   const params = new URLSearchParams(location.search)
   for (const name of ['title', 'text', 'url']) {
     if (!params.has(name)) continue
