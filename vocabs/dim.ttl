@@ -188,6 +188,18 @@ dim:postStatus a owl:DatatypeProperty ; rdfs:domain dim:BlogPost ; rdfs:range xs
     rdfs:comment "draft or published." .
 dim:slug a owl:DatatypeProperty ; rdfs:range xsd:string ; rdfs:comment "The last part of the post's URL." .
 
+## ── Calendar (graph:facet/calendar) ──────────────────────────────────
+## Appointments to remember. The date is a plain xsd:date and the time an
+## optional "HH:MM" string, both as written: an appointment at 14:30 is at
+## 14:30 wherever you are, so there is no timezone. Notes are dcterms:description.
+dim:Event a owl:Class ; rdfs:label "Appointment" .
+dim:eventDate a owl:DatatypeProperty ; rdfs:domain dim:Event ; rdfs:range xsd:date ;
+    rdfs:comment "The day of the appointment." .
+dim:eventTime a owl:DatatypeProperty ; rdfs:domain dim:Event ; rdfs:range xsd:string ;
+    rdfs:comment "Start time as HH:MM (24 hours); absent for an all-day appointment." .
+dim:location a owl:DatatypeProperty ; rdfs:domain dim:Event ; rdfs:range xsd:string ;
+    rdfs:comment "Where it is, in words." .
+
 ## ── Advisor (graph:facet/advisor) ─────────────────────────────────────
 ## "What next?" feedback: each accept or skip of a suggestion, and the
 ## weights learnt from accepts (a JSON object on dim:advisor-weights).

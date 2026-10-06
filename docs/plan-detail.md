@@ -1032,6 +1032,23 @@ projects, the flow of work, time, people.
 
 ---
 
+## Phase 14 — Calendar
+
+A simple appointment-remembering tab. Not a full calendar: no recurrence,
+invitations or sync with other calendars.
+
+- `src/calendar/`: `EventStore` (in memory, written through `Repository`),
+  `rdf.js`, `render.js`, `api/`; `graph:facet/calendar`; `dim:Event` and
+  `dim:EventShape`; query `sparql/queries/calendar/events.sparql`.
+- An appointment is a title, a day, an optional `HH:MM` and place, and notes.
+  Day and time are kept as written (no timezone).
+- Private to the owner: every route needs a login (or the Bearer token), and
+  the facet offers no public hooks (find, tags, related, day).
+- Written up in `docs/commands-calendar.md`; covered by core tests, a live
+  store test and a browser check.
+
+---
+
 ## Open questions
 
 | # | Question | Raised | Decision |
@@ -1104,3 +1121,6 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-10-03 | 10 | Browser check (Playwright, 375px, light and dark, axe): /squirt/ and /squirt/share 0 violations, no horizontal scroll, tap targets ok. Offline queue verified with `/squirt/capture` blocked (network error and a 502 both queue, sync on reload, share page filled from the address). Bookmark page + Subscribe not checked: the page waits on a saturated host Ollama (related). | uncommitted |
 | 2026-10-03 | 13 | Bookmark page checked in the browser (375px, light and dark, axe 0 violations, no horizontal scroll) after moving to the compose Ollama (page 0.45 s). Subscribe was 36px; `.inline-buttons button` is now 44px (shared by wiki, task, outline and bookmark pages). The links panel's "remove" buttons are still 32px. | uncommitted |
 | 2026-10-03 | 10 | Share target: Save on `/squirt/share` closes the window (`window.close()`, falling back to the "Saved" page after 400 ms where the browser refuses); a save queued offline says so, then closes. `/squirt/` capture unchanged. Checked in Playwright with `/squirt/capture` stubbed (script-opened window closes, plain tab falls back, home page stays); not tried on a real phone. | uncommitted |
+| 2026-10-06 | 10 | Squirt: **Sync now** button, shown while captures or notes wait on the device; sends the queue at once and reports when DIM is still unreachable. Test for the markup. Browser check (Playwright, 375px, light and dark, axe): button hidden until something is queued, 44px tall, 0 axe violations, no horizontal scroll; with `/squirt/capture` aborted it reports "still waiting", with it stubbed it syncs and hides. Not tried on a real phone. | uncommitted |
+| 2026-10-06 | 8 | News tests no longer age out: fixtures are dated around 2026-09-26 and a Poller on the real clock marks items older than `firstPollUnreadDays` read, which broke two route tests. `NEWS_NOW` in `tests/news/memoryNews.js` is now the one test clock; every news Poller in the tests (routes, inbox, poller, contact/urls) uses it. Core suite also run with the system date set to 2027-10-06: news and contact tests pass. 365 core tests. | uncommitted |
+| 2026-10-06 | 14 | Calendar tab: simple appointments (title, day, optional HH:MM, place, notes) in `graph:facet/calendar`; `dim:Event` + `dim:EventShape`; `EventStore`, routes, pages; private to the owner (login or Bearer; no find/tags/related hooks); added to `createFacets`, `buildApp`, the MCP catalog and docs (`docs/commands-calendar.md`). 376 core tests (11 new); live-store test passes against Fuseki (`calendar-test` graph, dropped); browser check (Playwright, 375px, light and dark, axe): 0 violations, no horizontal scroll, tap targets ≥44px (fixed date/time inputs and list links). Not tried on a real phone; the running server needs a restart to show the tab. | uncommitted |

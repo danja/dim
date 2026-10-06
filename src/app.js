@@ -15,6 +15,7 @@ import WikiStore from './wiki/WikiStore.js'
 import NewsStore from './news/NewsStore.js'
 import FeedInbox from './news/FeedInbox.js'
 import PostStore from './blog/PostStore.js'
+import EventStore from './calendar/EventStore.js'
 import Advisor from './advisor/Advisor.js'
 import AdviceStore from './advisor/AdviceStore.js'
 import Poller from './news/Poller.js'
@@ -56,15 +57,16 @@ export async function buildApp ({ config, projectRoot, env = process.env }) {
   const inbox = new FeedInbox({ client, news: newsStore })
   const autoEnrich = autoEnricher({ client, search, embeddings, index, env, observers: [inbox.observer()] })
   const posts = new PostStore({ client, repository, links })
+  const events = new EventStore({ client, repository })
   const advisor = new Advisor({ tasks, advice: new AdviceStore({ client, repository, links }), links })
   advisor.relatedIndex = related
   const rolls = new RollLog({ client, registry })
   const blog = { store: posts, title: env.BLOG_TITLE || 'Blog', author: env.BLOG_AUTHOR || 'owner' }
-  const facets = createFacets({ search, autoEnrich, outlines, tasks, rolls, wiki, news: { store: newsStore, poller, inbox }, blog, client, advisor })
+  const facets = createFacets({ search, autoEnrich, outlines, tasks, rolls, wiki, news: { store: newsStore, poller, inbox }, blog, calendar: events, client, advisor })
 
   const topics = new TopicStore({ client })
   const hashtags = new HashtagStore({ client })
-  return { client, index, embeddings, search, autoEnrich, related, topics, hashtags, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, rolls }, inbox, poller, advisor, facets }
+  return { client, index, embeddings, search, autoEnrich, related, topics, hashtags, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, events, rolls }, inbox, poller, advisor, facets }
 }
 
 /**

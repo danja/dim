@@ -143,7 +143,7 @@ describe('facet shell', () => {
     const base = await listen(stubSearch([DOC]))
     const html = await (await fetch(`${base}/gnamgnam/`)).text()
     expect(html).toMatch('<meta name="viewport"')
-    expect(html.match(/<li><a href="\/[a-z-]+\/"/g)).toHaveLength(7)
+    expect(html.match(/<li><a href="\/[a-z-]+\/"/g)).toHaveLength(8)
     expect(html).toMatch('<a href="/gnamgnam/" aria-current="page">GnamGnam</a>')
     expect(html).not.toMatch('<a href="/farelo/" aria-current')
   })

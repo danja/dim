@@ -8,6 +8,7 @@ import { saveNews, loadNews, queued, enqueue, attempt, noteOnItem, flush, NEWS_C
 const capture = document.querySelector('#capture')
 const panel = document.querySelector('#offline-news')
 const status = document.querySelector('#offline-status')
+const syncButton = document.querySelector('#sync-now')
 const csrf = () => document.querySelector('input[name="_csrf"]')?.value ?? ''
 
 function say (text) { if (status) status.textContent = text }
@@ -15,6 +16,11 @@ function say (text) { if (status) status.textContent = text }
 function pending () {
   const n = queued(localStorage).length
   say(n ? `${n} saved on this device, waiting to sync.` : '')
+  showSync()
+}
+
+function showSync () {
+  if (syncButton) syncButton.hidden = !queued(localStorage).length
 }
 
 async function send (item) {
@@ -37,9 +43,23 @@ function sync () {
 
 async function run () {
   const { sent, dropped, left } = await flush(localStorage, send)
+  showSync()
   if (sent || dropped) say(`Synced ${sent}${dropped ? `, ${dropped} refused by the server` : ''}${left ? `; ${left} still waiting` : ''}.`)
   else pending()
 }
+
+// The button: try now and say what happened, including when nothing got through.
+syncButton?.addEventListener('click', async () => {
+  if (!csrf()) { say('Cannot sync from this copy of the page. Reload it when DIM can be reached.'); return }
+  syncButton.disabled = true
+  say('Syncing…')
+  try {
+    const before = queued(localStorage).length
+    await sync()
+    const left = queued(localStorage).length
+    if (left && left === before) say(`Could not reach DIM, or you need to log in again. ${left} still waiting on this device.`)
+  } finally { syncButton.disabled = false }
+})
 
 async function refreshNews () {
   try {
@@ -114,6 +134,7 @@ capture?.addEventListener('submit', async e => {
     if (sharing) setTimeout(() => window.close(), 1500)
   } else if (state === 'refused') say(`Not saved: ${result.body.error ?? `the server refused it (${result.status})`}`)
   else say('Could not save on this device (storage full).')
+  showSync()
 })
 
 // The share target arrives as /squirt/share?title=…&url=…; when that page is

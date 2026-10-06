@@ -106,6 +106,7 @@ describe('catalog', () => {
       wiki: stub,
       news: { store: stub, poller: stub, inbox: stub },
       blog: { store: stub, title: 'Blog', author: 'me' },
+      calendar: stub,
       client: stub,
       advisor: stub
     }),

@@ -6,7 +6,7 @@ import { createGnamgnamFacet } from '../../src/gnamgnam/index.js'
 import { createNewsFacet } from '../../src/news/index.js'
 import Poller from '../../src/news/Poller.js'
 import { NEWS_CONFIG } from '../../config/preferences.js'
-import { memoryNews, fakeFetch } from './memoryNews.js'
+import { memoryNews, fakeFetch, NEWS_NOW } from './memoryNews.js'
 
 const TOKEN = 'test-token-0123456789abcdef'
 const AUTH = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', Accept: 'application/json' }
@@ -19,7 +19,7 @@ async function listen () {
     'https://example.org/': { body: '<html><head><link rel="alternate" type="application/rss+xml" href="/feed/"></head></html>', headers: { 'content-type': 'text/html' } },
     'https://example.org/feed/': { body: rss }
   })
-  const poller = new Poller({ store, config: { ...NEWS_CONFIG, perHostIntervalMs: 0 }, fetchImpl: impl, sleep: async () => {} })
+  const poller = new Poller({ store, config: { ...NEWS_CONFIG, perHostIntervalMs: 0 }, fetchImpl: impl, now: () => NEWS_NOW, sleep: async () => {} })
   const made = []
   const tasks = { async create (fields) { made.push(fields); return { id: 'tk1', iri: 'http://purl.org/stuff/dim/task/tk1' } } }
   const links = { added: [], async add (l) { this.added.push(l) }, async linksOf () { return [] }, async forget () {} }

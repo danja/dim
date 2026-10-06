@@ -1,0 +1,20 @@
+/* Calendar: appointments by day, and the add/edit form. */
+
+.day h2 { font-size: 1.05rem; margin: 1.25rem 0 0.25rem; }
+.events { list-style: none; padding: 0; margin: 0; }
+.events li { display: flex; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.events .when { flex: none; min-width: 4.5rem; min-height: 44px; display: inline-flex; align-items: center; font-variant-numeric: tabular-nums; }
+.events > li > div { min-width: 0; overflow-wrap: anywhere; }
+.events a { display: inline-flex; align-items: center; min-height: 44px; }
+.events .meta, .events .notes { margin: 0; }
+.events .notes { white-space: pre-line; color: var(--muted); }
+
+.add-event { margin-bottom: 1.5rem; }
+.when-fields { display: flex; flex-wrap: wrap; gap: 0 1rem; }
+.when-fields > div { flex: 1 1 9rem; }
+.event-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: 0.5rem 0; }
+.event-actions a { display: inline-flex; align-items: center; min-height: 44px; }
+button.secondary.danger { color: var(--bad); background: var(--surface); border: 1px solid var(--border); font-weight: normal; }
+
+.edit input[type="date"], .edit input[type="time"] { width: 100%; min-height: 44px; padding: 0.5rem 0.75rem; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.cal-nav a { display: inline-flex; align-items: center; min-height: 44px; }

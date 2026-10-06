@@ -92,6 +92,13 @@ export const CATALOG = Object.freeze([
   w('/blog/post/{slug}/publish', '/blog/post/x/publish', 'Publish or unpublish', '{ publish: true|false }'),
   w('/blog/post/{slug}/delete', '/blog/post/x/delete', 'Delete a post'),
 
+  // Calendar (appointments; owner only)
+  r('/calendar', '/calendar', 'Upcoming appointments, soonest first (?view=past for earlier ones)'),
+  r('/calendar/event/{slug}(.json)', '/calendar/event/x.json', 'An appointment'),
+  w('/calendar/events', '/calendar/events', 'New appointment', '{ title, date: YYYY-MM-DD, time?: HH:MM, location?, notes? }'),
+  w('/calendar/event/{slug}', '/calendar/event/x', 'Edit an appointment', '{ title?, date?, time?, location?, notes? } (an empty time makes it all-day)'),
+  w('/calendar/event/{slug}/delete', '/calendar/event/x/delete', 'Delete an appointment'),
+
   // Capture (squirt)
   r('/squirt/recent.json', '/squirt/recent.json', 'The timeline of recent captures'),
   w('/squirt/capture', '/squirt/capture', 'Capture a URL, note or task; DIM decides what it is unless kind is given', '{ text?, url?, title?, kind? }')

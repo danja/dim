@@ -4,6 +4,7 @@ import { createFareloFacet } from './farelo/index.js'
 import { createWikiFacet } from './wiki/index.js'
 import { createNewsFacet } from './news/index.js'
 import { createBlogFacet } from './blog/index.js'
+import { createCalendarFacet } from './calendar/index.js'
 import { createSquirtFacet } from './squirt/index.js'
 import { stubFacet } from './common/facets/stubFacet.js'
 
@@ -16,12 +17,12 @@ import { stubFacet } from './common/facets/stubFacet.js'
  * outlines / tasks: an OutlineStore and TaskStore (need the store); without
  * them Trestle and Farelo are stubs. rolls: the dice-roll log. wiki: a
  * WikiStore (likewise). news: { store, poller } (likewise). blog:
- * { store, title, author } (likewise). client: the SPARQL client, for
+ * { store, title, author } (likewise). calendar: an EventStore (likewise). client: the SPARQL client, for
  * Squirt's timeline and bookmark capture. advisor: the "What next?" Advisor
  * (shown in Farelo and on Squirt). autoEnrich: fetches, summarises and
  * embeds bookmarks saved in DIM (src/gnamgnam/AutoEnricher.js).
  */
-export function createFacets ({ search, autoEnrich = null, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, client = null, advisor = null }) {
+export function createFacets ({ search, autoEnrich = null, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, calendar = null, client = null, advisor = null }) {
   return [
     createGnamgnamFacet({ search, autoEnrich }),
     outlines
@@ -39,6 +40,9 @@ export function createFacets ({ search, autoEnrich = null, outlines = null, task
     blog
       ? createBlogFacet({ ...blog, wiki, outlines })
       : stubFacet({ id: 'blog', label: 'Blog', phase: 9, description: 'Blog engine: publish wiki pages and outline nodes as posts.' }),
+    calendar
+      ? createCalendarFacet({ store: calendar })
+      : stubFacet({ id: 'calendar', label: 'Calendar', phase: 14, description: 'Calendar: appointments to remember, by day.' }),
     createSquirtFacet({ client, tasks, wiki, advisor })
   ]
 }

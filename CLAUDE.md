@@ -1,9 +1,9 @@
 # CLAUDE.md
 
 DIM (Danny's Information Manager): one personal web app over a SPARQL store
-(Fuseki) and a vector index (FAISS, embeddings from Ollama). Seven facets
+(Fuseki) and a vector index (FAISS, embeddings from Ollama). Eight facets
 share one shell with tabs: bookmarks, outliner, tasks, wiki, news, blog,
-and a phone/PWA view. The plan and a dated work log with commit refs are in
+calendar, and a phone/PWA view. The plan and a dated work log with commit refs are in
 `docs/plan-detail.md`.
 
 * Periodically read INBOX.md and insert as actionable tasks into TODO.md
@@ -33,7 +33,7 @@ backup/restore, deadlinks, validate).
 
 | Path | What |
 |---|---|
-| `src/<facet>/` | gnamgnam (bookmarks), trestle (outliner), farelo (tasks + dice), wiki, news, blog, squirt (PWA); advisor ("What next?") |
+| `src/<facet>/` | gnamgnam (bookmarks), trestle (outliner), farelo (tasks + dice), wiki, news, blog, calendar (appointments), squirt (PWA); advisor ("What next?") |
 | `src/<facet>/index.js` | `create<Facet>Facet()`: the facet object (contract in `src/common/facets/FacetRegistry.js`) |
 | `src/<facet>/api/` | routes and page renderers (template strings, no framework) |
 | `src/common/` | store, http, ui, links, related, topics, journal, ops (backup), vectors, embeddings |

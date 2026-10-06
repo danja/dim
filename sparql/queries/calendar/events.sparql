@@ -1,0 +1,11 @@
+# Every appointment, one row each.
+SELECT ?event ?slug ?title ?date ?time ?location ?notes ?created ?modified
+WHERE {
+  GRAPH ${graph} {
+    ?event a dim:Event ; dim:slug ?slug ; dcterms:title ?title ; dim:eventDate ?date ; dcterms:created ?created .
+    OPTIONAL { ?event dim:eventTime ?time }
+    OPTIONAL { ?event dim:location ?location }
+    OPTIONAL { ?event dcterms:description ?notes }
+    OPTIONAL { ?event dcterms:modified ?modified }
+  }
+}

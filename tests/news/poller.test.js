@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 import fs from 'fs'
 import Poller from '../../src/news/Poller.js'
 import { NEWS_CONFIG } from '../../config/preferences.js'
-import { memoryNews, fakeFetch } from './memoryNews.js'
+import { memoryNews, fakeFetch, NEWS_NOW } from './memoryNews.js'
 
 const rss = fs.readFileSync(new URL('./fixtures/rss2.xml', import.meta.url), 'utf8')
-const NOW = new Date('2026-09-26T12:00:00Z')
+const NOW = NEWS_NOW
 const config = { ...NEWS_CONFIG, perHostIntervalMs: 0 }
 
 async function setup (table) {

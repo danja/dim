@@ -8,7 +8,7 @@ import { createWikiFacet } from '../../src/wiki/index.js'
 import { createBlogFacet } from '../../src/blog/index.js'
 import { createSquirtFacet } from '../../src/squirt/index.js'
 import Poller from '../../src/news/Poller.js'
-import { memoryNews } from '../news/memoryNews.js'
+import { memoryNews, NEWS_NOW } from '../news/memoryNews.js'
 import { memoryWiki } from '../wiki/memoryWiki.js'
 import { memoryPosts } from '../blog/memoryPosts.js'
 
@@ -47,7 +47,7 @@ async function listen () {
     { guid: '1', link: 'https://synth.example/posts/1', title: 'Post one', published: '2026-09-26T00:00:00.000Z', summary: 's', categories: [] },
     { guid: '3', link: 'https://synth.example/posts/3', title: 'Post three', published: '2026-09-25T00:00:00.000Z', summary: 's', categories: [] }
   ])
-  const poller = new Poller({ store: news })
+  const poller = new Poller({ store: news, now: () => NEWS_NOW })
   const { store: wiki } = memoryWiki()
   await wiki.save({ title: 'Origin', content: 'Links: https://old.example/page and https://synth.example/posts/2', actor: 'o' })
   const { store: posts } = memoryPosts()

@@ -104,6 +104,8 @@ can't be reached, whether the device is offline or just the server is down,
 or a proxy answers 5xx, the capture is kept in the queue and the page says
 so. While anything is waiting, an open Squirt page retries every 30 seconds
 and when it regains focus. A share opened while the server is down shows
-the last saved share page, filled in from the address. Notes are only
+the last saved share page, filled in from the address. A **Sync now** button
+under the capture box appears while anything is waiting; it sends the queue at
+once and says if DIM still can't be reached. Notes are only
 synced by an open Squirt page, not in the background. Logging out clears
 the stored news and the queue.

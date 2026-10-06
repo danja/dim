@@ -3,10 +3,17 @@ import ShapeValidator from '../../src/common/store/ShapeValidator.js'
 import NewsStore from '../../src/news/NewsStore.js'
 
 /**
+ * The clock for news tests. Fixtures are dated around it, and a Poller marks
+ * items older than `firstPollUnreadDays` read, so a Poller on the real clock
+ * makes the tests age out. Give every Poller `now: () => NEWS_NOW`.
+ */
+export const NEWS_NOW = new Date('2026-09-26T12:00:00Z')
+
+/**
  * The real NewsStore over an empty store: reads come back empty, writes are
  * recorded, items are validated by the real shapes.
  */
-export async function memoryNews ({ now = () => new Date('2026-09-26T12:00:00Z') } = {}) {
+export async function memoryNews ({ now = () => NEWS_NOW } = {}) {
   const updates = []
   const client = {
     async select () { return [] },

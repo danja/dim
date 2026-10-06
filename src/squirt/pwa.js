@@ -8,7 +8,7 @@ export function manifest ({ name = 'DIM', themeColor = '#2b5fae' } = {}) {
   return {
     name,
     short_name: name,
-    description: "Danny's Information Manager: bookmarks, outlines, tasks, wiki, news and blog in one place.",
+    description: "Danny's Information Manager: bookmarks, outlines, tasks, wiki, news, blog and calendar in one place.",
     id: '/squirt/',
     start_url: '/squirt/',
     scope: '/',

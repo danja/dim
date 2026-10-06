@@ -305,6 +305,17 @@ dim:BlogPostShape a sh:NodeShape ;
     sh:property [ sh:path prov:wasDerivedFrom ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
     sh:property [ sh:path dim:tag ; sh:datatype xsd:string ; sh:pattern "^[^A-Z]*$" ] .
 
+dim:EventShape a sh:NodeShape ;
+    sh:targetClass dim:Event ;
+    sh:property [ sh:path dcterms:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ; sh:maxLength 200 ; sh:message "An appointment has one title of 1–200 characters." ] ;
+    sh:property [ sh:path dim:slug ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[a-z0-9][a-z0-9-]*$" ] ;
+    sh:property [ sh:path dim:eventDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ; sh:message "An appointment has one date." ] ;
+    sh:property [ sh:path dim:eventTime ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^([01][0-9]|2[0-3]):[0-5][0-9]$" ; sh:message "The time is HH:MM, 24 hours." ] ;
+    sh:property [ sh:path dim:location ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:maxLength 200 ] ;
+    sh:property [ sh:path dcterms:description ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:maxLength 5000 ] ;
+    sh:property [ sh:path dcterms:created ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path dcterms:modified ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
+
 dim:AdviceShape a sh:NodeShape ;
     sh:targetClass dim:Advice ;
     sh:property [ sh:path dim:adviceFor ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;

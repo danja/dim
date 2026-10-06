@@ -83,6 +83,7 @@ loopback-only ports, memory sizing) is `~/github/plugin-universe`.
 | `GET /topics`, `/topics/<topic>` | The topic tree, and everything on one topic across facets (`.json` too). |
 | `GET /tags`, `/tags/<tag>` | Every tag in use, and everything with one tag, across facets (`.json` too). |
 | `GET /blog/…` | Blog posts, tags, Atom feed — see `docs/commands-blog.md`. |
+| `GET /calendar/…` | Appointments (owner only) — see `docs/commands-calendar.md`. |
 | `GET /squirt/…` | Phone front page, capture, share target, manifest, service worker — see `docs/commands-squirt.md`. |
 | `GET /ns/<name>.ttl` | Vocabularies (`dim`, `shapes`). |
 | `GET /static/…` | Shared UI kit (CSS, JS). |

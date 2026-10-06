@@ -62,7 +62,7 @@ export function renderHome ({ items, next = null, captured, origin, tabs, sessio
 ${searchForm}
 ${done}
 ${captureForm({ session })}
-${session?.user ? '<p id="offline-status" class="meta" role="status"></p>' : ''}
+${session?.user ? '<p id="offline-status" class="meta" role="status"></p>\n<p><button type="button" id="sync-now" hidden>Sync now</button></p>' : ''}
 ${nextCard(next)}
 ${session?.user ? `<p class="meta"><a href="/day">Today</a> · <a href="/week">This week</a> · <a href="/topics">Topics</a></p>\n<h2>Lately</h2>\n${timeline(items)}` : ''}
 ${session?.user ? '<section id="offline-news" hidden></section>' : ''}

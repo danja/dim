@@ -14,7 +14,7 @@ catalogues it in a SKOS concept scheme (`dim:bookmark-types`).
 
 All facets in the plan are built (docs/plan-detail.md): GnamGnam
 (bookmarks, hybrid search, enrichment), Trestle (outliner), Farelo (tasks,
-Getting Things Diced, "What next?"), Wiki, News, Blog and Squirt (phone view,
+Getting Things Diced, "What next?"), Wiki, News, Blog, Calendar (appointments) and Squirt (phone view,
 installable). Everything is in one SPARQL store, SHACL-validated, one named
 graph per facet, cross-linked. Runs on localhost; see
 [`docs/deployment.md`](docs/deployment.md) for Docker, backups and reaching
@@ -73,7 +73,7 @@ the rest are in [`docs/deployment.md`](docs/deployment.md).
 
 ## Use
 
-Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md), wiki [`docs/commands-wiki.md`](docs/commands-wiki.md), news [`docs/commands-news.md`](docs/commands-news.md), blog [`docs/commands-blog.md`](docs/commands-blog.md), phone [`docs/commands-squirt.md`](docs/commands-squirt.md).
+Command references: bookmarks [`docs/commands-gnamgnam.md`](docs/commands-gnamgnam.md), outlines [`docs/commands-trestle.md`](docs/commands-trestle.md), tasks [`docs/commands-farelo.md`](docs/commands-farelo.md), wiki [`docs/commands-wiki.md`](docs/commands-wiki.md), news [`docs/commands-news.md`](docs/commands-news.md), blog [`docs/commands-blog.md`](docs/commands-blog.md), calendar [`docs/commands-calendar.md`](docs/commands-calendar.md), phone [`docs/commands-squirt.md`](docs/commands-squirt.md).
 
 ```sh
 node bin/retrieve.js              # first-pass report over workflowy.md (offline)
@@ -101,6 +101,7 @@ node bin/serve.js                 # search UI + JSON API on :4110
 | `GET /wiki/` | wiki pages: `[[Title]]` links, history and diffs |
 | `GET /news/` | feed reader: RSS/Atom/JSON Feed; items → bookmarks or tasks |
 | `GET /blog/` | blog: posts from wiki pages / outline items, Atom feed, static export |
+| `GET /calendar/` | calendar: appointments to remember (owner only) |
 | `GET /squirt/` | phone front page: search, quick capture, recent activity; installable app with share target |
 | `GET /find?q=` | search every facet |
 | `GET /tags/<tag>`, `/topics/<topic>` | everything with a tag, or on a topic, across facets |
@@ -164,6 +165,7 @@ GnamGnam (bookmarks) is the first facet.
   per-host pacing, back-off), `formats/` (feeds, OPML, discovery), `api/`
 - `src/blog/` — the blog: `PostStore`, `render.js` (post HTML, Atom),
   `staticSite.js` (export), `sources.js` (drafts from wiki/outline), `api/`
+- `src/calendar/` — appointments: `EventStore`, `rdf.js`, `render.js`, `api/`
 - `src/advisor/` — "What next?": `score.js` (pure scoring, reasons, learning),
   `Advisor.js`, `AdviceStore.js` (feedback, weights), `explain.js` (optional LLM), `api/`
 - `src/squirt/` — phone view: `capture.js` (routes captures), `timeline.js`

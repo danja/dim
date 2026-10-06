@@ -96,6 +96,8 @@ describe('squirt routes', () => {
 
     expect((await fetch(`${base}/squirt/recent.json`)).status).toBe(401)
     expect(await (await fetch(`${base}/squirt/`)).text()).not.toContain('Lately')
+    expect(await (await fetch(`${base}/squirt/`)).text()).not.toContain('sync-now')
+    expect(await (await fetch(`${base}/squirt/`, { headers: { Authorization: `Bearer ${TOKEN}` } })).text()).toContain('<button type="button" id="sync-now" hidden>Sync now</button>')
 
     const saved = await fetch(`${base}/squirt/capture`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ text: 'Remember the [[Dice]] page' }) })
     expect(await saved.json()).toMatchObject({ ok: true, kind: 'note', href: '/wiki/page/inbox' })

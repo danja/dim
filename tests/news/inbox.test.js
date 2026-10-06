@@ -8,7 +8,7 @@ import Auth from '../../src/common/http/auth.js'
 import { createNewsFacet } from '../../src/news/index.js'
 import Poller from '../../src/news/Poller.js'
 import { NEWS_CONFIG } from '../../config/preferences.js'
-import { memoryNews, fakeFetch } from './memoryNews.js'
+import { memoryNews, fakeFetch, NEWS_NOW } from './memoryNews.js'
 
 const B = 'http://purl.org/stuff/dim/bookmark/'
 const page = links => `<!doctype html><html><head><title>A blog</title>${links}</head><body><p>Hello</p></body></html>`
@@ -135,7 +135,7 @@ describe('the inbox on Manage feeds', () => {
   it('lists suggestions, subscribes to ticked ones (and reads them), and dismisses others', async () => {
     const { inbox, store } = await inboxOver()
     const { impl } = fakeFetch({})
-    const poller = new Poller({ store, config: { ...NEWS_CONFIG, perHostIntervalMs: 0 }, fetchImpl: impl, sleep: async () => {} })
+    const poller = new Poller({ store, config: { ...NEWS_CONFIG, perHostIntervalMs: 0 }, fetchImpl: impl, now: () => NEWS_NOW, sleep: async () => {} })
     const server = createServer({ facets: [createNewsFacet({ store, poller, inbox })], defaultFacet: 'news', services: { auth: new Auth({ token: TOKEN }), repository: store.repository } })
     servers.push(server)
     await new Promise(resolve => server.listen(0, resolve))
