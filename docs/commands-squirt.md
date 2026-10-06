@@ -86,7 +86,14 @@ selected text, to the capture form.
 
 A service worker (`/squirt/sw.js`, scope `/`) fetches from the network
 first. It keeps the last copy of each page you open (up to 300) and shows
-that copy when DIM can't be reached. A page you haven't opened on that
+that copy when DIM can't be reached. A link that never answers (wifi with
+no route, a VPN that is down) counts as unreachable too: after 4 seconds a
+page you have opened before is shown from the saved copy, and the request
+carries on in the background to refresh it. Likewise a capture the server
+doesn't answer within 15 seconds is kept on the device. A slow server also
+gets the saved copy after 4 seconds, so after a save that takes longer than
+that you may briefly see the previous version of the page you're sent back to;
+reload it. A page you haven't opened on that
 device shows an offline notice. **Log out** clears the saved copies.
 
 ### News and notes offline

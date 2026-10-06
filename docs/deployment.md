@@ -2,9 +2,74 @@
 
 Getting DIM running locally, and harvesting once it is there.
 
-The method is `~/github/plugin-universe` (`docs/deployment.md` there):
-same images, same volume layout, same loopback-only publishing. This is
-the DIM runbook — localhost in the first instance, so no nginx profile.
+This is the DIM runbook: one `docker-compose.yml`, everything published on
+loopback only, state in named volumes, and every setting in `.env` with no
+fallbacks. DIM runs on localhost in the first instance, so there is no nginx
+profile; to reach it from a phone, see "Reaching DIM from your phone"
+below. All commands run from the repository directory.
+
+## Deploying DIM
+
+The short version, for a machine with Docker (Compose v2) and about 4 GB of
+RAM. Each step is explained further down.
+
+1. **Get the code and make your settings file.**
+
+   ```sh
+   git clone https://github.com/danja/dim.git && cd dim
+   cp .env.example .env
+   ```
+
+   Edit `.env`. Change `SPARQL_PASSWORD` from the example's `admin` before
+   the first start, and set `DIM_WRITE_TOKEN` (16+ characters, for example
+   `openssl rand -base64 24`), which is what lets you log in and write.
+   Leave the rest unless you know you need it.
+
+2. **Start the store and the embedder.**
+
+   ```sh
+   docker compose up -d --wait fuseki ollama
+   docker compose exec ollama ollama pull nomic-embed-text:v1.5   # once
+   ```
+
+3. **Let the app write backups.** The app runs as uid 1001:
+
+   ```sh
+   mkdir -p backups && sudo chown 1001:1001 backups
+   ```
+
+4. **Build and start the app.**
+
+   ```sh
+   docker compose up -d --build app
+   ```
+
+5. **Check it.**
+
+   ```sh
+   curl -s http://localhost:4110/health
+   ```
+
+   It answers `ok` with a count for each facet. Then open
+   http://localhost:4110/ and log in with the token. A fresh store is
+   empty: start saving things in the web UI, or load what you already have
+   with the tools in "Harvesting and enriching" below.
+
+All three containers restart on their own after a reboot (`restart:
+unless-stopped`), and everything is published on loopback only, so nothing
+is reachable from other machines yet.
+
+**To update:** `git pull && docker compose build app && docker compose up -d app`.
+Rebuilding is not optional, because the image holds a copy of the source.
+
+**To run the app on the host instead** (Node 20.11 or later, data in
+`./data`, started at boot by systemd): do steps 1 and 2 with `npm install`
+after the clone, skip steps 3 and 4, and follow "Starting at boot". Use that
+or the container, never both: each wants :4110.
+
+**Before reaching DIM from a phone or anywhere but this machine,** read
+"Reaching DIM from your phone (https)" and set `DIM_PRIVATE=1`. Set up
+backups from `docs/backup.md`.
 
 ## What runs
 
@@ -23,9 +88,53 @@ file.
 
 - Docker with Compose v2
 - 4 GB of RAM is enough; the defaults in `docker-compose.yml` are sized
-  for it and overridable from `.env` (see the memory note at the top of
-  the compose file for where the figures come from).
+  for it and overridable from `.env`. See "Memory" below.
 - Disk for the store, the embedding model and the index.
+
+### Memory
+
+Every limit is set in `docker-compose.yml` and overridable from `.env`:
+
+| Container | Limit | Swap | Why |
+|---|---|---|---|
+| `fuseki` | `FUSEKI_MEM` 1400m, heap `FUSEKI_HEAP` 1g | none | TDB2 memory-maps its indexes and relies on the OS page cache, not the Java heap. A bigger `-Xmx` doesn't help it and takes memory the page cache would use better. Raise it only with a measurement in hand. |
+| `ollama` | `OLLAMA_MEM` 1600m | none | One small model, one request at a time (`OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`). |
+| `app` | `APP_MEM` 384m, heap `NODE_HEAP` 256 | up to `APP_MEMSWAP` 640m | The working set is the document map and a few megabytes of vector index. Node's cold pages are what swap is good for, and a stalled web tier recovers. |
+
+The limits add up to about 3.4 GB, which is what fits a 4 GB host. If the
+app is killed during a sync, raise `NODE_HEAP`, `APP_MEM` and `APP_MEMSWAP`
+(for example `1024`, `1536m`, `2g`).
+
+**Ollama is a serving dependency, not only a batch one.** Search embeds the
+query text, so a text search fails without it. The cost per query is small;
+the memory is the model sitting resident. `OLLAMA_KEEP_ALIVE` (default 30m)
+keeps it loaded during active use and releases it overnight, at the price of
+a second or two on the first search after an idle spell.
+
+**No swap for the store or the embedder** (`memswap_limit` equals
+`mem_limit`) is deliberate. A JVM garbage collection walks the whole live
+heap, so a paged-out heap turns a collection into a disk I/O storm, and
+Ollama reads its model weights on every forward pass. Both must stay
+resident. Swap's job is to absorb cold pages elsewhere on the host and keep
+the OOM killer away from the store, so a small host should have some:
+
+```sh
+sudo fallocate -l 4G /swapfile        # btrfs needs different handling
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+sudo sysctl vm.swappiness=10
+echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf
+```
+
+`swappiness=10` matters: the default of 60 swaps anonymous memory fairly
+eagerly, which is what to avoid with a JVM present. `zram` (compressed swap
+in RAM, no disk I/O) is a good alternative.
+
+Docker needs cgroup v2, or `swapaccount=1` on a cgroup v1 kernel, to honour
+`memswap_limit`. Where it can't, it warns and ignores the setting instead of
+failing, so check the output of the first `docker compose up`.
 
 ## First run
 
@@ -64,6 +173,14 @@ curl -s -u "admin:$SPARQL_PASSWORD" http://localhost:3031/\$/datasets \
 `/dim` is ours. `/ds` also appears — the image ships its own default
 dataset and it is harmless, unused and empty.
 
+Backups are written to `./backups` on the host (`BACKUP_HOST_DIR`), and
+the app runs as uid 1001, so give it that directory once (see
+`docs/backup.md`):
+
+```sh
+mkdir -p backups && sudo chown 1001:1001 backups
+```
+
 Then build and start the app:
 
 ```sh
@@ -73,6 +190,11 @@ docker compose exec app node -e "fetch('http://localhost:4110/health').then(r=>r
 
 `/health` reports per-facet status; `facets.gnamgnam` has the corpus and index sizes. Both are zero until the
 first ingest.
+
+To log in and write (notes, tags, tasks, the Calendar), set
+`DIM_WRITE_TOKEN` in `.env` (16+ characters) and recreate the app:
+`docker compose up -d app`. Then open http://localhost:4110/ and log in
+with the token.
 
 ## Starting at boot
 
@@ -222,7 +344,7 @@ The model must be pulled in the compose Ollama for any of this:
 `docker compose exec ollama ollama pull nomic-embed-text:v1.5`. Embedding
 is slow on a CPU, so large runs are best started by hand as above rather
 than left to the server's sync. If the app is killed while a sync runs,
-raise `NODE_HEAP` and `APP_MEM` (see below).
+raise `NODE_HEAP` and `APP_MEM` (see "Memory" above).
 
 ## Settings
 
@@ -237,7 +359,7 @@ Beyond the store and model settings above, all optional (`.env`):
 | `RELATED_SYNC_MINUTES` | keep the cross-facet related index in step every N minutes (default 30; 0 = off; `bin/related.js` by hand) |
 | `ENRICH_SUMMARISER` | summariser for bookmarks enriched as they are saved: `ollama` (default), `remote` (the `LLM_*` settings) or `extractive` (offline); an LLM that fails falls back to the offline one |
 | `AUTO_ENRICH=0` | don't fetch, summarise and embed bookmarks as they are saved (leave them for `bin/enrich.js`); this also turns off the feed finder for new bookmarks |
-| `NODE_HEAP`, `APP_MEM`, `APP_MEMSWAP` | the app container's memory (defaults 256 MB heap, 384 MB); raise to e.g. `1024` / `1536m` / `2g` if it restarts during a sync |
+| `NODE_HEAP`, `APP_MEM`, `APP_MEMSWAP`, `FUSEKI_MEM`, `FUSEKI_HEAP`, `OLLAMA_MEM`, `OLLAMA_KEEP_ALIVE` | container memory and model residency; see "Memory" above. Raise the app's to e.g. `1024` / `1536m` / `2g` if it restarts during a sync |
 | `BLOG_TITLE`, `BLOG_AUTHOR`, `BLOG_BASE_URL` | blog name, author, public URL of the static export |
 | `LOG_LEVEL`, `LOG_FORMAT=json`, `LOG_REQUESTS=1` | logging (below) |
 | `BACKUP_DIR` (tools), `BACKUP_HOST_DIR` (compose) | where backups go |

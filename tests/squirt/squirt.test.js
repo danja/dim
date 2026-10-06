@@ -84,7 +84,11 @@ describe('squirt routes', () => {
 
     const sw = await fetch(`${base}/squirt/sw.js`)
     expect(sw.headers.get('service-worker-allowed')).toBe('/')
-    expect(await sw.text()).toContain("addEventListener('fetch'")
+    const worker = await sw.text()
+    expect(worker).toContain("addEventListener('fetch'")
+    // A dead link never answers: the saved copy is used after a wait, and the offline scripts are kept from install.
+    expect(worker).toContain('WAIT_MS')
+    expect(worker).toContain('/static/js/offline.js')
     expect((await (await fetch(`${base}/squirt/manifest.webmanifest`)).json()).name).toBe('DIM')
     expect(await (await fetch(`${base}/wiki/`)).text()).toContain('<link rel="manifest" href="/squirt/manifest.webmanifest">')
 

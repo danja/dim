@@ -29,8 +29,7 @@
 ## (Docker needs cgroup v2, or `swapaccount=1` on a cgroup v1 kernel, to honour
 ## memswap_limit. If it cannot, it warns and ignores it rather than failing.)
 ##
-## Deployment method follows ~/github/plugin-universe (docs/deployment.md
-## there): same images, same volume layout, same loopback-only publishing.
+## Everything is published on loopback only, and state lives in named volumes.
 ## DIM runs on localhost in the first instance, so there is no nginx profile
 ## here — see docs/deployment.md.
 

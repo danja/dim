@@ -9,6 +9,10 @@ const capture = document.querySelector('#capture')
 const panel = document.querySelector('#offline-news')
 const status = document.querySelector('#offline-status')
 const syncButton = document.querySelector('#sync-now')
+// A dead link (wifi with no route, a VPN that is down) never answers rather
+// than refusing, so without a limit a capture would hang instead of being kept
+// here, and a stuck sync would block every later one.
+const SEND_TIMEOUT_MS = 15000
 const csrf = () => document.querySelector('input[name="_csrf"]')?.value ?? ''
 
 function say (text) { if (status) status.textContent = text }
@@ -27,7 +31,8 @@ async function send (item) {
   const response = await fetch('/squirt/capture', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ ...item, _csrf: csrf() })
+    body: JSON.stringify({ ...item, _csrf: csrf() }),
+    signal: AbortSignal.timeout(SEND_TIMEOUT_MS)
   })
   return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) }
 }
@@ -63,7 +68,7 @@ syncButton?.addEventListener('click', async () => {
 
 async function refreshNews () {
   try {
-    const response = await fetch(`/news/items.json?view=all&limit=${NEWS_COUNT}`, { headers: { Accept: 'application/json' } })
+    const response = await fetch(`/news/items.json?view=all&limit=${NEWS_COUNT}`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(SEND_TIMEOUT_MS) })
     if (response.ok) saveNews(localStorage, (await response.json()).items)
   } catch { /* offline: keep the copy we have */ }
 }
