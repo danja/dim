@@ -7,6 +7,8 @@ import { createGnamgnamFacet } from '../../src/gnamgnam/index.js'
 import { createWikiFacet } from '../../src/wiki/index.js'
 import { createSquirtFacet } from '../../src/squirt/index.js'
 import { memoryWiki } from '../wiki/memoryWiki.js'
+import { createCalendarFacet } from '../../src/calendar/index.js'
+import { memoryEvents } from '../calendar/memoryEvents.js'
 
 describe('classify', () => {
   it('routes by content', () => {
@@ -105,5 +107,37 @@ describe('squirt routes', () => {
 
     const saved = await fetch(`${base}/squirt/capture`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ text: 'Remember the [[Dice]] page' }) })
     expect(await saved.json()).toMatchObject({ ok: true, kind: 'note', href: '/wiki/page/inbox' })
+  })
+
+  it('shows the owner what is due in the next two days, and nobody else', async () => {
+    const { store: wiki } = memoryWiki()
+    const { store: events } = memoryEvents() // Tue 6 Oct 2026, 12:00
+    const search = { documents: new Map(), index: { size: 0 }, async facets () { return {} } }
+    const client = { async select () { return [] }, async ask () { return false } }
+    const facets = [createGnamgnamFacet({ search }), createWikiFacet({ store: wiki }), createCalendarFacet({ store: events }), createSquirtFacet({ client, wiki })]
+    const server = createServer({ facets, defaultFacet: 'squirt', services: { auth: new Auth({ token: TOKEN }) } })
+    servers.push(server)
+    await new Promise(resolve => server.listen(0, resolve))
+    const base = `http://localhost:${server.address().port}`
+    const owner = { headers: { Authorization: `Bearer ${TOKEN}` } }
+
+    expect(await (await fetch(`${base}/squirt/`, owner)).text()).not.toContain('Coming up')
+    for (const [title, date, time, location] of [['Dentist <b>', '2026-10-07', '14:30', 'High St'], ['Run', '2026-10-06', '09:00', null], ['Birthday', '2026-10-08', null, null], ['Far away', '2026-10-09', null, null]]) {
+      await events.create({ title, date, time, location }, 'o')
+    }
+    const html = await (await fetch(`${base}/squirt/`, owner)).text()
+    expect(html).toContain('<h2 id="coming-h">Coming up</h2>')
+    expect(html).toContain('Today, Tue 6 Oct 2026')
+    expect(html).toContain('Tomorrow, Wed 7 Oct 2026')
+    expect(html).toContain('Thu 8 Oct 2026')
+    expect(html).toContain('Dentist &lt;b&gt;')
+    expect(html).toContain('<li class="past">')
+    expect(html).toContain('href="/calendar/event/dentist-b/edit"')
+    expect(html).not.toContain('Far away')
+    expect(html.indexOf('Run')).toBeLessThan(html.indexOf('Dentist'))
+
+    const stranger = await (await fetch(`${base}/squirt/`)).text()
+    expect(stranger).not.toContain('Coming up')
+    expect(stranger).not.toContain('Dentist')
   })
 })

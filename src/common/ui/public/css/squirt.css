@@ -20,3 +20,15 @@
 
 #offline-news details { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 #offline-news summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+
+.coming-up { margin: var(--gap) 0; padding: 0 0.75rem 0.25rem; border-left: 4px solid var(--accent); background: var(--surface); }
+.coming-up h2 { font-size: 1.05rem; margin: 0.5rem 0 0; }
+.coming-up h3 { font-size: 0.9rem; font-weight: 600; color: var(--muted); margin: 0.5rem 0 0; }
+.coming { list-style: none; padding: 0; margin: 0; }
+.coming li { display: flex; align-items: flex-start; gap: 0.75rem; overflow-wrap: anywhere; }
+.coming .when { flex: none; min-width: 4rem; min-height: 44px; display: inline-flex; align-items: center; font-variant-numeric: tabular-nums; }
+.coming .what { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; min-height: 44px; padding-bottom: 0.25rem; }
+.coming a { display: inline-flex; align-items: center; min-height: 44px; }
+.coming .what .meta { margin: -0.5rem 0 0.25rem; }
+.coming .past { color: var(--muted); }
+.coming .past a { color: var(--muted); }

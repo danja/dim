@@ -17,7 +17,8 @@ export function registerRoutes (router, { client, tasks, wiki, mentions, advisor
   router.get('/squirt', async ({ request, response, url, session }) => {
     const captured = url.searchParams.has('captured') ? { href: url.searchParams.get('captured'), label: url.searchParams.get('label') } : null
     const next = session.user && advisor ? (await advisor.suggest({ limit: 1 }).catch(() => ({ ranked: [] }))).ranked[0] : null
-    return sendHtml(response, 200, renderHome({ items: await activity(session), next, captured, origin: originOf(request), tabs, session }))
+    const coming = session.user ? await registry.upcoming({ days: 2 }).catch(() => []) : []
+    return sendHtml(response, 200, renderHome({ items: await activity(session), next, coming, captured, origin: originOf(request), tabs, session }))
   })
 
   router.get('/squirt/recent.json', async ({ response, session }) =>

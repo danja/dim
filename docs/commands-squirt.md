@@ -82,6 +82,12 @@ The **bookmarklet** on `/squirt/` (under *On your phone, and from any page*)
 does the same from a desktop browser: it sends the current page, and any
 selected text, to the capture form.
 
+## Coming up
+
+When you're logged in, a **Coming up** panel at the top shows the calendar's
+appointments for today and the next two days (see
+`docs/commands-calendar.md`). It's empty, and hidden, when nothing is due.
+
 ## Offline
 
 A service worker (`/squirt/sw.js`, scope `/`) fetches from the network

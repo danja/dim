@@ -30,6 +30,18 @@ first. Nothing is deleted when its day passes.
 Dates and times are kept as written, with no timezone: an appointment at
 14:30 is at 14:30 wherever you are. "Today" is the server's local day.
 
+## Coming up
+
+When you're logged in, the Squirt page (`/squirt/`, the phone front page)
+starts with a **Coming up** panel: what's due today and the next two days,
+by day and time, with the place under the title. Today's timed appointments
+that have already started are greyed. Tap one to edit it. With nothing due
+the panel isn't there, and it never appears to anyone who isn't logged in.
+It is part of the page the phone keeps for offline use, so it shows the last
+list it saw.
+
+To change how far ahead it looks, change `days: 2` in `src/squirt/api/routes.js`.
+
 ## For scripts and MCP
 
 Send the write token as a Bearer token and ask for JSON:

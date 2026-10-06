@@ -56,11 +56,26 @@ function extras (origin) {
 </details>`
 }
 
-export function renderHome ({ items, next = null, captured, origin, tabs, session }) {
+/** What is due today and the next two days (the owner only: the caller passes nothing otherwise). */
+function comingUp (events) {
+  if (!events.length) return ''
+  const days = []
+  for (const e of events) {
+    if (days.at(-1)?.date !== e.date) days.push({ date: e.date, label: e.dayLabel, events: [] })
+    days.at(-1).events.push(e)
+  }
+  const list = days.map(day => `<h3><time datetime="${esc(day.date)}">${esc(day.label)}</time></h3>
+<ul class="coming">${day.events.map(e => `<li${e.past ? ' class="past"' : ''}><span class="when">${e.time ? esc(e.time) : 'All day'}</span>
+<span class="what"><a href="${esc(e.href)}">${esc(e.title)}${e.past ? '<span class="visually-hidden"> (already started)</span>' : ''}</a>${e.location ? `<span class="meta">${esc(e.location)}</span>` : ''}</span></li>`).join('\n')}</ul>`).join('\n')
+  return `<section class="coming-up" aria-labelledby="coming-h"><h2 id="coming-h">Coming up</h2>\n${list}\n</section>`
+}
+
+export function renderHome ({ items, next = null, coming = [], captured, origin, tabs, session }) {
   const done = safeReturn(captured?.href, null) ? `<p role="status" class="captured">Saved: <a href="${esc(captured.href)}">${esc(captured.label || captured.href)}</a></p>` : ''
   const body = `<h1 class="visually-hidden">Squirt</h1>
 ${searchForm}
 ${done}
+${session?.user ? comingUp(coming) : ''}
 ${captureForm({ session })}
 ${session?.user ? '<p id="offline-status" class="meta" role="status"></p>\n<p><button type="button" id="sync-now" hidden>Sync now</button></p>' : ''}
 ${nextCard(next)}

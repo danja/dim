@@ -1044,6 +1044,9 @@ invitations or sync with other calendars.
   Day and time are kept as written (no timezone).
 - Private to the owner: every route needs a login (or the Bearer token), and
   the facet offers no public hooks (find, tags, related, day).
+- Appointments due today and in the next two days appear in a **Coming up**
+  panel on Squirt's home page, owner only, through an optional `upcoming`
+  facet hook (so Squirt never imports the calendar).
 - Written up in `docs/commands-calendar.md`; covered by core tests, a live
   store test and a browser check.
 
@@ -1127,3 +1130,4 @@ Newest last. One line per meaningful step: date · phase · what · ref.
 | 2026-10-06 | 12 | `docs/deployment.md` is self-contained: no longer defers to plugin-universe. Added Memory (DIM's container limits, why Fuseki and Ollama get no swap, host swap setup), the backups-directory chown and the `DIM_WRITE_TOKEN` login step to first run, and the full memory settings; the compose header comment no longer points at plugin-universe. Docs only. | uncommitted |
 | 2026-10-06 | 12 | `docs/deployment.md`: a "Deploying DIM" section at the top: five numbered steps from clone to a logged-in app (settings, store and embedder, backups directory, app, health check), then updating, the host/systemd alternative, and what to do before exposing it. Docs only; the steps are the existing First run commands in order, not re-run on a clean machine. | uncommitted |
 | 2026-10-06 | 10 | Squirt offline: the app stuck on its opening screen on a dead link (a server that accepts the connection but never answers, e.g. wifi with no route or a VPN down), because the service worker waited on the network with no limit. Reproduced in Playwright by freezing the server (SIGSTOP): the page was still waiting after 12 s. The worker now shows the saved copy after 4 s (`WAIT_MS`) and lets the request finish in the background; it also keeps the offline scripts and styles from install. Captures and the news refresh time out after 15 s so a capture is queued instead of hanging and a stuck sync cannot block later ones. Re-run with the frozen server: page from the saved copy in 4.0 s, capture queued in 15.1 s, Sync now sends it after reconnect. A slow (not dead) server also gets the saved copy after 4 s. Not tried on a real phone. | uncommitted |
+| 2026-10-06 | 14 | Calendar: a "Coming up" panel at the top of Squirt for the owner: appointments today and the next two days, today's already-started ones greyed, hidden when empty. New optional facet hook `upcoming({ days })` (documented in `FacetRegistry`, gathered by `registry.upcoming`), `EventStore.between`/`addDays`/`clockTime`. 379 core tests (3 new); browser check (Playwright, 375px, light and dark, axe): 0 violations, no horizontal scroll, targets ≥44px; reworked the row layout after the screenshot showed a long title splitting from its time. Needs a server restart; not tried on a real phone. | uncommitted |

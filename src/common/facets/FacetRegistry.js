@@ -23,6 +23,8 @@
  *     tags (),               // optional: → Map tag → count
  *     tagged (tag),          // optional: → [{ iri, label, href, snippet }]
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
+ *     upcoming ({ days })    // optional: → [{ date, dayLabel, time, title, location, href, past }]
+ *                            //   due soon, for Squirt's "Coming up"; private: show to the owner only
  *   }
  *
  * The list is explicit (src/facets.js) — no autoloading — so the tab order
@@ -173,6 +175,15 @@ export class FacetRegistry {
       } catch { /* one facet failing must not hide the others */ }
     }
     return groups
+  }
+
+  /** What is due in the next `days` days, soonest first. → [{ date, dayLabel, time, title, location, href, past }] */
+  async upcoming ({ days = 2 } = {}) {
+    const events = []
+    for (const facet of this.facets) {
+      try { events.push(...((await facet.upcoming?.({ days })) ?? [])) } catch { /* one facet failing must not hide the others */ }
+    }
+    return events.sort((a, b) => `${a.date} ${a.time ?? ''}`.localeCompare(`${b.date} ${b.time ?? ''}`))
   }
 
   /** Tell every facet that caches resources that this one changed. */

@@ -32,6 +32,12 @@ export function localDay (date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/** The day n days after (or before, if negative) a "YYYY-MM-DD". */
+export function addDays (date, n) {
+  const [y, m, d] = date.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
+}
+
 const text = (value, max, what) => {
   const clean = String(value ?? '').replace(/\r\n/g, '\n').trim()
   if (clean.length > max) throw new EventError(`${what} is longer than ${max} characters`)
@@ -95,6 +101,17 @@ export class EventStore {
 
   today () {
     return localDay(this.now())
+  }
+
+  /** The local time now, as "HH:MM". */
+  clockTime () {
+    const d = this.now()
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+
+  /** From one day to another, both included, soonest first. */
+  async between (from, to) {
+    return [...(await this.all()).values()].filter(e => e.date >= from && e.date <= to).sort(sooner)
   }
 
   /** upcoming (today on, soonest first) or past (before today, latest first). */

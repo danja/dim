@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import ShapeValidator from '../../src/common/store/ShapeValidator.js'
 import { eventTriples, eventIri } from '../../src/calendar/rdf.js'
-import { validDate, localDay, EventError } from '../../src/calendar/EventStore.js'
-import { dayLabel, nextDay } from '../../src/calendar/render.js'
+import { validDate, localDay, addDays, EventError } from '../../src/calendar/EventStore.js'
+import { dayLabel, relativeLabel } from '../../src/calendar/render.js'
+import { createCalendarFacet } from '../../src/calendar/index.js'
+import { FacetRegistry } from '../../src/common/facets/FacetRegistry.js'
 import { memoryEvents } from './memoryEvents.js'
 
 describe('dates', () => {
@@ -18,7 +20,11 @@ describe('dates', () => {
   it('names the local day, and labels days without a timezone shift', () => {
     expect(localDay(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05')
     expect(dayLabel('2026-10-06')).toBe('Tue 6 Oct 2026')
-    expect(nextDay('2026-12-31')).toBe('2027-01-01')
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28')
+    expect(relativeLabel('2026-10-06', '2026-10-06')).toBe('Today, Tue 6 Oct 2026')
+    expect(relativeLabel('2026-10-07', '2026-10-06')).toBe('Tomorrow, Wed 7 Oct 2026')
+    expect(relativeLabel('2026-10-08', '2026-10-06')).toBe('Thu 8 Oct 2026')
   })
 })
 
@@ -51,6 +57,22 @@ describe('EventStore', () => {
     expect((await store.list({ view: 'past' })).map(e => e.title)).toEqual(['Yesterday', 'Last week'])
   })
 
+  it('finds what is due from today through two days ahead, with what has already started marked', async () => {
+    const { store } = memoryEvents() // Tue 6 Oct 2026, 12:00
+    for (const [title, date, time] of [['Yesterday', '2026-10-05', '09:00'], ['Morning', '2026-10-06', '09:00'], ['Evening', '2026-10-06', '18:00'], ['All day today', '2026-10-06', null], ['Tomorrow', '2026-10-07', '10:00'], ['Day after', '2026-10-08', null], ['Too far', '2026-10-09', null]]) {
+      await store.create({ title, date, time }, 'o')
+    }
+    expect((await store.between('2026-10-06', '2026-10-08')).map(e => e.title)).toEqual(['All day today', 'Morning', 'Evening', 'Tomorrow', 'Day after'])
+    expect(store.clockTime()).toBe('12:00')
+    const facet = createCalendarFacet({ store })
+    const due = await facet.upcoming({ days: 2 })
+    expect(due.map(e => e.title)).toEqual(['All day today', 'Morning', 'Evening', 'Tomorrow', 'Day after'])
+    expect(due.map(e => e.past)).toEqual([false, true, false, false, false])
+    expect(due[0]).toMatchObject({ dayLabel: 'Today, Tue 6 Oct 2026', time: null, href: '/calendar/event/all-day-today/edit' })
+    expect(due[4].dayLabel).toBe('Thu 8 Oct 2026')
+    expect((await facet.upcoming({ days: 0 })).map(e => e.title)).toEqual(['All day today', 'Morning', 'Evening'])
+  })
+
   it('edits (an empty time makes it all-day) and deletes', async () => {
     const { store, writes } = memoryEvents()
     const event = await store.create({ title: 'Call Ann', date: '2026-10-07', time: '10:00' }, 'o')
@@ -73,5 +95,16 @@ describe('event triples', () => {
     expect((await validator.validateTriples(eventTriples({ ...event, time: '24:99' }))).conforms).toBe(false)
     expect((await validator.validateTriples(eventTriples({ ...event, date: 'next week' }))).conforms).toBe(false)
     expect((await validator.validateTriples(eventTriples({ ...event, title: '' }))).conforms).toBe(false)
+  })
+})
+
+describe('upcoming through the registry', () => {
+  it('gathers what facets have due, soonest first, and shrugs off one that fails', async () => {
+    const { store } = memoryEvents()
+    await store.create({ title: 'Dentist', date: '2026-10-07', time: '14:30' }, 'o')
+    const broken = { id: 'broken', label: 'Broken', routes () {}, async upcoming () { throw new Error('down') } }
+    const other = { id: 'other', label: 'Other', routes () {}, async upcoming () { return [{ date: '2026-10-06', dayLabel: 'Today', time: '13:00', title: 'Elsewhere', location: null, href: '/x', past: false }] } }
+    const registry = new FacetRegistry([broken, other, createCalendarFacet({ store }), { id: 'plain', label: 'Plain', routes () {} }])
+    expect((await registry.upcoming({ days: 2 })).map(e => e.title)).toEqual(['Elsewhere', 'Dentist'])
   })
 })
