@@ -8,6 +8,20 @@ fallbacks. DIM runs on localhost in the first instance, so there is no nginx
 profile; to reach it from a phone, see "Reaching DIM from your phone"
 below. All commands run from the repository directory.
 
+> **Note: this instance runs under systemd**, not as the `app` container.
+> The `dim` unit (`deploy/dim.service`, see "Starting at boot") starts
+> Fuseki and Ollama with Docker, then runs `node bin/serve.js` on :4110.
+>
+> ```sh
+> systemctl status dim              # is it running?
+> sudo systemctl restart dim        # after git pull, or after a CLI tool writes to the store
+> sudo systemctl stop dim           # / start dim
+> journalctl -u dim -f              # follow the log
+> journalctl -u dim -n 100 --no-pager
+> ```
+>
+> Don't also start the `app` container: both use :4110.
+
 ## Deploying DIM
 
 The short version, for a machine with Docker (Compose v2) and about 4 GB of
