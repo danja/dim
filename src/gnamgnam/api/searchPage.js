@@ -30,7 +30,17 @@ function renderOptions (values, selected) {
   }).join('')
 }
 
-export function renderSearchPage ({ query, selected = {}, results, total, corpus, elapsedMs, facetValues, tabs, session = null }) {
+function renderRecent (recent) {
+  if (!recent?.length) return ''
+  const items = recent.map(({ doc, savedAt }) => {
+    const slug = bookmarkSlug(doc.iri)
+    const meta = [esc(String(savedAt).slice(0, 10)), esc(doc.domain ?? ''), slug ? `<a href="${BASE_PATH}/bookmark/${esc(slug)}">details</a>` : ''].filter(Boolean).join(' · ')
+    return `<li><a href="${esc(doc.url)}">${esc(doc.name)}</a> <span class="meta">${meta}</span></li>`
+  }).join('\n')
+  return `\n<h2>Recently saved</h2>\n<ul class="recent">\n${items}\n</ul>`
+}
+
+export function renderSearchPage ({ query, recent = null, selected = {}, results, total, corpus, elapsedMs, facetValues, tabs, session = null }) {
   const status = elapsedMs != null
     ? `${total} of ${corpus} bookmarks, ${elapsedMs}ms`
     : `${corpus} bookmarks`
@@ -44,7 +54,7 @@ export function renderSearchPage ({ query, selected = {}, results, total, corpus
 <p class="status muted">${status}</p>
 <ul class="results">
 ${results.map(renderResult).join('\n')}
-</ul>
+</ul>${query || Object.values(selected).some(Boolean) ? '' : renderRecent(recent)}
 <p class="foot meta"><a href="${BASE_PATH}/facets">facets</a> · <a href="/health">health</a></p>`
   return renderPage({ title: query ? `${query} — Bookmarks` : 'Bookmarks', tabs, active: 'gnamgnam', body, session })
 }

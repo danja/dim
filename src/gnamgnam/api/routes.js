@@ -4,6 +4,7 @@ import { writeRoute } from '../../common/http/write.js'
 import { saveAnnotations } from '../Annotations.js'
 import { negotiate } from '../../common/http/negotiate.js'
 import { BASE_PATH, BOOKMARK_PREFIX, bookmarkDataUrl, savedTurtle } from './bookmarkData.js'
+import { recentBookmarks } from '../recent.js'
 import { renderSearchPage } from './searchPage.js'
 import { renderBookmarkPage } from './bookmarkPage.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
@@ -42,6 +43,7 @@ export function registerRoutes (router, { search, autoEnrich = null, tabs, servi
     return sendHtml(response, 200, renderSearchPage({
       query: q,
       selected: facets,
+      recent: hasCriteria ? null : await recentBookmarks(search),
       results: outcome.results,
       total: outcome.total,
       corpus: search.documents.size,

@@ -1,0 +1,13 @@
+# Bookmarks by when they were saved in DIM: the time of the 'add' in the
+# change log. Bookmarks from the bulk import were never saved here, so they
+# have no such time and are not listed.
+SELECT ?bookmark (MIN(?t) AS ?savedAt)
+WHERE {
+  GRAPH ${graph} {
+    ?c prov:used ?bookmark ; prov:startedAtTime ?t ; dim:changeAction "add" ; dim:inGraph <graph:facet/gnamgnam> .
+  }
+  GRAPH ?g { ?bookmark a dim:Bookmark }
+}
+GROUP BY ?bookmark
+ORDER BY DESC(?savedAt)
+LIMIT ${limit}
