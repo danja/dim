@@ -2,4 +2,4 @@
 
 ## From INBOX.md
 
-- [ ] Need an easy way of deleting tasks
+- [x] Need an easy way of deleting tasks

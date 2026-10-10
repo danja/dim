@@ -10,7 +10,7 @@ const DONE_SHOWN = 20
 function card (task, { index, session }) {
   const waiting = pendingDependencies(task, index).length
   const move = session?.user
-    ? `<details class="card-move"><summary>Move</summary><form method="post" action="${taskPath(task)}/move">${formFields(session, '/farelo/')}<select name="status" aria-label="Move to">${stateOptions(task.status)}</select><button>Move</button></form></details>`
+    ? `<details class="card-move"><summary>Move</summary><form method="post" action="${taskPath(task)}/move">${formFields(session, '/farelo/')}<select name="status" aria-label="Move to">${stateOptions(task.status)}</select><button>Move</button></form><form method="post" action="${taskPath(task)}/archive">${formFields(session, '/farelo/')}<button class="danger">Archive</button></form></details>`
     : ''
   return `<li class="task-card" data-id="${esc(task.id)}"${session?.user ? ' tabindex="0"' : ''}>
 ${session?.user ? '<span class="grip" aria-hidden="true" title="Drag">⠿</span>' : ''}<div class="card-body"><a class="card-title" href="${taskPath(task)}">${titleHtml(task)}</a>${waiting ? ` <span class="waits" title="Waiting on ${waiting} task${waiting === 1 ? '' : 's'}">⏳</span>` : ''}
@@ -50,6 +50,7 @@ export function renderBoard ({ tasks, projectId = null, allDone = false, tabs, s
   const body = `<div class="board-head"><h1>Tasks</h1><span class="board-links"><a class="dice-link" href="/farelo/next">What next?</a> <a class="dice-link" href="/farelo/dice">🎲 Roll for the next task</a></span></div>
 ${filter}
 ${newTaskForm(session, project)}
+<p class="meta"><a href="/farelo/archived">Archived tasks</a></p>
 <nav class="col-tabs" aria-label="Columns">${colTabs}</nav>
 <div class="board">${STATES.map(s => column(s, cols[s], { index, session }, { allDone })).join('\n')}</div>`
   return page({ title: project ? `${project.title} — Tasks` : 'Tasks', body, tabs, session })

@@ -46,7 +46,9 @@ function editForm (task, { tasks, session }) {
 <button>Save</button>
 </form>
 </details>
-<form class="inline-buttons" method="post" action="${taskPath(task)}/delete" data-confirm="Delete this task?">${formFields(session, '/farelo/')}<button class="danger">Delete task</button></form>`
+${task.archivedAt
+    ? `<form class="inline-buttons" method="post" action="${taskPath(task)}/restore">${formFields(session, taskPath(task))}<button>Restore task</button></form>`
+    : `<form class="inline-buttons" method="post" action="${taskPath(task)}/archive" data-confirm="Archive this task? It is hidden, not erased.">${formFields(session, '/farelo/')}<button class="danger">Archive task</button></form>`}`
 }
 
 function history (entries) {
@@ -61,6 +63,7 @@ export function renderTaskPage ({ task, tasks, links, related = null, hub = null
   const linksHtml = renderLinksPanel(links, { subject: task.iri, session, returnPath: taskPath(task) })
   const body = `<nav class="crumbs" aria-label="Breadcrumbs"><a href="/farelo/">Tasks</a>${task.project && index.get(task.project) ? ` › <a href="${taskPath(index.get(task.project))}">${esc(index.get(task.project).title)}</a>` : ''}</nav>
 <h1>${titleHtml(task)}</h1>
+${task.archivedAt ? `<p class="muted">Archived ${esc(String(task.archivedAt).slice(0, 10))}. <a href="/farelo/archived">All archived tasks</a></p>` : ''}
 <p>${stateBadge(task.status)} <span class="meta">${metaLine(task, { index, projects: false })}</span>${waiting ? ' <span class="waits">⏳ waiting</span>' : ''}</p>
 ${statusButtons(task, { session, blocked: waiting })}
 ${task.note ? `<div class="note">${renderMarkdown(task.note)}</div>` : ''}

@@ -127,6 +127,8 @@ dim:estimate a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:inte
 dim:dependsOn a owl:ObjectProperty ; rdfs:domain dim:Task ; rdfs:range dim:Task ;
     rdfs:comment "Must be done first. A task with an unfinished dependency is not in the dice list." .
 dim:doneAt a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:dateTime .
+dim:archivedAt a owl:DatatypeProperty ; rdfs:domain dim:Task ; rdfs:range xsd:dateTime ;
+    rdfs:comment "When the task was archived: hidden from the board, the dice and search, but kept and restorable." .
 dim:Roll a owl:Class ; rdfs:subClassOf prov:Activity ; rdfs:label "Dice roll" ;
     rdfs:comment "One Getting Things Diced roll: the dice, the target hit, the task picked." .
 dim:diceSum a owl:DatatypeProperty ; rdfs:domain dim:Roll ; rdfs:range xsd:integer .

@@ -70,6 +70,7 @@ export class TaskStore {
         estimate: r.estimate != null ? Number(r.estimate) : null,
         project: r.project ?? null,
         doneAt: r.doneAt ?? null,
+        archivedAt: r.archivedAt ?? null,
         isProject: r.isProject === 'true',
         dependsOn: r.deps ? r.deps.split(' ').filter(Boolean) : [],
         tags: r.tags ? r.tags.split(', ').filter(Boolean) : []
@@ -78,8 +79,14 @@ export class TaskStore {
     return this.tasks
   }
 
+  /** Live tasks: archived ones are hidden everywhere but their own page and list. */
   async list () {
-    return [...(await this.all()).values()]
+    return [...(await this.all()).values()].filter(t => !t.archivedAt)
+  }
+
+  async listArchived () {
+    return [...(await this.all()).values()].filter(t => t.archivedAt)
+      .sort((a, b) => String(b.archivedAt).localeCompare(String(a.archivedAt)))
   }
 
   async get (id) {
@@ -177,13 +184,29 @@ export class TaskStore {
     return this.#write(next, actor, `${task.status} → ${status}`)
   }
 
-  async delete (task, actor) {
-    const tasks = await this.all()
-    for (const other of tasks.values()) {
+  /** Other tasks stop waiting on, or belonging to, a task that is going away. */
+  async #dropReferences (task, actor, what) {
+    for (const other of (await this.all()).values()) {
       if (other.dependsOn.includes(task.iri) || other.project === task.iri) {
-        await this.#write({ ...other, dependsOn: other.dependsOn.filter(d => d !== task.iri), project: other.project === task.iri ? null : other.project }, actor, `dropped reference to deleted ${task.id}`)
+        await this.#write({ ...other, dependsOn: other.dependsOn.filter(d => d !== task.iri), project: other.project === task.iri ? null : other.project }, actor, `dropped reference to ${what} ${task.id}`)
       }
     }
+  }
+
+  /** Hide a task without losing it. References to it are dropped, as for delete. */
+  async archive (task, actor) {
+    await this.#dropReferences(task, actor, 'archived')
+    const at = this.now().toISOString()
+    return this.#write({ ...task, archivedAt: at, modified: at }, actor, `archived task: ${task.title.slice(0, 60)}`)
+  }
+
+  async restore (task, actor) {
+    return this.#write({ ...task, archivedAt: null, modified: this.now().toISOString() }, actor, `restored task: ${task.title.slice(0, 60)}`)
+  }
+
+  async delete (task, actor) {
+    const tasks = await this.all()
+    await this.#dropReferences(task, actor, 'deleted')
     await this.repository.deleteResources({ graph: await this.graph(), subjects: [task.iri], actor, summary: `deleted task: ${task.title.slice(0, 60)}` })
     if (this.links) await this.links.forget([task.iri])
     tasks.delete(task.id)

@@ -73,7 +73,10 @@ A roll that hits an empty number rolls again. Every roll is recorded
 | `POST /farelo/tasks` | `title`, `status`, `priority`, `project`, … |
 | `POST /farelo/task/<id>` | any of `title`, `note`, `priority`, `due`, `estimate`, `tags`, `project`, `isProject`, `dependsOn` |
 | `POST /farelo/task/<id>/move` | `status`, and optionally `before` / `after` (a task id) |
-| `POST /farelo/task/<id>/delete` | |
+| `/farelo/archived` | archived tasks, each with a Restore button |
+| `POST /farelo/task/<id>/archive` | hide a task (kept, with `dim:archivedAt`); tasks that waited on it or belonged to it are released. This is what the Archive buttons on cards and task pages do |
+| `POST /farelo/task/<id>/restore` | bring an archived task back to its column |
+| `POST /farelo/task/<id>/delete` | erase a task for good (no button; API only) |
 | `POST /farelo/dice` | `policy` = `replace` \| `skip` \| `new`, plus the round's `exclude`, `skip`, `lastTask`, `lastTarget`; JSON gives `{ picked, state }` |
 
 **Note:** `node bin/trestle-import.js --replace` recreates the outline's

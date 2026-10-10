@@ -244,7 +244,8 @@ dim:TaskShape a sh:NodeShape ;
     sh:property [ sh:path dim:dependsOn ; sh:nodeKind sh:IRI ; sh:pattern "^http://purl\\.org/stuff/dim/task/" ; sh:message "A task depends on other tasks." ] ;
     sh:property [ sh:path dim:partOf ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:message "A task is part of at most one project." ] ;
     sh:property [ sh:path dim:position ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ] ;
-    sh:property [ sh:path dim:doneAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
+    sh:property [ sh:path dim:doneAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path dim:archivedAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
 
 ## Wiki.
 dim:WikiPageShape a sh:NodeShape ;

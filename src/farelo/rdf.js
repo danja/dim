@@ -22,7 +22,8 @@ export const P = Object.freeze({
   dependsOn: dim + 'dependsOn',
   partOf: dim + 'partOf',
   position: dim + 'position',
-  doneAt: dim + 'doneAt'
+  doneAt: dim + 'doneAt',
+  archivedAt: dim + 'archivedAt'
 })
 
 /** Every predicate a task write owns (a write replaces them all). */
@@ -54,6 +55,7 @@ export function taskTriples (t) {
   if (t.estimate != null) triples.push(add(P.estimate, typedLiteral(t.estimate)))
   if (t.project) triples.push(add(P.partOf, iri(t.project)))
   if (t.doneAt) triples.push(add(P.doneAt, typedLiteral(new Date(t.doneAt))))
+  if (t.archivedAt) triples.push(add(P.archivedAt, typedLiteral(new Date(t.archivedAt))))
   for (const dep of t.dependsOn ?? []) triples.push(add(P.dependsOn, iri(dep)))
   for (const tag of t.tags ?? []) triples.push(add(P.tag, literal(tag)))
   return triples

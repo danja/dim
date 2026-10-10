@@ -5,6 +5,7 @@ import { resolveMentions } from '../../common/links/mentions.js'
 import { parseHashtags } from '../../common/hashtags/parse.js'
 import { renderBoard } from './boardPage.js'
 import { renderTaskPage } from './taskPage.js'
+import { renderArchived } from './archivedPage.js'
 import { renderDicePage } from './dicePage.js'
 import { taskPath } from './common.js'
 import { rankForDice } from '../tasks.js'
@@ -36,6 +37,9 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
       tabs,
       session
     })))
+
+  router.get('/farelo/archived', async ({ response, session }) =>
+    sendHtml(response, 200, renderArchived({ tasks: await store.listArchived(), tabs, session })))
 
   router.get(new RegExp(`^/farelo/task/${ID}(\\.json)?$`), async ({ request, response, match, session }) => {
     const task = await store.get(match[1])
@@ -78,6 +82,16 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
       after: body.after ? String(body.after) : null
     }, identity.user)
     return { redirect: '/farelo/', json: { ok: true, task } }
+  }))
+
+  router.add(['POST'], new RegExp(`^/farelo/task/${ID}/archive$`), writeRoute(async ({ match, identity }) => {
+    const task = await store.archive(await find(match[1]), identity.user)
+    return { redirect: '/farelo/', json: { ok: true, task } }
+  }))
+
+  router.add(['POST'], new RegExp(`^/farelo/task/${ID}/restore$`), writeRoute(async ({ match, identity }) => {
+    const task = await store.restore(await find(match[1]), identity.user)
+    return { redirect: taskPath(task), json: { ok: true, task } }
   }))
 
   router.add(['POST'], new RegExp(`^/farelo/task/${ID}/delete$`), writeRoute(async ({ match, identity }) => {

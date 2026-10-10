@@ -10,9 +10,12 @@ const task = (id, extra = {}) => ({ id, iri: `http://purl.org/stuff/dim/task/${i
 
 function stubStore (tasks) {
   return {
-    async list () { return tasks },
+    async list () { return tasks.filter(t => !t.archivedAt) },
     async get (id) { return tasks.find(t => t.id === id) ?? null },
-    async history () { return [] }
+    async history () { return [] },
+    async listArchived () { return tasks.filter(t => t.archivedAt) },
+    async archive (t) { t.archivedAt = '2026-02-03T00:00:00Z'; return t },
+    async restore (t) { t.archivedAt = null; return t }
   }
 }
 
@@ -64,5 +67,25 @@ describe('dice route', () => {
     expect(html).toMatch('Getting Things Diced')
     expect((html.match(/<td class="target">/g) ?? []).length).toBe(2)
     expect(html).toMatch('Log in</a> to roll')
+  })
+})
+
+describe('archiving', () => {
+  const post = (base, path) => fetch(`${base}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: '{}' })
+
+  it('archives a task out of the board and restores it from the archive', async () => {
+    const base = await listen({ tasks: [task('ta1'), task('tb2')], rolls: null })
+    expect((await post(base, '/farelo/task/ta1/archive')).status).toBe(200)
+    expect(await (await fetch(`${base}/farelo/`)).text()).not.toContain('Task ta1')
+    const archived = await (await fetch(`${base}/farelo/archived`)).text()
+    expect(archived).toContain('Task ta1')
+    expect(archived).not.toContain('Task tb2')
+    expect((await post(base, '/farelo/task/ta1/restore')).status).toBe(200)
+    expect(await (await fetch(`${base}/farelo/`)).text()).toContain('Task ta1')
+  })
+
+  it('answers 404 for an unknown task', async () => {
+    const base = await listen({ tasks: [], rolls: null })
+    expect((await post(base, '/farelo/task/tdead/archive')).status).toBe(404)
   })
 })

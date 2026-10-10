@@ -64,6 +64,21 @@ describe('TaskStore against the store', () => {
     for (const t of [d1, d2, d3]) await store.delete(await store.get(t.id), 'test')
   })
 
+  it('archives a task out of the lists and restores it, across a reload', async () => {
+    const waiting = await store.create({ title: 'ArchWaiting' }, 'test')
+    const gone = await store.create({ title: 'ArchGone' }, 'test')
+    await store.update(waiting, { dependsOn: [gone.id] }, 'test')
+    await store.archive(await store.get(gone.id), 'test')
+    store.tasks = null
+    expect((await store.list()).some(t => t.id === gone.id)).toBe(false)
+    expect((await store.listArchived()).map(t => t.id)).toContain(gone.id)
+    expect((await store.get(waiting.id)).dependsOn).toEqual([])
+    await store.restore(await store.get(gone.id), 'test')
+    store.tasks = null
+    expect((await store.list()).some(t => t.id === gone.id)).toBe(true)
+    for (const t of [waiting, gone]) await store.delete(await store.get(t.id), 'test')
+  })
+
   it('refuses bad input', async () => {
     await expect(store.create({ title: '' }, 'test')).rejects.toThrow(/title/)
     await expect(store.create({ title: 'x', priority: '0' }, 'test')).rejects.toThrow(/Priority/)
