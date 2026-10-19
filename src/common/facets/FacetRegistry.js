@@ -23,6 +23,8 @@
  *     tags (),               // optional: → Map tag → count
  *     tagged (tag),          // optional: → [{ iri, label, href, snippet }]
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
+ *     create ({ title, note, actor }) // optional: make a page/item from another facet's resource
+ *                            //   → { iri, label, href }; an existing page of that title is reused
  *     upcoming ({ days })    // optional: → [{ date, dayLabel, time, title, location, href, past }]
  *                            //   due soon, for Squirt's "Coming up"; private: show to the owner only
  *   }
@@ -184,6 +186,13 @@ export class FacetRegistry {
       try { events.push(...((await facet.upcoming?.({ days })) ?? [])) } catch { /* one facet failing must not hide the others */ }
     }
     return events.sort((a, b) => `${a.date} ${a.time ?? ''}`.localeCompare(`${b.date} ${b.time ?? ''}`))
+  }
+
+  /** Make something in facet `id` from a title and note. → { iri, label, href, created } */
+  async create (id, args) {
+    const facet = this.get(id)
+    if (typeof facet?.create !== 'function') throw new FacetError(`Facet ${id} cannot create items`)
+    return facet.create(args)
   }
 
   /** Tell every facet that caches resources that this one changed. */

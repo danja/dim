@@ -16,6 +16,12 @@ function statusButtons (task, { session, blocked }) {
   return `<form class="inline-buttons" method="post" action="${taskPath(task)}/move">${formFields(session, taskPath(task))}${buttons}</form>`
 }
 
+function makeButtons (task, { session }) {
+  if (!session?.user || task.archivedAt) return ''
+  const button = (facet, label) => `<button name="facet" value="${facet}">${label}</button>`
+  return `<form class="inline-buttons" method="post" action="${taskPath(task)}/make">${formFields(session, taskPath(task))}${button('wiki', 'Make wiki page')}${button('trestle', 'Make outline item')}</form>`
+}
+
 function dependencyList (task, index) {
   if (!task.dependsOn.length) return ''
   const items = task.dependsOn.map(iri => {
@@ -70,6 +76,7 @@ ${task.note ? `<div class="note">${renderMarkdown(task.note)}</div>` : ''}
 ${dependencyList(task, index)}
 ${children.length ? `<h2>In this project</h2><ul class="deps">${children.map(c => `<li>${stateBadge(c.status)} <a href="${taskPath(c)}">${titleHtml(c)}</a></li>`).join('')}</ul>` : ''}
 ${renderProjectHub(hub, { project: task, session })}
+${makeButtons(task, { session })}
 ${renderRelated(related)}
 ${linksHtml}
 ${editForm(task, { tasks, session })}

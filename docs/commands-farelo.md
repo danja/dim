@@ -74,6 +74,7 @@ A roll that hits an empty number rolls again. Every roll is recorded
 | `POST /farelo/task/<id>` | any of `title`, `note`, `priority`, `due`, `estimate`, `tags`, `project`, `isProject`, `dependsOn` |
 | `POST /farelo/task/<id>/move` | `status`, and optionally `before` / `after` (a task id) |
 | `/farelo/archived` | archived tasks, each with a Restore button |
+| `POST /farelo/task/<id>/make` | body `facet=wiki` or `trestle`: make a wiki page (title and note; an existing page of that title is reused) or an item in the Trestle "Tasks" outline (made if missing), and link the task to it; the link shows on both ends. The task page's **Make wiki page** / **Make outline item** buttons |
 | `POST /farelo/task/<id>/archive` | hide a task (kept, with `dim:archivedAt`); tasks that waited on it or belonged to it are released. This is what the Archive buttons on cards and task pages do |
 | `POST /farelo/task/<id>/restore` | bring an archived task back to its column |
 | `POST /farelo/task/<id>/delete` | erase a task for good (no button; API only) |

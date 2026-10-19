@@ -17,6 +17,7 @@ import { relatedFor } from '../../common/related/relatedFor.js'
 /** Farelo HTTP routes, mounted at /farelo. */
 
 const ID = '(t[a-f0-9]+)'
+const MAKERS = ['wiki', 'trestle']
 const list = value => [].concat(value ?? []).map(String).filter(Boolean)
 const notFound = () => Object.assign(new Error('No such task'), { status: 404 })
 
@@ -82,6 +83,16 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
       after: body.after ? String(body.after) : null
     }, identity.user)
     return { redirect: '/farelo/', json: { ok: true, task } }
+  }))
+
+  // Make a wiki page or outline item from the task and link them (one link, shown on both ends).
+  router.add(['POST'], new RegExp(`^/farelo/task/${ID}/make$`), writeRoute(async ({ match, body, identity }) => {
+    const facet = String(body.facet ?? '')
+    if (!MAKERS.includes(facet)) throw Object.assign(new Error(`facet must be one of ${MAKERS.join(', ')}`), { status: 400 })
+    const task = await find(match[1])
+    const made = await registry.create(facet, { title: task.title, note: task.note, actor: identity.user })
+    await services.links.add({ from: task.iri, kind: 'resource', to: made.iri, actor: identity.user })
+    return { redirect: taskPath(task), json: { ok: true, task, made } }
   }))
 
   router.add(['POST'], new RegExp(`^/farelo/task/${ID}/archive$`), writeRoute(async ({ match, identity }) => {

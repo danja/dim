@@ -52,6 +52,13 @@ export function createWikiFacet ({ store }) {
       return page ? { label: page.title, href: pagePath(page), type: 'page' } : null
     },
 
+    /** A page for a task or other resource; a page with that title already is reused. */
+    async create ({ title, note = null, actor }) {
+      const existing = (await store.list()).find(p => p.title.toLowerCase() === String(title).trim().toLowerCase())
+      const page = existing ?? await store.save({ title, content: note ?? '', actor })
+      return { iri: page.iri, label: page.title, href: pagePath(page), created: !existing }
+    },
+
     async lookupTitle (title) {
       const wanted = String(title).trim().toLowerCase()
       return (await store.list()).find(p => p.title.toLowerCase() === wanted)?.iri ?? null

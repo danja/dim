@@ -51,6 +51,7 @@ export const CATALOG = Object.freeze([
   w('/farelo/tasks', '/farelo/tasks', 'New task', '{ title, note?, priority?, due?, estimate?, tags?, project?, isProject?, dependsOn? }'),
   w('/farelo/task/{id}', '/farelo/task/ta1b2c', 'Edit a task', 'any of { title, note, priority, due, estimate, tags, project, isProject, dependsOn }'),
   w('/farelo/task/{id}/move', '/farelo/task/ta1b2c/move', 'Change status / position', '{ status?, before?, after? } (before/after: task id)'),
+  w('/farelo/task/{id}/make', '/farelo/task/ta1b2c/make', 'Make a wiki page or outline item from a task, linked both ways', '{ facet } (wiki | trestle)'),
   w('/farelo/task/{id}/archive', '/farelo/task/ta1b2c/archive', 'Archive a task (hidden, not erased)'),
   w('/farelo/task/{id}/restore', '/farelo/task/ta1b2c/restore', 'Restore an archived task'),
   w('/farelo/task/{id}/delete', '/farelo/task/ta1b2c/delete', 'Delete a task'),

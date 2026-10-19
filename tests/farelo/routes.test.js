@@ -89,3 +89,31 @@ describe('archiving', () => {
     expect((await post(base, '/farelo/task/tdead/archive')).status).toBe(404)
   })
 })
+
+describe('make a page or outline item from a task', () => {
+  it('creates it through the owning facet and links the two', async () => {
+    const tasks = [task('ta1', { note: 'Details' })]
+    const created = []
+    const added = []
+    const wiki = {
+      id: 'wiki',
+      label: 'Wiki',
+      routes () {},
+      async create (args) { created.push(args); return { iri: 'http://purl.org/stuff/dim/page/task-ta1', label: 'Task ta1', href: '/wiki/page/task-ta1', created: true } }
+    }
+    const search = { documents: new Map(), index: { size: 0 }, async facets () { return {} } }
+    const facets = [createGnamgnamFacet({ search }), createFareloFacet({ store: stubStore(tasks), rng: seeded(3) }), wiki]
+    const services = { auth: new Auth({ token: TOKEN }), links: { add: async a => added.push(a), linksOf: async () => [], syncMentions: async () => {}, syncHashtags: async () => {} } }
+    const server = createServer({ facets, defaultFacet: 'farelo', services })
+    servers.push(server)
+    await new Promise(resolve => server.listen(0, resolve))
+    const base = `http://localhost:${server.address().port}`
+    const post = facet => fetch(`${base}/farelo/task/ta1/make`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ facet }) })
+
+    const ok = await post('wiki')
+    expect(ok.status).toBe(200)
+    expect(created).toEqual([{ title: 'Task ta1', note: 'Details', actor: 'owner' }])
+    expect(added).toEqual([{ from: tasks[0].iri, kind: 'resource', to: 'http://purl.org/stuff/dim/page/task-ta1', actor: 'owner' }])
+    expect((await post('news')).status).toBe(400)
+  })
+})

@@ -37,9 +37,16 @@ Code: `src/common/hashtags/` (parse, triples, `HashtagStore` for reading),
 them with the facets' own tags; if the store can't answer for hashtags, only the
 facets' tags are shown.
 
+## Backfill
+
+`node bin/hashtags-backfill.js [--dry-run]` reads the hashtags in text saved
+before they existed (wiki pages, tasks including archived, outline nodes, blog
+posts incl. drafts) and records them as saving would. Safe to repeat; restart
+the server afterwards.
+
 ## Not done
 
-- Existing text is only read when it is next saved: there is no backfill tool yet.
+- Bookmark notes are not backfilled (see below); they are read when next saved.
 - Tags in a tags field and `#tags` of the same name count as two uses of one tag.
 - Hashtags don't feed the topics scheme (`bin/topics.js`); `/tags/<tag>` still links
   a tag that is also a topic.

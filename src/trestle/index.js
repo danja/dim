@@ -51,6 +51,14 @@ export function createTrestleFacet ({ store }) {
       return { label: label(found.node), href: nodePath(found.node), type: 'node' }
     },
 
+    /** A node for a task or other resource, as the last item of the "Tasks" outline (made if missing). */
+    async create ({ title, note = null, actor }) {
+      const outline = (await store.list()).find(o => o.title === 'Tasks') ?? await store.createOutline({ title: 'Tasks', actor })
+      const node = await store.createNode(outline, { title, actor })
+      if (note) await store.updateNode(outline, node, { note }, actor)
+      return { iri: node.iri, label: label(node), href: nodePath(node), created: true }
+    },
+
     async lookupTitle (title) {
       const wanted = String(title).trim().toLowerCase()
       for (const outline of await store.list()) {
