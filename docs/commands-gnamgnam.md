@@ -15,6 +15,7 @@ Background: `docs/tools.md` (all tools and the HTTP API), `docs/enricher.md`
 | `node bin/retrieve.js` | Parse `data/workflowy.md`, classify every link, print the type counts | none | seconds |
 | `node bin/retrieve.js --live` | …and GET each link (title, description, HTTP status), cached 7 days | every link, 1/s | ~2 h |
 | `node bin/ingest.js` | Load bookmarks into the store (drops and reloads the source graph), then embed | cache or live | minutes + embedding |
+| `node bin/bookmarks-import.js file.html` | Add bookmarks from a browser export (`--dry-run` to preview, `--no-folder-tags`); skips URLs already saved | none | seconds |
 | `node bin/enrich.js` | Fetch, summarise and patch each bookmark; optionally re-embed | every link + LLM | hours |
 | `node bin/deadlinks.js` | Link-status report; `--wayback` finds archived copies | Wayback API | seconds / 1 per dead link |
 | `node bin/validate.js` | SHACL-check every graph in the store | none | seconds |
@@ -25,6 +26,16 @@ Background: `docs/tools.md` (all tools and the HTTP API), `docs/enricher.md`
 `npm run <name>` works for `retrieve`, `ingest`, `enrich`, `deadlinks`,
 `validate`, `search`, `serve` and `pipeline`; add flags after `--`
 (`npm run enrich -- --limit 50`).
+
+## Importing from a browser
+
+Export from the browser's bookmark manager (Chrome, Edge, Firefox and Safari
+all write the same HTML format), then `node bin/bookmarks-import.js
+bookmarks.html`. Folders become tags (not "Bookmarks bar" and the like);
+`javascript:` and other non-web links are dropped. Imports are saved like any
+bookmark made in DIM (a later `ingest` keeps them), already-saved URLs are
+skipped so it is safe to re-run, and `--dry-run` lists what would be added.
+Restart the server afterwards; `enrich` then adds summaries.
 
 ## Bookmarks saved in DIM are enriched as they are saved
 
