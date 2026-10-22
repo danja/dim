@@ -84,3 +84,17 @@ export const NEWS_CONFIG = {
   scanMaxBytes: 512 * 1024, // feed links are in the <head>; no need for the whole page
   userAgent: 'dim-news/0.1 (+http://localhost:4110/about/crawler)'
 }
+
+/** Graph RAG (src/common/rag): seeds, expansion over links and topics, context size. */
+export const RAG_CONFIG = {
+  seeds: 8, // top search hits the walk starts from
+  hops: 2,
+  hopDecay: 0.5, // a node one hop further counts this much less
+  fanout: 12, // links followed per node (strongest kinds first)
+  topicMembers: 30, // a topic bigger than this is too general to expand through
+  topicWeight: 0.4,
+  kindWeights: { partOf: 0.9, resource: 0.9, related: 0.8, mentions: 0.5 },
+  limit: 15, // items returned
+  charBudget: 12000, // total passage text
+  passageChars: 1500 // per item
+}

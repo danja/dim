@@ -14,6 +14,7 @@ const r = (path, example, does) => ({ method: 'GET', path, example, does })
 export const CATALOG = Object.freeze([
   // Across facets
   r('/find.json?q=&facet=&limit=&ranked=1', '/find.json', 'Search every facet; ranked=1 gives one list ranked by meaning and words (dim_search wraps this)'),
+  r('/context.json?q=', '/context.json', 'Graph RAG: passages relevant to a question, found by search then spread along links and topics, with the links between them (dim_context wraps this)'),
   r('/tags.json', '/tags.json', 'Every tag in use, with counts'),
   r('/tags/{tag}.json', '/tags/x.json', 'Everything carrying a tag, by facet'),
   r('/topics.json', '/topics.json', 'Topics (SKOS) with member counts'),

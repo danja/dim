@@ -52,6 +52,13 @@ export const TOOLS = [
     }
   },
   {
+    name: 'dim_context',
+    description: 'Gather what DIM holds on a question or topic: the best search hits plus what they link to (links, shared topics, outline parents), as cited passages with the links between them. Use it to answer from the owner\'s own material; use dim_search for a plain list.',
+    inputSchema: { type: 'object', properties: { q: { type: 'string', description: 'The question or topic' } }, required: ['q'] },
+    annotations: read,
+    run: (ctx, { q }) => dim(ctx, 'GET', `/context.json?${new URLSearchParams({ q: String(q ?? '') })}`)
+  },
+  {
     name: 'dim_get',
     description: 'Read any page or data endpoint of DIM, as the owner would see it. Prefer the .json or .md form of a path where dim_endpoints lists one; other pages come back as text with links as "label (path)".',
     inputSchema: { type: 'object', properties: { path: { type: 'string', description: 'e.g. /wiki/page/home.md, /farelo/task/abc123.json, /day/2026-09-30' } }, required: ['path'] },

@@ -36,6 +36,23 @@ export class LinkError extends Error {
   }
 }
 
+function collectLinks (rows) {
+  const seen = new Set()
+  const byNode = new Map()
+  for (const row of rows) {
+    const kind = KIND_BY_PREDICATE.get(row.p)
+    if (!kind) continue
+    // relatedTo is symmetric: one "related" entry whichever way it was stored.
+    const direction = kind === 'related' ? 'out' : row.direction
+    const key = `${row.node}|${kind}|${direction}|${row.other}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (!byNode.has(row.node)) byNode.set(row.node, [])
+    byNode.get(row.node).push({ kind, direction, iri: row.other })
+  }
+  return byNode
+}
+
 export class LinkStore {
   constructor ({ client, repository, queries = new QueryService() }) {
     if (!client || !repository) throw new Error('LinkStore needs a client and a Repository')
@@ -124,19 +141,19 @@ WHERE { GRAPH ${iri(graph)} { { ?s ?p ?o VALUES ?s { ${values} } } UNION { ?s ?p
   async linksOf (resource) {
     const graph = await this.graph()
     const rows = await this.client.select(this.queries.get('links/of', { graph: iri(graph), resource: iri(resource) }))
-    const seen = new Set()
-    const out = []
-    for (const row of rows) {
-      const kind = KIND_BY_PREDICATE.get(row.p)
-      if (!kind) continue
-      // relatedTo is symmetric: one "related" entry whichever way it was stored.
-      const direction = kind === 'related' ? 'out' : row.direction
-      const key = `${kind}|${direction}|${row.other}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push({ kind, direction, iri: row.other })
+    return collectLinks(rows.map(row => ({ ...row, node: resource }))).get(resource) ?? []
+  }
+
+  /** The same for several resources in one query. → Map resource → [{ kind, direction, iri }] */
+  async linksOfMany (resources) {
+    const found = new Map()
+    const graph = await this.graph()
+    for (let i = 0; i < resources.length; i += 200) {
+      const values = resources.slice(i, i + 200).map(r => iri(r)).join(' ')
+      const rows = await this.client.select(this.queries.get('links/of-many', { graph: iri(graph), resources: values }))
+      for (const [node, links] of collectLinks(rows)) found.set(node, links)
     }
-    return out
+    return found
   }
 }
 

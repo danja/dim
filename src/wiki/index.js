@@ -37,6 +37,11 @@ export function createWikiFacet ({ store }) {
       return (await store.list()).map(p => ({ iri: p.iri, text: `${p.title}\n\n${p.content}` }))
     },
 
+    async passage (resourceIri) {
+      const page = await store.byIri(resourceIri)
+      return page ? { text: `${page.title}\n\n${page.content}` } : null
+    },
+
     async tags () {
       return countTags((await store.list()).map(p => p.tags))
     },

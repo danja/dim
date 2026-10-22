@@ -18,6 +18,7 @@
  *     recent ({ limit }),    // optional: → [{ iri, label, href, at, action }] not in the change log
  *     aboutDomain (host),    // optional: → [{ label, href }] what it has from a site
  *     urlStatus (url),       // optional: → { status, href, label, archivedAt } for a URL it tracks
+ *     passage (iri),         // optional: → { text } the readable text of one resource it owns (graph RAG context)
  *     documents (),          // optional: → [{ iri, text }] to embed for "related" (src/common/related)
  *     day ({ from, to }),    // optional: → [{ label, href }] what happened that isn't in the change log
  *     tags (),               // optional: → Map tag → count
@@ -209,6 +210,18 @@ export class FacetRegistry {
     const ts = typeSlugOf(resourceIri)
     if (ts) return { iri: resourceIri, label: `${ts.type}/${ts.slug}`, href: this.href(resourceIri), type: ts.type, facet: null, facetLabel: null }
     return { iri: resourceIri, label: resourceIri, href: /^https?:/.test(resourceIri) ? resourceIri : null, type: null, facet: null, facetLabel: null }
+  }
+
+  /** The readable text of any resource, from the facet that owns it. → { text } | null */
+  async passage (resourceIri) {
+    for (const facet of this.facets) {
+      if (typeof facet.passage !== 'function') continue
+      try {
+        const found = await facet.passage(resourceIri)
+        if (found?.text) return found
+      } catch { /* one facet failing must not hide the others */ }
+    }
+    return null
   }
 
   /** Search every facet that can. → [{ facet, label, results }] */

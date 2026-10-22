@@ -94,6 +94,13 @@ export function createGnamgnamFacet ({ search, autoEnrich = null }) {
       return doc ? { label: doc.name, href: href(doc), type: 'bookmark' } : null
     },
 
+    passage (resourceIri) {
+      const doc = search.documents.get(resourceIri)
+      if (!doc) return null
+      const text = [doc.name, doc.url, doc.summary || doc.description].filter(Boolean).join('\n')
+      return { text }
+    },
+
     lookupUrl (url) {
       const key = canonical(url)
       return key ? byUrl().get(key) ?? null : null

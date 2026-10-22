@@ -13,6 +13,7 @@ import QueryService from '../store/QueryService.js'
 import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
 import { searchEverything } from '../search/everything.js'
+import { retrieve } from '../rag/retrieve.js'
 import { latestBackup } from '../ops/backup.js'
 import { backupPaths } from '../ops/backupPaths.js'
 
@@ -203,6 +204,13 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     if (url.searchParams.has('ranked')) return send(response, 200, { query: (url.searchParams.get('q') ?? '').trim(), ...(await ranked(url)) })
     const { q, groups } = await find(url)
     return send(response, 200, { query: q, groups })
+  })
+
+  // Graph RAG: passages for a question, found by search and spread along links and topics.
+  router.get('/context.json', async ({ response, url }) => {
+    const q = (url.searchParams.get('q') ?? '').trim()
+    if (!q) return send(response, 400, { error: 'Provide ?q=' })
+    return send(response, 200, await retrieve(q, { registry, related: services.related, links: services.links, topics: services.topics }))
   })
 
   // ── /r resolver: a resource's page from its type and slug, or its IRI ─

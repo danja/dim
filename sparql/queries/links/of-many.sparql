@@ -1,0 +1,11 @@
+# Every link touching any of several resources, both directions (graph expansion).
+SELECT ?node ?p ?other ?direction
+WHERE {
+  VALUES ?node { ${resources} }
+  GRAPH ${graph} {
+    { ?node ?p ?other . BIND("out" AS ?direction) }
+    UNION
+    { ?other ?p ?node . BIND("in" AS ?direction) }
+  }
+  FILTER (isIRI(?other) && ?p IN (dim:relatedTo, dim:resource, dim:mentions, dim:partOf))
+}

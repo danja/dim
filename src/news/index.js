@@ -84,6 +84,12 @@ export function createNewsFacet ({ store, poller, inbox = null, tasks = null, fe
       return it?.iri === resourceIri ? { label: it.title, href: itemPath(it), type: 'news-item' } : null
     },
 
+    async passage (resourceIri) {
+      const id = resourceIri.slice(resourceIri.lastIndexOf('/') + 1)
+      const it = await store.item(id)
+      return it?.iri === resourceIri ? { text: [it.title, it.snippet].filter(Boolean).join('\n\n') } : null
+    },
+
     /** Newest unread items (items aren't in the change log). */
     async recent ({ limit = 10 } = {}) {
       const { items } = await store.itemList({ view: 'unread', limit })

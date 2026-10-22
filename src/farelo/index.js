@@ -37,6 +37,11 @@ export function createFareloFacet ({ store, rolls = null, rng, advisor = null })
       return (await store.list()).map(t => ({ iri: t.iri, text: [label(t), t.note].filter(Boolean).join('\n\n') }))
     },
 
+    async passage (resourceIri) {
+      const task = (await store.list()).find(t => t.iri === resourceIri)
+      return task ? { text: [label(task), STATE_LABELS[task.status] ?? task.status, task.note].filter(Boolean).join('\n\n') } : null
+    },
+
     async tags () {
       return countTags((await store.list()).filter(t => t.status !== 'done').map(t => t.tags))
     },

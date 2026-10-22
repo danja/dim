@@ -50,7 +50,7 @@ describe('MCP endpoint', () => {
     const init = await (await rpc(base, 'initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 't', version: '1' } })).json()
     expect(init.result).toMatchObject({ protocolVersion: '2025-03-26', serverInfo: { name: 'dim' } })
     const listed = (await (await rpc(base, 'tools/list')).json()).result.tools
-    expect(listed.map(t => t.name)).toEqual(['dim_search', 'dim_get', 'dim_write', 'dim_endpoints'])
+    expect(listed.map(t => t.name)).toEqual(['dim_search', 'dim_context', 'dim_get', 'dim_write', 'dim_endpoints'])
     expect(listed.every(t => t.inputSchema.type === 'object' && !('run' in t))).toBe(true)
     const note = await fetch(`${base}/mcp`, { method: 'POST', headers: AUTH, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) })
     expect(note.status).toBe(202)

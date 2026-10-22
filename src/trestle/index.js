@@ -2,6 +2,7 @@ import { registerRoutes } from './api/routes.js'
 import { nodePath } from './api/treeView.js'
 import { outlinePath } from './api/pages.js'
 import { plainText } from '../common/outline/OutlineParser.js'
+import { ancestors } from './tree.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
 
 /**
@@ -42,6 +43,14 @@ export function createTrestleFacet ({ store }) {
         }
       }
       return out
+    },
+
+    /** A node with the path of titles above it, so a fragment keeps its context. */
+    async passage (resourceIri) {
+      const found = await store.byIri(resourceIri)
+      if (!found?.node) return null
+      const path = [found.outline.title, ...ancestors(found.outline, found.node).map(label)].join(' / ')
+      return { text: `${path}\n${[plainText(found.node.title), found.node.note].filter(Boolean).join('\n\n')}` }
     },
 
     async lookup (resourceIri) {

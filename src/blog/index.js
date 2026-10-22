@@ -42,6 +42,12 @@ export function createBlogFacet ({ store, wiki = null, outlines = null, title = 
       return (await store.list({ tag })).map(p => ({ iri: p.iri, label: p.title, href: appPath(p), snippet: excerpt(p, 160) }))
     },
 
+    /** Published posts only, like find. */
+    async passage (resourceIri) {
+      const post = await store.byIri(resourceIri)
+      return post && post.status !== 'draft' ? { text: `${post.title}\n\n${post.content}` } : null
+    },
+
     async lookup (resourceIri) {
       const post = await store.byIri(resourceIri)
       return post ? { label: post.status === 'draft' ? `${post.title} (draft)` : post.title, href: appPath(post), type: 'post' } : null

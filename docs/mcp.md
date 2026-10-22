@@ -45,3 +45,16 @@ be added to `src/mcp/catalog.js`: `tests/mcp` fails until it is.
 - Answers are cut at 60,000 characters.
 - Writes are real and acted as `owner`; the change log can't tell an agent from
   the person. Hand the token only to agents you'd let edit everything.
+
+## dim_context (graph RAG)
+
+`dim_context { q }` calls `GET /context.json?q=`: the hybrid search (meaning +
+words) gives the seeds, which are spread up to two hops along links
+(`partOf`, `resource`, `related`, `mentions`) and through small shared
+topics, decaying per hop and summing converging paths. The top items come
+back with their text (from each facet's optional `passage(iri)` hook; outline
+nodes carry their path of parent titles), the path that reached them (`via`)
+and the links between them (`edges`), within a character budget. DIM
+generates no answer; the caller does, citing the `href`s. Tunables are
+`RAG_CONFIG` in `config/preferences.js`; `bin/ask.js "question"` shows what
+retrieval finds.

@@ -13,3 +13,10 @@
 
 Not added: three "make it easy to remove tasks" tasks, now done by the Archive button
 (they can be archived in DIM).
+
+## Graph RAG follow-ups
+
+- [ ] Judge `bin/ask.js` on 10–20 real questions; tune `RAG_CONFIG`
+- [ ] Hashtag edges in expansion (shared `#tags` through the links graph)
+- [ ] Materialise embedding neighbours as weighted similarity edges if explicit links prove too sparse
+- [ ] Community summaries (cluster, summarise with Ollama) only if local expansion isn't enough
