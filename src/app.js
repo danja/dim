@@ -22,6 +22,7 @@ import AdviceStore from './advisor/AdviceStore.js'
 import Poller from './news/Poller.js'
 import RollLog from './farelo/RollLog.js'
 import { openRelated } from './common/related/openRelated.js'
+import { askProviders } from './ask/providers.js'
 import CommunityIndex from './common/rag/CommunityIndex.js'
 import TopicStore from './common/topics/TopicStore.js'
 import HashtagStore from './common/hashtags/HashtagStore.js'
@@ -64,29 +65,12 @@ export async function buildApp ({ config, projectRoot, env = process.env }) {
   advisor.relatedIndex = related
   const rolls = new RollLog({ client, registry })
   const blog = { store: posts, title: env.BLOG_TITLE || 'Blog', author: env.BLOG_AUTHOR || 'owner' }
-  const facets = createFacets({ search, autoEnrich, outlines, tasks, rolls, wiki, news: { store: newsStore, poller, inbox }, blog, calendar: events, client, advisor, ask: askConfig(env) })
+  const facets = createFacets({ search, autoEnrich, outlines, tasks, rolls, wiki, news: { store: newsStore, poller, inbox }, blog, calendar: events, client, advisor, ask: { providers: askProviders(env) } })
 
   const communities = await CommunityIndex.open(path.join(path.dirname(path.resolve(projectRoot, config.get('index.path'))), 'communities.json'))
   const topics = new TopicStore({ client })
   const hashtags = new HashtagStore({ client })
   return { client, index, embeddings, search, autoEnrich, related, topics, communities, hashtags, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, events, rolls }, inbox, poller, advisor, facets }
-}
-
-/**
- * The Ask tab's model: local Ollama (OLLAMA_URL, ASK_MODEL), or an
- * OpenAI-compatible API when ASK_LLM_BASE_URL, ASK_LLM_API_KEY and
- * ASK_LLM_MODEL are all set. Remote is separate from the bookmark
- * summariser's LLM_* keys on purpose: it receives your notes.
- */
-function askConfig (env) {
-  const names = ['ASK_LLM_BASE_URL', 'ASK_LLM_API_KEY', 'ASK_LLM_MODEL']
-  const set = names.filter(n => env[n])
-  if (set.length && set.length < names.length) throw new Error(`The remote Ask model needs all of ${names.join(', ')}; missing ${names.filter(n => !env[n]).join(', ')}`)
-  return {
-    ollamaUrl: env.OLLAMA_URL || null,
-    model: env.ASK_MODEL || undefined,
-    remote: set.length ? { baseUrl: env.ASK_LLM_BASE_URL, apiKey: env.ASK_LLM_API_KEY, model: env.ASK_LLM_MODEL } : null
-  }
 }
 
 /**

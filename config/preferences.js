@@ -110,6 +110,8 @@ export const ASK_CONFIG = {
   maxTokens: 700,
   timeoutMs: 300000, // a CPU-only Ollama reads a prompt at roughly 10 tokens a second
   // Lighter retrieval than RAG_CONFIG's, so the prompt stays short enough to answer in reasonable time.
+  remoteTimeoutMs: 60000,
+  coolOffMs: 20000, // how long a provider that was rate-limited or failed is skipped
   retrieval: { limit: 6, charBudget: 3000, passageChars: 600 },
   historyTurns: 4, // earlier question/answer pairs sent with a new question
   historyChars: 1500, // per answer

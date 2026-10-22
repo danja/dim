@@ -25,9 +25,10 @@ function history (raw) {
 
 const BASE = { ...RAG_CONFIG, ...ASK_CONFIG.retrieval }
 
-export function registerRoutes (router, { services, registry, tabs, ollamaUrl, model, remote }) {
-  const ready = Boolean(ollamaUrl || remote)
-  const where = remote ? new URL(remote.baseUrl).host : null
+export function registerRoutes (router, { services, registry, tabs, providers }) {
+  const ready = providers.length > 0
+  const where = providers.filter(p => p.remote).map(p => p.name)
+  const state = new Map() // provider → cooling down or dropped, between questions
   const refuse = ({ response, url, session }, json = false) => {
     if (session.user) return false
     if (json) send(response, 401, { error: 'Log in, or send the write token' })
@@ -55,8 +56,8 @@ export function registerRoutes (router, { services, registry, tabs, ollamaUrl, m
     const contextOnly = Boolean(asArray(body.contextOnly).length)
 
     const retrieval = await retrieve(question, { registry, related: services.related, links: services.links, topics: services.topics, communities: services.communities, config })
-    const reply = contextOnly ? null : await answer({ baseUrl: ollamaUrl, model, remote, question, retrieval, history: history(body.history) })
-    const turn = { n: Math.max(1, Math.min(999, Number(body.turn) || 1)), question, retrieval, answer: reply, changes: changes(config, BASE), unknown }
+    const reply = contextOnly ? null : await answer({ providers, state, question, retrieval, history: history(body.history) })
+    const turn = { n: Math.max(1, Math.min(999, Number(body.turn) || 1)), question, retrieval, answer: reply, by: reply?.by ?? null, changes: changes(config, BASE), unknown }
 
     if (json) return send(response, 200, { html: renderTurn(turn), answer: reply?.text ?? null, error: reply?.error ?? null })
     const values = { q: '', tune: body.tune ?? '', similar: config.similarity.enabled, communities: config.communities.enabled, contextOnly }

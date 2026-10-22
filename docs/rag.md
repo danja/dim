@@ -49,8 +49,29 @@ shows the one turn. `POST /ask` takes `{ q, tune?, contextOnly? }` as JSON with
 the token, so an agent can use it too (`dim_context` gives the sources alone).
 
 Ask retrieves less than `/context.json` by default (6 items, 600 characters
-each; `ASK_CONFIG.retrieval`) because the model must read it all: on a CPU
-Ollama takes about a second per ten prompt tokens. The model is `ASK_MODEL`
-(default `qwen2.5:3b`). To use a faster hosted model set `ASK_LLM_BASE_URL`,
-`ASK_LLM_API_KEY` and `ASK_LLM_MODEL` (an OpenAI-compatible API); the page then
-says where answers come from, because the sources it shows are sent there.
+each; `ASK_CONFIG.retrieval`) because the model must read it all: a CPU-only
+Ollama takes about a second per ten prompt tokens.
+
+### Choosing the model
+
+`ASK_PROVIDERS` in `.env` lists the models in order of preference, for example
+`ASK_PROVIDERS=mistral,groq,ollama` (after danja/peasant). Each question goes to
+the first that is available. A provider that is rate-limited (429, or a
+`Retry-After`), failing (5xx, timeout) is skipped for `ASK_CONFIG.coolOffMs`
+and the next one asked; one refused with 401/402/403 is dropped until the
+server restarts. The answer is labelled with the model that gave it, and when
+all fail the error lists why.
+
+| Name | Key | Defaults |
+|---|---|---|
+| `mistral` `groq` `openrouter` `google` `huggingface` `nvidia` | `<NAME>_API_KEY` (`GEMINI_API_KEY`, `HF_TOKEN`) | base URL and model as for bookmark summaries (`src/gnamgnam/enrich/summarise/providers.js`); override with `<NAME>_BASE_URL`, `<NAME>_MODEL`, `<NAME>_MAX_TOKENS` |
+| `ollama` | `OLLAMA_URL` | model `ASK_MODEL` (`qwen2.5:3b`) |
+| `custom` | `CUSTOM_API_KEY` | `CUSTOM_BASE_URL` and `CUSTOM_MODEL` required |
+
+Unset, Ask uses Ollama alone. A named provider with no key is skipped (with a
+warning); a list with nothing usable, or an unknown name, stops the server
+starting. Hosted providers receive the retrieved sources, i.e. parts of your
+notes, bookmarks and tasks, so nothing is used unless it is named here (not
+`LLM_PROVIDERS`, which serves bookmark summaries), and the Ask page lists the
+hosted providers it may use. Thinking models spend part of the reply budget on
+reasoning, hence the 2048-token defaults for several providers.

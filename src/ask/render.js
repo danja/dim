@@ -18,7 +18,7 @@ function sourceItem (item, i, turn) {
 }
 
 /** One question and what came back. turn: { n, question, retrieval, answer: { text }|{ error }|null, changes, unknown } */
-export function renderTurn ({ n, question, retrieval, answer, changes = [], unknown = [] }) {
+export function renderTurn ({ n, question, retrieval, answer, by = null, changes = [], unknown = [] }) {
   const items = retrieval.items
   const clusters = retrieval.communities ?? []
   const reply = !answer
@@ -28,7 +28,7 @@ export function renderTurn ({ n, question, retrieval, answer, changes = [], unkn
       : `<p class="answer">${answerHtml(answer.text, n, items.length)}</p>`
   return `<article class="turn" id="turn-${n}">
 <p class="q"><span class="who">You</span>${esc(question)}</p>
-<div class="a"><span class="who">DIM</span>${reply}</div>
+<div class="a"><span class="who">DIM${by ? ` · ${esc(by)}` : ''}</span>${reply}</div>
 <details class="ctx"${answer ? '' : ' open'}>
 <summary>${items.length} source${items.length === 1 ? '' : 's'}${clusters.length ? `, ${clusters.length} cluster${clusters.length === 1 ? '' : 's'}` : ''}</summary>
 ${retrieval.semanticError ? `<p class="meta">Words only: ${esc(retrieval.semanticError)}</p>` : ''}
@@ -39,10 +39,10 @@ ${items.length ? `<ol class="sources">${items.map((item, i) => sourceItem(item, 
 </article>`
 }
 
-export function renderAsk ({ turns = [], values = {}, tabs, session, ready, where = null }) {
+export function renderAsk ({ turns = [], values = {}, tabs, session, ready, where = [] }) {
   const checked = name => values[name] ? ' checked' : ''
   const body = `<h1>Ask</h1>
-<p class="meta">Questions answered from what DIM holds, by graph retrieval over search, links and topics${ready ? '' : '. No model is configured (OLLAMA_URL), so you will get the retrieved sources only'}.${where ? ` Answers come from ${esc(where)}: the sources shown below are sent there.` : ''}</p>
+<p class="meta">Questions answered from what DIM holds, by graph retrieval over search, links and topics${ready ? '' : '. No model is configured (OLLAMA_URL), so you will get the retrieved sources only'}.${where.length ? ` Answers may come from ${esc(where.join(', '))}: the sources shown below are sent there.` : ''}</p>
 <section id="chat" class="chat" aria-live="polite" aria-label="Conversation">
 ${turns.map(renderTurn).join('\n')}
 </section>

@@ -4,6 +4,7 @@ import { createServer } from '../../src/server.js'
 import Auth from '../../src/common/http/auth.js'
 import { createAskFacet } from '../../src/ask/index.js'
 import { answer, userMessage, historyMessages } from '../../src/ask/answer.js'
+import { askProviders } from '../../src/ask/providers.js'
 import { answerHtml, renderTurn } from '../../src/ask/render.js'
 import { parseTune, changes, tune } from '../../src/common/rag/options.js'
 
@@ -23,15 +24,20 @@ const notes = {
 
 const retrieval = { query: 'q', items: [{ iri: 'i', label: 'Synth <DIY>', href: '/notes/synth', facet: 'notes', facetLabel: 'Notes', score: 0.9, hops: 0, seed: true, via: [], text: 'Build a modular synth.' }], edges: [], communities: [], semanticError: null }
 
+const local = { name: 'ollama', kind: 'ollama', baseUrl: 'http://ollama:11434/', model: 'qwen', maxTokens: 100, remote: false }
+const hosted = (name, extra = {}) => ({ name, kind: 'openai', baseUrl: `https://${name}.example/v1/`, apiKey: 'k', model: 'big', maxTokens: 100, remote: true, ...extra })
+const reply = (content, shape = 'openai') => ({ ok: true, json: async () => shape === 'ollama' ? { message: { content } } : { choices: [{ message: { content } }] } })
+const status = (code, headers = {}) => ({ ok: false, status: code, headers: { get: k => headers[k] ?? null } })
+
 describe('answer', () => {
   it('sends sources, earlier turns and the question to Ollama chat', async () => {
     let sent
     const fetchFn = async (url, init) => {
       sent = { url, body: JSON.parse(init.body) }
-      return { ok: true, json: async () => ({ message: { content: ' Use kits [1]. ' } }) }
+      return reply(' Use kits [1]. ', 'ollama')
     }
-    const out = await answer({ baseUrl: 'http://ollama:11434/', question: 'How?', retrieval, history: [{ q: 'before', a: 'earlier' }], fetchFn })
-    expect(out).toEqual({ text: 'Use kits [1].' })
+    const out = await answer({ providers: [local], question: 'How?', retrieval, history: [{ q: 'before', a: 'earlier' }], fetchFn })
+    expect(out).toEqual({ text: 'Use kits [1].', by: 'ollama/qwen' })
     expect(sent.url).toBe('http://ollama:11434/api/chat')
     expect(sent.body.stream).toBe(false)
     expect(sent.body.messages.map(m => m.role)).toEqual(['system', 'user', 'assistant', 'user'])
@@ -39,30 +45,78 @@ describe('answer', () => {
     expect(sent.body.messages[3].content).toContain('Question: How?')
   })
 
-  it('can use an OpenAI-compatible API when one is configured', async () => {
+  it('uses an OpenAI-compatible API with a bearer key', async () => {
     let sent
     const fetchFn = async (url, init) => {
       sent = { url, headers: init.headers, body: JSON.parse(init.body) }
-      return { ok: true, json: async () => ({ choices: [{ message: { content: 'Remote [1]' } }] }) }
+      return reply('Remote [1]')
     }
-    const remote = { baseUrl: 'https://api.example.com/v1/', apiKey: 'k', model: 'big' }
-    expect(await answer({ remote, question: 'How?', retrieval, fetchFn })).toEqual({ text: 'Remote [1]' })
-    expect(sent.url).toBe('https://api.example.com/v1/chat/completions')
+    expect(await answer({ providers: [hosted('mistral')], question: 'How?', retrieval, fetchFn })).toEqual({ text: 'Remote [1]', by: 'mistral/big' })
+    expect(sent.url).toBe('https://mistral.example/v1/chat/completions')
     expect(sent.headers.Authorization).toBe('Bearer k')
-    expect(sent.body.model).toBe('big')
+    expect(sent.body.max_tokens).toBe(100)
   })
 
-  it('reports problems instead of throwing', async () => {
-    expect((await answer({ baseUrl: null, question: 'x', retrieval })).error).toMatch(/OLLAMA_URL/)
-    expect((await answer({ baseUrl: 'http://x', question: 'x', retrieval, fetchFn: async () => { throw new Error('refused') } })).error).toMatch(/refused/)
-    expect((await answer({ baseUrl: 'http://x', question: 'x', retrieval, fetchFn: async () => ({ ok: false, status: 404 }) })).error).toMatch(/available/)
-    expect((await answer({ baseUrl: 'http://x', question: 'x', retrieval, fetchFn: async () => ({ ok: true, json: async () => ({ message: { content: '' } }) }) })).error).toMatch(/empty/)
+  it('rotates: a rate-limited provider cools off, a refused one is dropped, the next answers', async () => {
+    const calls = []
+    const fetchFn = async url => {
+      calls.push(url.split('/')[2])
+      if (url.includes('groq')) return status(429, { 'retry-after': '30' })
+      if (url.includes('mistral')) return status(401)
+      return reply('From the third')
+    }
+    const providers = [hosted('mistral'), hosted('groq'), hosted('openrouter')]
+    const state = new Map()
+    let clock = 0
+    const now = () => clock
+    expect(await answer({ providers, state, question: 'x', retrieval, fetchFn, now })).toEqual({ text: 'From the third', by: 'openrouter/big' })
+    expect(calls).toEqual(['mistral.example', 'groq.example', 'openrouter.example'])
+    expect(state.get('mistral')).toEqual({ dropped: true })
+    expect(state.get('groq').coolUntil).toBe(30000)
+    calls.length = 0
+    await answer({ providers, state, question: 'x', retrieval, fetchFn, now })
+    expect(calls).toEqual(['openrouter.example']) // mistral dropped, groq cooling
+    calls.length = 0
+    clock = 31000
+    await answer({ providers, state, question: 'x', retrieval, fetchFn, now })
+    expect(calls).toEqual(['groq.example', 'openrouter.example']) // groq back, asked first again
+  })
+
+  it('reports every failure when no provider can answer', async () => {
+    const out = await answer({ providers: [hosted('mistral'), local], question: 'x', retrieval, fetchFn: async url => { if (url.includes('mistral')) return status(503); throw new Error('refused') } })
+    expect(out.error).toContain('mistral: HTTP 503')
+    expect(out.error).toContain('ollama: refused')
+    expect((await answer({ providers: [], question: 'x', retrieval })).error).toMatch(/ASK_PROVIDERS/)
+    expect((await answer({ providers: [local], question: 'x', retrieval, fetchFn: async () => status(404) })).error).toMatch(/available/)
+    expect((await answer({ providers: [local], question: 'x', retrieval, fetchFn: async () => reply('', 'ollama') })).error).toMatch(/empty/)
   })
 
   it('says when nothing was found, and trims and ignores bad history', () => {
     expect(userMessage('q', { items: [] })).toContain('No sources were found.')
     expect(historyMessages('nope')).toEqual([])
     expect(historyMessages([1, 2, 3, 4, 5, 6].map(i => ({ q: `q${i}`, a: `a${i}` }))).length).toBe(8)
+  })
+})
+
+describe('askProviders', () => {
+  it('defaults to Ollama alone, and to nothing without OLLAMA_URL', () => {
+    expect(askProviders({ OLLAMA_URL: 'http://o:11434' }).map(p => `${p.name}/${p.model}/${p.remote}`)).toEqual(['ollama/qwen2.5:3b/false'])
+    expect(askProviders({})).toEqual([])
+  })
+
+  it('builds the named hosted providers in order from the shared key names, skipping unkeyed ones', () => {
+    const list = askProviders({ ASK_PROVIDERS: 'mistral, groq,ollama,openrouter', MISTRAL_API_KEY: 'a', GROQ_API_KEY: 'b', GROQ_MODEL: 'llama', GROQ_MAX_TOKENS: '900', OLLAMA_URL: 'http://o', ASK_MODEL: 'tiny' })
+    expect(list.map(p => `${p.name}/${p.model}`)).toEqual(['mistral/mistral-small-latest', 'groq/llama', 'ollama/tiny'])
+    expect(list[1]).toMatchObject({ remote: true, maxTokens: 900, baseUrl: 'https://api.groq.com/openai/v1' })
+    expect(list[0].maxTokens).toBe(700)
+  })
+
+  it('supports a custom endpoint and refuses mistakes', () => {
+    const custom = askProviders({ ASK_PROVIDERS: 'custom', CUSTOM_API_KEY: 'k', CUSTOM_BASE_URL: 'https://x/v1', CUSTOM_MODEL: 'm' })
+    expect(custom[0]).toMatchObject({ name: 'custom', baseUrl: 'https://x/v1', model: 'm' })
+    expect(() => askProviders({ ASK_PROVIDERS: 'custom', CUSTOM_API_KEY: 'k' })).toThrow(/CUSTOM_BASE_URL/)
+    expect(() => askProviders({ ASK_PROVIDERS: 'nope' })).toThrow(/Unknown/)
+    expect(() => askProviders({ ASK_PROVIDERS: 'groq' })).toThrow(/None of ASK_PROVIDERS/)
   })
 })
 
@@ -111,7 +165,7 @@ describe('Ask routes', () => {
       })
     })
     const ollamaPort = await listen(ollama)
-    const facets = [notes, createAskFacet({ ollamaUrl: `http://localhost:${ollamaPort}` })]
+    const facets = [notes, createAskFacet({ providers: [{ ...local, baseUrl: `http://localhost:${ollamaPort}` }] })]
     const port = await listen(createServer({ facets, defaultFacet: 'notes', services: { auth: new Auth({ token: TOKEN }) } }))
     return { base: `http://localhost:${port}`, seen }
   }
@@ -130,6 +184,7 @@ describe('Ask routes', () => {
     const res = await fetch(`${base}/ask`, { method: 'POST', headers: JSON_AUTH, body: JSON.stringify({ q: 'modular synth', turn: 2, tune: 'hops=1 bogus', history: JSON.stringify([{ q: 'hi', a: 'hello' }]) }) })
     const out = await res.json()
     expect(out.answer).toBe('Build from kits [1].')
+    expect(out.html).toContain('DIM · ollama/qwen')
     expect(out.html).toContain('id="turn-2"')
     expect(out.html).toContain('href="#src-2-1"')
     expect(out.html).toContain('Synth &lt;DIY&gt;')

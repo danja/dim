@@ -24,31 +24,69 @@ export function historyMessages (history, { turns = ASK_CONFIG.historyTurns, cha
 }
 
 /**
- * → { text } or { error } (model unreachable, missing, slow).
- * remote: { baseUrl, apiKey, model } for an OpenAI-compatible API (opt-in:
- * the sources leave the machine); otherwise Ollama at baseUrl.
+ * One request to one provider. →
+ *   { ok: true, text }
+ *   { ok: false, kind: 'transient', message, retryAfterMs }  429, 5xx, network, timeout: try later or elsewhere
+ *   { ok: false, kind: 'fatal', message }                    401/402/403: unusable for now
+ *   { ok: false, kind: 'failed', message }                   anything else, or an empty reply
  */
-export async function answer ({ baseUrl, model = ASK_CONFIG.model, remote = null, question, retrieval, history = [], fetchFn = fetch }) {
-  if (!baseUrl && !remote) return { error: 'No model is configured: set OLLAMA_URL (or the ASK_LLM_* variables).' }
-  const messages = [{ role: 'system', content: SYSTEM }, ...historyMessages(history), { role: 'user', content: userMessage(question, retrieval) }]
-  const target = remote
-    ? { url: `${remote.baseUrl.replace(/\/$/, '')}/chat/completions`, headers: { Authorization: `Bearer ${remote.apiKey}` }, body: { model: remote.model, messages, max_tokens: ASK_CONFIG.maxTokens }, name: remote.model }
-    : { url: `${baseUrl.replace(/\/$/, '')}/api/chat`, headers: {}, body: { model, messages, stream: false, options: { num_predict: ASK_CONFIG.maxTokens } }, name: model }
+export async function ask (provider, messages, fetchFn = fetch) {
+  const target = provider.kind === 'ollama'
+    ? { url: `${provider.baseUrl.replace(/\/$/, '')}/api/chat`, headers: {}, body: { model: provider.model, messages, stream: false, options: { num_predict: provider.maxTokens } } }
+    : { url: `${provider.baseUrl.replace(/\/$/, '')}/chat/completions`, headers: { Authorization: `Bearer ${provider.apiKey}` }, body: { model: provider.model, messages, max_tokens: provider.maxTokens, temperature: 0.2, stream: false } }
   let response
   try {
     response = await fetchFn(target.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...target.headers },
       body: JSON.stringify(target.body),
-      signal: AbortSignal.timeout(ASK_CONFIG.timeoutMs)
+      signal: AbortSignal.timeout(provider.timeoutMs ?? ASK_CONFIG.timeoutMs)
     })
   } catch (error) {
-    return { error: `Could not reach the model: ${error.message}` }
+    return { ok: false, kind: 'transient', message: error.name === 'TimeoutError' ? 'timed out' : error.message }
   }
-  if (!response.ok) return { error: `The model answered HTTP ${response.status}${response.status === 404 ? ` (is ${target.name} available?)` : ''}` }
+  if (!response.ok) {
+    const status = response.status
+    const message = `HTTP ${status}${status === 404 ? ` (is ${provider.model} available?)` : ''}`
+    if ([401, 402, 403].includes(status)) return { ok: false, kind: 'fatal', message }
+    if (status === 429 || status >= 500) {
+      const seconds = Number(response.headers?.get?.('retry-after'))
+      return { ok: false, kind: 'transient', message, retryAfterMs: Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds * 1000, 300000) : undefined }
+    }
+    return { ok: false, kind: 'failed', message }
+  }
   const data = await response.json()
   const text = String(data.message?.content ?? data.choices?.[0]?.message?.content ?? '').trim()
-  return text ? { text } : { error: 'The model gave an empty answer.' }
+  return text ? { ok: true, text } : { ok: false, kind: 'failed', message: 'empty answer' }
+}
+
+/**
+ * Answer with the first provider that works: one that is rate-limited or
+ * failing is skipped for a while (Retry-After, else ASK_CONFIG.coolOffMs) and
+ * the next is asked; one refused with 401/402/403 is dropped until restart.
+ * `state` (a Map kept by the caller) carries that between questions.
+ * → { text, by: 'name/model' } or { error }
+ */
+export async function answer ({ providers = [], state = new Map(), question, retrieval, history = [], fetchFn = fetch, now = () => Date.now() }) {
+  if (!providers.length) return { error: 'No model is configured: set OLLAMA_URL, or ASK_PROVIDERS with a key (see .env.example).' }
+  const messages = [{ role: 'system', content: SYSTEM }, ...historyMessages(history), { role: 'user', content: userMessage(question, retrieval) }]
+  const tried = []
+  const usable = () => providers.filter(p => !state.get(p.name)?.dropped)
+  let candidates = usable().filter(p => (state.get(p.name)?.coolUntil ?? 0) <= now())
+  // Everyone is cooling down: better to try the one that comes back first than to refuse.
+  if (!candidates.length && usable().length) candidates = [usable().sort((a, b) => (state.get(a.name)?.coolUntil ?? 0) - (state.get(b.name)?.coolUntil ?? 0))[0]]
+  for (const provider of candidates) {
+    const result = await ask(provider, messages, fetchFn)
+    if (result.ok) {
+      state.delete(provider.name)
+      return { text: result.text, by: `${provider.name}/${provider.model}` }
+    }
+    tried.push(`${provider.name}: ${result.message}`)
+    if (result.kind === 'fatal') state.set(provider.name, { dropped: true })
+    else state.set(provider.name, { coolUntil: now() + (result.retryAfterMs ?? ASK_CONFIG.coolOffMs) })
+  }
+  const dropped = providers.filter(p => state.get(p.name)?.dropped && !tried.some(t => t.startsWith(`${p.name}:`)))
+  return { error: `No model could answer. ${[...tried, ...dropped.map(p => `${p.name}: refused earlier`)].join('; ') || 'All are cooling down.'}` }
 }
 
 export default answer
