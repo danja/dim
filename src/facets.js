@@ -5,6 +5,7 @@ import { createWikiFacet } from './wiki/index.js'
 import { createNewsFacet } from './news/index.js'
 import { createBlogFacet } from './blog/index.js'
 import { createCalendarFacet } from './calendar/index.js'
+import { createAskFacet } from './ask/index.js'
 import { createSquirtFacet } from './squirt/index.js'
 import { stubFacet } from './common/facets/stubFacet.js'
 
@@ -22,7 +23,7 @@ import { stubFacet } from './common/facets/stubFacet.js'
  * (shown in Farelo and on Squirt). autoEnrich: fetches, summarises and
  * embeds bookmarks saved in DIM (src/gnamgnam/AutoEnricher.js).
  */
-export function createFacets ({ search, autoEnrich = null, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, calendar = null, client = null, advisor = null }) {
+export function createFacets ({ search, autoEnrich = null, outlines = null, tasks = null, rolls = null, wiki = null, news = null, blog = null, calendar = null, client = null, advisor = null, ask = {} }) {
   return [
     createGnamgnamFacet({ search, autoEnrich }),
     outlines
@@ -43,6 +44,7 @@ export function createFacets ({ search, autoEnrich = null, outlines = null, task
     calendar
       ? createCalendarFacet({ store: calendar })
       : stubFacet({ id: 'calendar', label: 'Calendar', phase: 14, description: 'Calendar: appointments to remember, by day.' }),
+    createAskFacet(ask),
     createSquirtFacet({ client, tasks, wiki, advisor })
   ]
 }

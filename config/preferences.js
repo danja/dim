@@ -98,7 +98,20 @@ export const RAG_CONFIG = {
   charBudget: 12000, // total passage text
   passageChars: 1500, // per item
   // Optional: spread through embedding neighbours too (helps when explicit links are sparse).
-  similarity: { enabled: false, k: 4, minScore: 0.6, weight: 0.7 },
+  // Each node's neighbours cost an embedding (about a second on a CPU), so only the best `nodes` per hop are asked.
+  similarity: { enabled: false, k: 4, minScore: 0.6, weight: 0.7, nodes: 5 },
   // Optional: clusters of the links/topics graph with an LLM summary each (bin/communities.js builds them).
   communities: { enabled: false, k: 2, minScore: 0.5, memberBoost: 0.5, memberLimit: 5, minSize: 3, summaryModel: 'qwen2.5:3b', summaryTokens: 250, summaryMembers: 25 }
+}
+
+/** The Ask tab (src/ask): a chat over graph RAG, answered by a local Ollama model. */
+export const ASK_CONFIG = {
+  model: 'qwen2.5:3b',
+  maxTokens: 700,
+  timeoutMs: 300000, // a CPU-only Ollama reads a prompt at roughly 10 tokens a second
+  // Lighter retrieval than RAG_CONFIG's, so the prompt stays short enough to answer in reasonable time.
+  retrieval: { limit: 6, charBudget: 3000, passageChars: 600 },
+  historyTurns: 4, // earlier question/answer pairs sent with a new question
+  historyChars: 1500, // per answer
+  maxQuestion: 2000
 }

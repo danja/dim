@@ -18,7 +18,7 @@ tried per request, and the response echoes the `settings` used:
 | `charBudget` `passageChars` | total and per-item text | 12000, 1500 |
 | `wPartOf` `wResource` `wRelated` `wMentions` | link kind weights | 0.9, 0.9, 0.8, 0.5 |
 | `topicWeight` `topicMembers` | shared-topic expansion; topics bigger than this are skipped | 0.4, 30 |
-| `similar` `similarK` `similarMin` `similarWeight` | **option**: also spread to each node's nearest embedding neighbours (computed per query; helps when links are sparse) | off, 4, 0.6, 0.7 |
+| `similar` `similarK` `similarMin` `similarWeight` `similarNodes` | **option**: also spread to the nearest embedding neighbours of the best `similarNodes` nodes per hop (each costs one embedding, about a second on a CPU, cached after; helps when links are sparse) | off, 4, 0.6, 0.7, 5 |
 | `communities` `communityK` `communityMin` `communityBoost` | **option**: add the clusters whose summaries match the question and boost their best-connected members | off, 2, 0.5, 0.5 |
 
 ## Communities
@@ -33,3 +33,24 @@ reruns only pay for what changed; with no LLM a list of titles stands in
 
 Clusters only reflect explicit links and topics, so they are as good as the
 graph is dense; try `similar` and the link weights first.
+
+## The Ask tab
+
+`/ask` is a chat over all of this: each question runs the retrieval, then a
+model answers from the numbered sources and cites them as `[1]`, linking to
+the source below the answer. Under each answer, **sources** lists what was
+retrieved with its score, how it was reached (search hit, hops, the link kinds
+`via`) and the cluster summaries used, so it doubles as the place to try
+settings: the **Settings** box has the three switches (similar items, cluster
+summaries, retrieval only) and a free-text field taking the option names above
+(`hops=1 fanout=6 wRelated=1`). The last four exchanges are sent as context.
+The owner only (it spends model time); without JavaScript the form posts and
+shows the one turn. `POST /ask` takes `{ q, tune?, contextOnly? }` as JSON with
+the token, so an agent can use it too (`dim_context` gives the sources alone).
+
+Ask retrieves less than `/context.json` by default (6 items, 600 characters
+each; `ASK_CONFIG.retrieval`) because the model must read it all: on a CPU
+Ollama takes about a second per ten prompt tokens. The model is `ASK_MODEL`
+(default `qwen2.5:3b`). To use a faster hosted model set `ASK_LLM_BASE_URL`,
+`ASK_LLM_API_KEY` and `ASK_LLM_MODEL` (an OpenAI-compatible API); the page then
+says where answers come from, because the sources it shows are sent there.

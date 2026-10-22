@@ -27,6 +27,7 @@ const SPEC = {
   similarK: ['similarity.k', num(1, 20)],
   similarMin: ['similarity.minScore', num(0, 1)],
   similarWeight: ['similarity.weight', num(0, 2)],
+  similarNodes: ['similarity.nodes', num(1, 30)],
   communities: ['communities.enabled', bool],
   communityK: ['communities.k', num(1, 10)],
   communityMin: ['communities.minScore', num(0, 1)],
@@ -55,6 +56,29 @@ export function tune (pairs, base = RAG_CONFIG) {
     holder[key] = value
   }
   return config
+}
+
+/**
+ * Free text → option pairs: "hops=1 similar wRelated=1.5" (spaces or commas).
+ * → { pairs, unknown: [names that are not options] }
+ */
+export function parseTune (text) {
+  const pairs = []
+  const unknown = []
+  for (const token of String(text ?? '').split(/[\s,]+/).filter(Boolean)) {
+    const [name, ...rest] = token.replace(/^--/, '').split('=')
+    if (!(name in SPEC)) unknown.push(name)
+    else pairs.push([name, rest.join('=')])
+  }
+  return { pairs, unknown }
+}
+
+/** What a config changes from the defaults, as "name=value" in option names. */
+export function changes (config, base = RAG_CONFIG) {
+  const read = (c, path) => path.split('.').reduce((o, k) => o?.[k], c)
+  return Object.entries(SPEC)
+    .filter(([, [path]]) => read(config, path) !== read(base, path))
+    .map(([name, [path]]) => `${name}=${read(config, path)}`)
 }
 
 export default tune

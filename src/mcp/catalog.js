@@ -23,6 +23,7 @@ export const CATALOG = Object.freeze([
   r('/day/{yyyy-mm-dd}', '/day/2026-01-01', 'What was done on a day (the change log)'),
   r('/week/{yyyy-mm-dd}', '/week/2026-01-01', 'What was done in a week'),
   r('/health', '/health', 'Per-facet status, backups'),
+  w('/ask', '/ask', 'Ask a question answered from DIM by graph retrieval and the local model (the Ask tab); dim_context returns the sources without an answer', '{ q, tune? = "hops=1 similar", contextOnly? }'),
   w('/links', '/links', 'Link two resources', '{ from, to, kind? = "related" }; from/to: IRI, DIM URL or [[type/slug]]'),
   w('/links/delete', '/links/delete', 'Remove a link', '{ from, to, kind? }'),
 

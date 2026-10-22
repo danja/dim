@@ -7,8 +7,9 @@ import { RAG_CONFIG } from '../../../config/preferences.js'
  * outranks what one does. Each hop is decayed; a node's links are capped by
  * kind strength; topics with many members are skipped as too general.
  *
- * With config.similarity.enabled, `similar(iri)` → [{ iri, score }] adds each
- * node's nearest embedding neighbours as 'similar' edges, weighted by score.
+ * With config.similarity.enabled, `similar(iri)` → [{ iri, score }] adds the
+ * nearest embedding neighbours of the best config.similarity.nodes nodes per
+ * hop as 'similar' edges, weighted by score.
  *
  * → Map iri → { score, hops, seed, via: [{ from, kind }] }, plus `edges`:
  *   [{ from, kind, to }] for every link walked (to show the subgraph).
@@ -35,6 +36,7 @@ export async function expand (seeds, { links, topics = null, similar = null, con
       if (!known) next.set(to, entry.score)
     }
 
+    const nearest = new Set(config.similarity?.enabled && similar ? [...frontier].sort((a, b) => b[1] - a[1]).slice(0, config.similarity.nodes).map(([iri]) => iri) : [])
     for (const [from, score] of frontier) {
       const out = (linked.get(from) ?? [])
         .map(l => ({ ...l, weight: config.kindWeights[l.kind] ?? 0 }))
@@ -42,7 +44,7 @@ export async function expand (seeds, { links, topics = null, similar = null, con
         .slice(0, config.fanout)
       for (const l of out) reach(from, l.iri, l.kind, score * l.weight * decay)
 
-      if (config.similarity?.enabled && similar) {
+      if (nearest.has(from)) {
         for (const near of await similar(from)) reach(from, near.iri, 'similar', score * config.similarity.weight * near.score * decay)
       }
 
