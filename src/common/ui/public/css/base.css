@@ -393,7 +393,15 @@ main:has(.board) { max-width: 90rem; }
 .card-body { flex: 1; min-width: 0; }
 .card-title { font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
 .task-card .meta { margin-top: 0.15rem; }
-.card-move summary { font-size: 0.8rem; color: var(--muted); cursor: pointer; }
+.card-tools { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
+.card-tools summary { font-size: 0.8rem; color: var(--muted); cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; }
+.card-tools details[open] { flex-basis: 100%; }
+.card-edit form { display: grid; gap: 0.35rem; margin-top: 0.25rem; }
+.card-edit label { font-size: 0.8rem; color: var(--muted); }
+.card-edit textarea { min-height: 4.5rem; }
+.card-edit-row { display: flex; flex-wrap: wrap; gap: 0.35rem 0.5rem; align-items: center; }
+.card-edit-row select, .card-edit-row input { width: auto; min-height: 36px; }
+.card-edit button { min-height: 36px; padding: 0 0.6rem; justify-self: start; }
 .card-move form { display: flex; gap: 0.35rem; margin-top: 0.25rem; }
 .card-move select { width: auto; min-height: 36px; }
 .card-move button { min-height: 36px; padding: 0 0.6rem; }

@@ -35,7 +35,8 @@ Logged in (see `DIM_WRITE_TOKEN` in `docs/commands-gnamgnam.md`):
 - add a task at the top (column and priority);
 - **drag** a card by its ⠿ grip to another column or place;
 - or focus a card (Tab) and use **Alt+←/→** (column) and **Alt+↑/↓** (order);
-- or open **Move** on the card (works without JavaScript).
+- or open **Move** on the card (works without JavaScript);
+- **Edit** on a card changes its title, note, priority and due date in place (with JavaScript the card updates without leaving the board; without, it saves and returns here). Project, waits-on and tags are on the task page ("All fields").
 
 A task that waits on another (⏳) can't go to Doing or Done until that one
 is done. **All projects** filters the board to one project.

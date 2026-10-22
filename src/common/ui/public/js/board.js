@@ -2,7 +2,8 @@
 // Farelo board: drag cards between and within columns (pointer events —
 // on touch, drag by the ⠿ grip so the page still scrolls), or move the
 // focused card with Alt+←/→ (column) and Alt+↑/↓ (order). The "Move"
-// menu on each card does the same without JavaScript.
+// menu on each card does the same without JavaScript, and its "Edit" form
+// saves in place.
 
 const board = document.querySelector('.board')
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content
@@ -37,6 +38,29 @@ if (board && csrf) {
     const card = board.querySelector(`.task-card[data-id="${CSS.escape(again)}"]`)
     if (card) { card.focus(); card.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }
   }
+
+  // Quick edit: save from the card and swap in the card as the server now renders it
+  // (title markup, meta line, even a different column), without leaving the board.
+  board.addEventListener('submit', async e => {
+    const form = e.target.closest('.card-edit form')
+    if (!form) return
+    e.preventDefault()
+    const card = form.closest('.task-card')
+    const fields = Object.fromEntries(new FormData(form))
+    status.textContent = ''
+    const response = await fetch(form.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf },
+      body: JSON.stringify(fields)
+    })
+    const json = await response.json().catch(() => ({}))
+    if (!response.ok) { status.textContent = json.error ?? `Not saved (HTTP ${response.status})`; return }
+    const fresh = new DOMParser().parseFromString(await (await fetch(location.href)).text(), 'text/html')
+    const next = fresh.querySelector(`.task-card[data-id="${CSS.escape(card.dataset.id)}"]`)
+    if (next) card.replaceWith(next); else card.remove()
+    next?.focus()
+    status.textContent = 'Saved.'
+  })
 
   const columns = [...board.querySelectorAll('.cards')]
 

@@ -7,14 +7,26 @@ import { page, taskPath, titleHtml, metaLine, stateOptions } from './common.js'
 
 const DONE_SHOWN = 20
 
+/** Quick edit on the card; the task page has the full form (project, waits on, ...). */
+function editForm (task, session) {
+  const id = `e-${task.id}`
+  return `<details class="card-edit"><summary>Edit</summary><form method="post" action="${taskPath(task)}">${formFields(session, '/farelo/')}
+<label for="${id}-title">Title</label><input type="text" id="${id}-title" name="title" value="${esc(task.title)}" required>
+<label for="${id}-note">Note (Markdown)</label><textarea id="${id}-note" name="note" rows="3">${esc(task.note ?? '')}</textarea>
+<div class="card-edit-row"><label for="${id}-priority">Priority</label><select id="${id}-priority" name="priority">${[1, 2, 3, 4, 5].map(p => `<option value="${p}"${task.priority === p ? ' selected' : ''}>P${p}</option>`).join('')}</select>
+<label for="${id}-due">Due</label><input type="date" id="${id}-due" name="due" value="${esc(task.due ?? '')}"></div>
+<button>Save</button> <a class="meta" href="${taskPath(task)}">All fields</a>
+</form></details>`
+}
+
 function card (task, { index, session }) {
   const waiting = pendingDependencies(task, index).length
-  const move = session?.user
-    ? `<details class="card-move"><summary>Move</summary><form method="post" action="${taskPath(task)}/move">${formFields(session, '/farelo/')}<select name="status" aria-label="Move to">${stateOptions(task.status)}</select><button>Move</button></form><form method="post" action="${taskPath(task)}/archive">${formFields(session, '/farelo/')}<button class="danger">Archive</button></form></details>`
+  const tools = session?.user
+    ? `<div class="card-tools"><details class="card-move"><summary>Move</summary><form method="post" action="${taskPath(task)}/move">${formFields(session, '/farelo/')}<select name="status" aria-label="Move to">${stateOptions(task.status)}</select><button>Move</button></form><form method="post" action="${taskPath(task)}/archive">${formFields(session, '/farelo/')}<button class="danger">Archive</button></form></details>${editForm(task, session)}</div>`
     : ''
   return `<li class="task-card" data-id="${esc(task.id)}"${session?.user ? ' tabindex="0"' : ''}>
 ${session?.user ? '<span class="grip" aria-hidden="true" title="Drag">⠿</span>' : ''}<div class="card-body"><a class="card-title" href="${taskPath(task)}">${titleHtml(task)}</a>${waiting ? ` <span class="waits" title="Waiting on ${waiting} task${waiting === 1 ? '' : 's'}">⏳</span>` : ''}
-<div class="meta">${metaLine(task, { index })}</div>${move}</div>
+<div class="meta">${metaLine(task, { index })}</div>${tools}</div>
 </li>`
 }
 

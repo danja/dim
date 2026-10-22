@@ -8,7 +8,7 @@
 ## From DIM's task list (Farelo, To do, #dim)
 
 - [x] A button to create a wiki page and/or Trestle outline item from a Farelo task, linked in both directions
-- [ ] Allow editing of tasks (the task page has an Edit form; presumably wants quicker editing from the board, check with Danny)
+- [x] Allow editing of tasks (inline Edit on each board card; the task page keeps the full form)
 - [x] Import bookmarks from browsers (marked "doing" in Farelo)
 
 Not added: three "make it easy to remove tasks" tasks, now done by the Archive button
