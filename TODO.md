@@ -17,7 +17,7 @@ Not added: three "make it easy to remove tasks" tasks, now done by the Archive b
 ## Graph RAG follow-ups
 
 - [ ] Judge `bin/ask.js` on 10–20 real questions; tune `RAG_CONFIG`
-- [ ] Hashtag edges in expansion (shared `#tags` through the links graph)
+- [x] Hashtag edges in expansion (shared `#tags` through the links graph)
 - [x] Similarity edges and community summaries, as options (`docs/rag.md`)
 - [ ] Try the options on live data (`bin/communities.js`, then `bin/ask.js --similar --communities`); settle the defaults
 - [ ] Similarity edges as input to community detection

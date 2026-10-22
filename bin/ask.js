@@ -46,7 +46,7 @@ try {
   console.error(error.message)
   process.exit(1)
 }
-const out = await retrieve(question, { registry: new FacetRegistry(app.facets), related: app.related, links: app.links, topics: app.topics, communities: app.communities, config })
+const out = await retrieve(question, { registry: new FacetRegistry(app.facets), related: app.related, links: app.links, topics: app.topics, hashtags: app.hashtags, communities: app.communities, config })
 if (json) console.log(JSON.stringify(out, null, 2))
 else {
   if (out.semanticError) console.log(`(words only: ${out.semanticError})\n`)

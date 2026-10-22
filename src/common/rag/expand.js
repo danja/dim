@@ -9,12 +9,14 @@ import { RAG_CONFIG } from '../../../config/preferences.js'
  *
  * With config.similarity.enabled, `similar(iri)` → [{ iri, score }] adds the
  * nearest embedding neighbours of the best config.similarity.nodes nodes per
- * hop as 'similar' edges, weighted by score.
+ * hop as 'similar' edges, weighted by score. `hashtags.tagsOfMany(iris)` →
+ * Map iri → [{ tag, members }] adds 'hashtag' edges between resources that
+ * share a #tag, weighted like topics.
  *
  * → Map iri → { score, hops, seed, via: [{ from, kind }] }, plus `edges`:
  *   [{ from, kind, to }] for every link walked (to show the subgraph).
  */
-export async function expand (seeds, { links, topics = null, similar = null, config = RAG_CONFIG } = {}) {
+export async function expand (seeds, { links, topics = null, hashtags = null, similar = null, config = RAG_CONFIG } = {}) {
   const found = new Map()
   const edges = []
   for (const { iri, score } of seeds) found.set(iri, { score, hops: 0, seed: true, via: [] })
@@ -23,6 +25,7 @@ export async function expand (seeds, { links, topics = null, similar = null, con
   for (let hop = 1; hop <= config.hops && frontier.size; hop++) {
     const decay = config.hopDecay ** (hop - 1)
     const linked = await links.linksOfMany([...frontier.keys()])
+    const tagged = config.hashtags?.enabled && hashtags ? await hashtags.tagsOfMany([...frontier.keys()]).catch(() => new Map()) : new Map()
     const next = new Map()
     const reach = (from, to, kind, gain) => {
       if (!(gain > 0) || from === to) return
@@ -46,6 +49,12 @@ export async function expand (seeds, { links, topics = null, similar = null, con
 
       if (nearest.has(from)) {
         for (const near of await similar(from)) reach(from, near.iri, 'similar', score * config.similarity.weight * near.score * decay)
+      }
+
+      for (const { members } of tagged.get(from) ?? []) {
+        if (members.length > config.hashtags.members) continue
+        const gain = score * config.hashtags.weight * decay / Math.sqrt(members.length)
+        for (const member of members) reach(from, member, 'hashtag', gain)
       }
 
       for (const topic of (await topics?.topicsOf(from)) ?? []) {

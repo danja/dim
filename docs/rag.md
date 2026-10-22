@@ -18,6 +18,7 @@ tried per request, and the response echoes the `settings` used:
 | `charBudget` `passageChars` | total and per-item text | 12000, 1500 |
 | `wPartOf` `wResource` `wRelated` `wMentions` | link kind weights | 0.9, 0.9, 0.8, 0.5 |
 | `topicWeight` `topicMembers` | shared-topic expansion; topics bigger than this are skipped | 0.4, 30 |
+| `hashtags` `tagWeight` `tagMembers` | on/off; expansion to the other resources carrying the same `#tag` (see `docs/hashtags.md`); tags more than this many use are skipped | on, 0.5, 30 |
 | `similar` `similarK` `similarMin` `similarWeight` `similarNodes` | **option**: also spread to the nearest embedding neighbours of the best `similarNodes` nodes per hop (each costs one embedding, about a second on a CPU, cached after; helps when links are sparse) | off, 4, 0.6, 0.7, 5 |
 | `communities` `communityK` `communityMin` `communityBoost` | **option**: add the clusters whose summaries match the question and boost their best-connected members | off, 2, 0.5, 0.5 |
 

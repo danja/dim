@@ -212,7 +212,7 @@ export function registerCommonRoutes (router, { registry, services, config, defa
     const q = (url.searchParams.get('q') ?? '').trim()
     if (!q) return send(response, 400, { error: 'Provide ?q=' })
     const config = tune(url.searchParams)
-    return send(response, 200, { ...(await retrieve(q, { registry, related: services.related, links: services.links, topics: services.topics, communities: services.communities, config })), settings: config })
+    return send(response, 200, { ...(await retrieve(q, { registry, related: services.related, links: services.links, topics: services.topics, hashtags: services.hashtags, communities: services.communities, config })), settings: config })
   })
 
   // ── /r resolver: a resource's page from its type and slug, or its IRI ─

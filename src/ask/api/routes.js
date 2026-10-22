@@ -55,7 +55,7 @@ export function registerRoutes (router, { services, registry, tabs, providers })
     const config = tune(pairs, BASE)
     const contextOnly = Boolean(asArray(body.contextOnly).length)
 
-    const retrieval = await retrieve(question, { registry, related: services.related, links: services.links, topics: services.topics, communities: services.communities, config })
+    const retrieval = await retrieve(question, { registry, related: services.related, links: services.links, topics: services.topics, hashtags: services.hashtags, communities: services.communities, config })
     const reply = contextOnly ? null : await answer({ providers, state, question, retrieval, history: history(body.history) })
     const turn = { n: Math.max(1, Math.min(999, Number(body.turn) || 1)), question, retrieval, answer: reply, by: reply?.by ?? null, changes: changes(config, BASE), unknown }
 

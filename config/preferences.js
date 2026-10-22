@@ -93,6 +93,8 @@ export const RAG_CONFIG = {
   fanout: 12, // links followed per node (strongest kinds first)
   topicMembers: 30, // a topic bigger than this is too general to expand through
   topicWeight: 0.4,
+  // Resources sharing a #hashtag (the explicit tags an author wrote), skipped when more than `members` use it.
+  hashtags: { enabled: true, weight: 0.5, members: 30 },
   kindWeights: { partOf: 0.9, resource: 0.9, related: 0.8, mentions: 0.5 },
   limit: 15, // items returned
   charBudget: 12000, // total passage text

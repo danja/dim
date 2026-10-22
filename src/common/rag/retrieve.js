@@ -30,12 +30,12 @@ async function communityHits (q, { communities, related, config }) {
  *       items), communities: [{ id, summary, size, score, members }] (option),
  *       semanticError }
  */
-export async function retrieve (q, { registry, related = null, links = null, topics = null, communities = null, config = RAG_CONFIG } = {}) {
+export async function retrieve (q, { registry, related = null, links = null, topics = null, hashtags = null, communities = null, config = RAG_CONFIG } = {}) {
   const query = String(q ?? '').trim()
   const seeded = await searchEverything(query, { registry, related, limit: config.seeds })
   const seeds = seeded.results.map(r => ({ iri: r.iri, score: r.score }))
   const similar = related && config.similarity.enabled ? neighbours(related, registry, config.similarity) : null
-  const { found, edges } = links && seeds.length ? await expand(seeds, { links, topics, similar, config }) : { found: new Map(seeds.map(s => [s.iri, { score: s.score, hops: 0, seed: true, via: [] }])), edges: [] }
+  const { found, edges } = links && seeds.length ? await expand(seeds, { links, topics, hashtags, similar, config }) : { found: new Map(seeds.map(s => [s.iri, { score: s.score, hops: 0, seed: true, via: [] }])), edges: [] }
 
   const clusters = await communityHits(q, { communities, related, config })
   for (const hit of clusters) {

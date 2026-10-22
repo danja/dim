@@ -52,6 +52,28 @@ describe('expand', () => {
   })
 })
 
+describe('expand through hashtags', () => {
+  const tagged = members => ({ async tagsOfMany (iris) { return new Map(iris.filter(i => i === a).map(i => [i, [{ tag: 'synth', members }]])) } })
+
+  it('joins resources that share a small #tag', async () => {
+    const { found, edges } = await expand([{ iri: a, score: 1 }], { links: links({}), hashtags: tagged([a, d]) })
+    expect(found.get(d).via[0].kind).toBe('hashtag')
+    expect(edges).toContainEqual({ from: a, kind: 'hashtag', to: d })
+  })
+
+  it('skips a tag too many use, and honours hashtags off', async () => {
+    const crowd = Array.from({ length: 40 }, (_, i) => `${D}m/${i}`)
+    expect((await expand([{ iri: a, score: 1 }], { links: links({}), hashtags: tagged(crowd) })).found.size).toBe(1)
+    const off = tune([['hashtags', '0']])
+    expect((await expand([{ iri: a, score: 1 }], { links: links({}), hashtags: tagged([a, d]), config: off })).found.size).toBe(1)
+  })
+
+  it('carries on when the store cannot answer', async () => {
+    const broken = { async tagsOfMany () { throw new Error('down') } }
+    expect((await expand([{ iri: a, score: 1 }], { links: links({}), hashtags: broken })).found.size).toBe(1)
+  })
+})
+
 describe('retrieve', () => {
   const info = { [a]: 'Alpha', [b]: 'Beta', [c]: 'Gamma' }
   const registry = {

@@ -22,6 +22,20 @@ export class HashtagStore {
     return (await this.client.select(this.queries.get('hashtags/under', { graph: this.graph, concept: iri(tagIri(tag)) }))).map(r => r.s)
   }
 
+  /** The tags of several resources with everyone who shares each. → Map resource → [{ tag, members: [iri] }] */
+  async tagsOfMany (resources) {
+    const found = new Map()
+    for (let i = 0; i < resources.length; i += 200) {
+      const values = resources.slice(i, i + 200).map(r => iri(r)).join(' ')
+      for (const r of await this.client.select(this.queries.get('hashtags/of-many', { graph: this.graph, resources: values }))) {
+        const tags = found.get(r.node) ?? new Map()
+        tags.set(r.label, [...(tags.get(r.label) ?? []), r.member])
+        found.set(r.node, tags)
+      }
+    }
+    return new Map([...found].map(([node, tags]) => [node, [...tags].map(([tag, members]) => ({ tag, members }))]))
+  }
+
   /** The tags that exist: Map tag → broader tag or null. */
   async concepts () {
     return new Map((await this.client.select(this.queries.get('hashtags/concepts', { graph: this.graph }))).map(r => [r.label, r.broader ?? null]))

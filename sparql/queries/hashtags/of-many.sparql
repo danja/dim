@@ -1,0 +1,10 @@
+# The hashtags of several resources, with every resource that has the same tag (graph expansion).
+SELECT ?node ?label ?member
+WHERE {
+  VALUES ?node { ${resources} }
+  GRAPH ${graph} {
+    ?node dim:hashtag ?concept .
+    ?concept skos:prefLabel ?label .
+    ?member dim:hashtag ?concept .
+  }
+}
