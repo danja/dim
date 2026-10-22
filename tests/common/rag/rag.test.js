@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { expand } from '../../../src/common/rag/expand.js'
 import { retrieve } from '../../../src/common/rag/retrieve.js'
+import { tune } from '../../../src/common/rag/options.js'
+import { detectCommunities } from '../../../src/common/rag/detect.js'
 import { RAG_CONFIG } from '../../../config/preferences.js'
 
 const D = 'http://purl.org/stuff/dim/'
@@ -71,5 +73,60 @@ describe('retrieve', () => {
   it('works without links, and returns nothing for an empty question', async () => {
     expect((await retrieve('alpha', { registry })).items).toHaveLength(1)
     expect((await retrieve('  ', { registry })).items).toEqual([])
+  })
+})
+
+describe('similarity edges', () => {
+  it('spread to embedding neighbours only when enabled', async () => {
+    const similar = async iri => iri === a ? [{ iri: d, score: 0.8 }] : []
+    const off = await expand([{ iri: a, score: 1 }], { links: links({}), similar })
+    expect(off.found.has(d)).toBe(false)
+    const on = await expand([{ iri: a, score: 1 }], { links: links({}), similar, config: { ...RAG_CONFIG, similarity: { ...RAG_CONFIG.similarity, enabled: true } } })
+    expect(on.found.get(d).score).toBeCloseTo(0.56)
+    expect(on.found.get(d).via[0].kind).toBe('similar')
+  })
+})
+
+describe('tune', () => {
+  it('overrides by name, clamps, ignores the unknown, and leaves the base alone', () => {
+    const config = tune([['hops', '9'], ['similar', ''], ['wRelated', '1.5'], ['communityK', '3'], ['nonsense', '1'], ['fanout', 'x']])
+    expect(config.hops).toBe(3)
+    expect(config.similarity.enabled).toBe(true)
+    expect(config.kindWeights.related).toBe(1.5)
+    expect(config.communities.k).toBe(3)
+    expect(config.fanout).toBe(RAG_CONFIG.fanout)
+    expect(RAG_CONFIG.similarity.enabled).toBe(false)
+    expect(tune([['similar', '0']]).similarity.enabled).toBe(false)
+  })
+})
+
+describe('detectCommunities', () => {
+  const e = (x, y) => ({ a: x, b: y })
+  it('finds two clusters joined by one bridge, deterministically, dropping tiny ones', () => {
+    const clique = names => names.flatMap((n, i) => names.slice(i + 1).map(m => e(n, m)))
+    const edges = [...clique(['a', 'b', 'c', 'd']), ...clique(['w', 'x', 'y', 'z']), e('d', 'w'), e('p', 'q')]
+    const groups = [...detectCommunities(edges, { minSize: 3 }).values()].map(m => [...m].sort())
+    expect(groups).toEqual([['a', 'b', 'c', 'd'], ['w', 'x', 'y', 'z']])
+    expect([...detectCommunities(edges).values()]).toEqual([...detectCommunities(edges).values()])
+  })
+})
+
+describe('retrieve with communities', () => {
+  const registry = {
+    async find () { return [{ facet: 'wiki', label: 'Wiki', results: [{ iri: a, label: 'Alpha', href: '/a' }] }] },
+    async lookup (iri) { return { iri, label: iri.slice(-1), href: `/x/${iri.slice(-1)}`, facet: 'wiki', facetLabel: 'Wiki' } },
+    async passage (iri) { return { text: `Text ${iri.slice(-1)}` } }
+  }
+  const related = { async vectorFor () { return [1, 0] }, async search () { return [] } }
+  const index = { size: 1, async refresh () {}, search: () => [{ id: 'k1', summary: 'About things', size: 3, score: 0.8, members: [c, d] }] }
+
+  it('adds the cluster and boosts its members only when enabled', async () => {
+    const off = await retrieve('alpha', { registry, related, communities: index })
+    expect(off.communities).toEqual([])
+    expect(off.items.map(i => i.iri)).toEqual([a])
+    const on = await retrieve('alpha', { registry, related, communities: index, config: tune([['communities', '']]) })
+    expect(on.communities[0]).toMatchObject({ id: 'k1', summary: 'About things' })
+    expect(on.items.map(i => i.iri).sort()).toEqual([a, c, d].sort())
+    expect(on.items.find(i => i.iri === c).via).toEqual([{ label: 'cluster', kind: 'community' }])
   })
 })

@@ -144,6 +144,13 @@ WHERE { GRAPH ${iri(graph)} { { ?s ?p ?o VALUES ?s { ${values} } } UNION { ?s ?p
     return collectLinks(rows.map(row => ({ ...row, node: resource }))).get(resource) ?? []
   }
 
+  /** Every link of the four kinds. → [{ from, kind, to }] */
+  async allLinks () {
+    const graph = await this.graph()
+    const rows = await this.client.select(this.queries.get('links/all', { graph: iri(graph) }))
+    return rows.filter(r => KIND_BY_PREDICATE.has(r.p)).map(r => ({ from: r.s, kind: KIND_BY_PREDICATE.get(r.p), to: r.o }))
+  }
+
   /** The same for several resources in one query. → Map resource → [{ kind, direction, iri }] */
   async linksOfMany (resources) {
     const found = new Map()

@@ -1,3 +1,4 @@
+import path from 'path'
 import SPARQLClient from './common/store/SPARQLClient.js'
 import VectorIndex from './common/vectors/VectorIndex.js'
 import EmbeddingService from './common/embeddings/EmbeddingService.js'
@@ -21,6 +22,7 @@ import AdviceStore from './advisor/AdviceStore.js'
 import Poller from './news/Poller.js'
 import RollLog from './farelo/RollLog.js'
 import { openRelated } from './common/related/openRelated.js'
+import CommunityIndex from './common/rag/CommunityIndex.js'
 import TopicStore from './common/topics/TopicStore.js'
 import HashtagStore from './common/hashtags/HashtagStore.js'
 import AutoEnricher from './gnamgnam/AutoEnricher.js'
@@ -64,9 +66,10 @@ export async function buildApp ({ config, projectRoot, env = process.env }) {
   const blog = { store: posts, title: env.BLOG_TITLE || 'Blog', author: env.BLOG_AUTHOR || 'owner' }
   const facets = createFacets({ search, autoEnrich, outlines, tasks, rolls, wiki, news: { store: newsStore, poller, inbox }, blog, calendar: events, client, advisor })
 
+  const communities = await CommunityIndex.open(path.join(path.dirname(path.resolve(projectRoot, config.get('index.path'))), 'communities.json'))
   const topics = new TopicStore({ client })
   const hashtags = new HashtagStore({ client })
-  return { client, index, embeddings, search, autoEnrich, related, topics, hashtags, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, events, rolls }, inbox, poller, advisor, facets }
+  return { client, index, embeddings, search, autoEnrich, related, topics, communities, hashtags, registry, repository, links, stores: { outlines, tasks, wiki, news: newsStore, posts, events, rolls }, inbox, poller, advisor, facets }
 }
 
 /**

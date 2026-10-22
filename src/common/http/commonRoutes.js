@@ -14,6 +14,7 @@ import { typeSlugOf, toIri } from '../links/mentions.js'
 import { LinkError } from '../links/LinkStore.js'
 import { searchEverything } from '../search/everything.js'
 import { retrieve } from '../rag/retrieve.js'
+import { tune } from '../rag/options.js'
 import { latestBackup } from '../ops/backup.js'
 import { backupPaths } from '../ops/backupPaths.js'
 
@@ -210,7 +211,8 @@ export function registerCommonRoutes (router, { registry, services, config, defa
   router.get('/context.json', async ({ response, url }) => {
     const q = (url.searchParams.get('q') ?? '').trim()
     if (!q) return send(response, 400, { error: 'Provide ?q=' })
-    return send(response, 200, await retrieve(q, { registry, related: services.related, links: services.links, topics: services.topics }))
+    const config = tune(url.searchParams)
+    return send(response, 200, { ...(await retrieve(q, { registry, related: services.related, links: services.links, topics: services.topics, communities: services.communities, config })), settings: config })
   })
 
   // ── /r resolver: a resource's page from its type and slug, or its IRI ─

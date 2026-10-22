@@ -96,5 +96,9 @@ export const RAG_CONFIG = {
   kindWeights: { partOf: 0.9, resource: 0.9, related: 0.8, mentions: 0.5 },
   limit: 15, // items returned
   charBudget: 12000, // total passage text
-  passageChars: 1500 // per item
+  passageChars: 1500, // per item
+  // Optional: spread through embedding neighbours too (helps when explicit links are sparse).
+  similarity: { enabled: false, k: 4, minScore: 0.6, weight: 0.7 },
+  // Optional: clusters of the links/topics graph with an LLM summary each (bin/communities.js builds them).
+  communities: { enabled: false, k: 2, minScore: 0.5, memberBoost: 0.5, memberLimit: 5, minSize: 3, summaryModel: 'qwen2.5:3b', summaryTokens: 250, summaryMembers: 25 }
 }

@@ -54,9 +54,9 @@ export const TOOLS = [
   {
     name: 'dim_context',
     description: 'Gather what DIM holds on a question or topic: the best search hits plus what they link to (links, shared topics, outline parents), as cited passages with the links between them. Use it to answer from the owner\'s own material; use dim_search for a plain list.',
-    inputSchema: { type: 'object', properties: { q: { type: 'string', description: 'The question or topic' } }, required: ['q'] },
+    inputSchema: { type: 'object', properties: { q: { type: 'string', description: 'The question or topic' }, options: { type: 'object', description: 'Optional tuning, e.g. { hops: 1, similar: true, communities: true, fanout: 6 }; names are in docs/rag.md' } }, required: ['q'] },
     annotations: read,
-    run: (ctx, { q }) => dim(ctx, 'GET', `/context.json?${new URLSearchParams({ q: String(q ?? '') })}`)
+    run: (ctx, { q, options }) => dim(ctx, 'GET', `/context.json?${new URLSearchParams({ q: String(q ?? ''), ...Object.fromEntries(Object.entries(options ?? {}).map(([k, v]) => [k, v === true ? '1' : v === false ? '0' : String(v)])) })}`)
   },
   {
     name: 'dim_get',

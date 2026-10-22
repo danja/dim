@@ -1,0 +1,8 @@
+# Every link between resources in the links graph (community detection).
+SELECT ?s ?p ?o
+WHERE {
+  GRAPH ${graph} {
+    ?s ?p ?o .
+  }
+  FILTER (isIRI(?o) && ?p IN (dim:relatedTo, dim:resource, dim:mentions, dim:partOf))
+}

@@ -12,7 +12,7 @@ export function backupPaths (config, projectRoot, env = process.env) {
   return {
     root: path.resolve(projectRoot, env.BACKUP_DIR || 'data/backups'),
     dataDir,
-    data: [index, `${index}.json`, `${related}.index`, `${related}.index.json`, `${related}.state.json`],
+    data: [index, `${index}.json`, `${related}.index`, `${related}.index.json`, `${related}.state.json`, path.join(dataDir, 'communities.json')],
     cacheDir: path.join(dataDir, 'cache')
   }
 }

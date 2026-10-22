@@ -7,10 +7,13 @@ import { RAG_CONFIG } from '../../../config/preferences.js'
  * outranks what one does. Each hop is decayed; a node's links are capped by
  * kind strength; topics with many members are skipped as too general.
  *
+ * With config.similarity.enabled, `similar(iri)` → [{ iri, score }] adds each
+ * node's nearest embedding neighbours as 'similar' edges, weighted by score.
+ *
  * → Map iri → { score, hops, seed, via: [{ from, kind }] }, plus `edges`:
  *   [{ from, kind, to }] for every link walked (to show the subgraph).
  */
-export async function expand (seeds, { links, topics = null, config = RAG_CONFIG } = {}) {
+export async function expand (seeds, { links, topics = null, similar = null, config = RAG_CONFIG } = {}) {
   const found = new Map()
   const edges = []
   for (const { iri, score } of seeds) found.set(iri, { score, hops: 0, seed: true, via: [] })
@@ -38,6 +41,10 @@ export async function expand (seeds, { links, topics = null, config = RAG_CONFIG
         .sort((a, b) => b.weight - a.weight)
         .slice(0, config.fanout)
       for (const l of out) reach(from, l.iri, l.kind, score * l.weight * decay)
+
+      if (config.similarity?.enabled && similar) {
+        for (const near of await similar(from)) reach(from, near.iri, 'similar', score * config.similarity.weight * near.score * decay)
+      }
 
       for (const topic of (await topics?.topicsOf(from)) ?? []) {
         if (topic.members.length > config.topicMembers) continue

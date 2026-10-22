@@ -18,5 +18,6 @@ Not added: three "make it easy to remove tasks" tasks, now done by the Archive b
 
 - [ ] Judge `bin/ask.js` on 10–20 real questions; tune `RAG_CONFIG`
 - [ ] Hashtag edges in expansion (shared `#tags` through the links graph)
-- [ ] Materialise embedding neighbours as weighted similarity edges if explicit links prove too sparse
-- [ ] Community summaries (cluster, summarise with Ollama) only if local expansion isn't enough
+- [x] Similarity edges and community summaries, as options (`docs/rag.md`)
+- [ ] Try the options on live data (`bin/communities.js`, then `bin/ask.js --similar --communities`); settle the defaults
+- [ ] Similarity edges as input to community detection

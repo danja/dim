@@ -55,6 +55,6 @@ topics, decaying per hop and summing converging paths. The top items come
 back with their text (from each facet's optional `passage(iri)` hook; outline
 nodes carry their path of parent titles), the path that reached them (`via`)
 and the links between them (`edges`), within a character budget. DIM
-generates no answer; the caller does, citing the `href`s. Tunables are
+generates no answer; the caller does, citing the `href`s. Two options (similarity edges, community summaries) and every setting are in `docs/rag.md`. Tunables are
 `RAG_CONFIG` in `config/preferences.js`; `bin/ask.js "question"` shows what
 retrieval finds.
