@@ -10,7 +10,7 @@ import { renderHome, renderShare, renderOffline } from './pages.js'
 
 const queries = new QueryService()
 
-export function registerRoutes (router, { client, tasks, wiki, mentions, advisor, appName, tabs, services, registry, origin }) {
+export function registerRoutes (router, { client, tasks, wiki, outlines, mentions, advisor, appName, tabs, services, registry, origin }) {
   const originOf = request => origin ?? `http://${request.headers.host ?? 'localhost'}`
   const activity = session => session.user && client ? recentActivity({ client, queries, registry, session }) : []
 
@@ -39,7 +39,7 @@ export function registerRoutes (router, { client, tasks, wiki, mentions, advisor
 
   router.add(['POST'], '/squirt/capture', writeRoute(async ({ body, identity }) => {
     const item = classify({ text: body.text, url: body.url, title: body.title, kind: body.kind })
-    const done = await capture(item, { tasks, wiki, mentions, client, repository: services.repository, registry, actor: identity.user })
+    const done = await capture(item, { tasks, wiki, outlines, mentions, client, repository: services.repository, registry, actor: identity.user })
     const back = `/squirt/?captured=${encodeURIComponent(done.href ?? '')}&label=${encodeURIComponent(done.label ?? '')}`
     return { redirect: back, json: { ok: true, ...done } }
   }))

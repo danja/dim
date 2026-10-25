@@ -94,10 +94,11 @@ export class OutlineStore {
   }
 
   /** New node as the last child of `parent` (an IRI), or right after sibling `after` (an id). */
-  async createNode (outline, { parent = null, after = null, title = '', actor }) {
+  async createNode (outline, { parent = null, after = null, title = '', id: given = null, actor }) {
     const place = insertPlace(outline, { parent: parent ?? outline.iri, after })
     await this.#makeRoom(outline, place, actor)
-    const id = newNodeId()
+    const id = given ?? newNodeId()
+    if (outline.nodes.has(id)) throw new TreeError(`Node ${id} already exists`)
     const node = {
       id,
       iri: nodeIri(id),

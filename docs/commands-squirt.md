@@ -15,7 +15,7 @@ opened. Background: `docs/plan-detail.md` (Phase 10).
 |---|---|
 | `todo call Ann` · `task: …` · `- [ ] …` | a Farelo task in To do (tag `squirt`); later lines become its note |
 | a URL, with or without words | a GnamGnam bookmark (tag `squirt`); the words become its title |
-| anything else | a note at the top of the wiki page **Inbox**, under a time heading; `[[Title]]` links work |
+| anything else | a note: a new wiki page, plus an entry under the Trestle outline **Inbox** that links to it. The optional **Title** field names it; without one the page is titled by a random number. Page and outline node share one id (a ten-digit number); `[[Title]]` links work |
 
 Bookmarks go into `graph:facet/gnamgnam` and are searchable at once; they
 are fetched, summarised and embedded in the background as they are saved

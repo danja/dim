@@ -7,10 +7,11 @@ import { mentionSync } from '../wiki/mentionSync.js'
  * an installable app (manifest, service worker, share target).
  *
  * client: the SPARQL client (change log, bookmark checks); tasks / wiki:
- * Farelo's TaskStore and the WikiStore, where captures land.
+ * Farelo's TaskStore and the WikiStore, and the OutlineStore (the Inbox
+ * outline), where captures land.
  */
 
-export function createSquirtFacet ({ client = null, tasks = null, wiki = null, links = null, advisor = null, appName = 'DIM' }) {
+export function createSquirtFacet ({ client = null, tasks = null, wiki = null, outlines = null, links = null, advisor = null, appName = 'DIM' }) {
   return {
     id: 'squirt',
     label: 'Squirt',
@@ -18,7 +19,7 @@ export function createSquirtFacet ({ client = null, tasks = null, wiki = null, l
 
     routes (router, ctx) {
       const mentions = wiki ? mentionSync({ store: wiki, links: ctx.services?.links ?? links, registry: ctx.registry, origin: ctx.origin }) : null
-      registerRoutes(router, { client, tasks, wiki, mentions, advisor, appName, ...ctx })
+      registerRoutes(router, { client, tasks, wiki, outlines, mentions, advisor, appName, ...ctx })
     },
 
     health () {

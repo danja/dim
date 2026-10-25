@@ -45,7 +45,7 @@ export function createFacets ({ search, autoEnrich = null, outlines = null, task
       ? createCalendarFacet({ store: calendar })
       : stubFacet({ id: 'calendar', label: 'Calendar', phase: 14, description: 'Calendar: appointments to remember, by day.' }),
     createAskFacet(ask),
-    createSquirtFacet({ client, tasks, wiki, advisor })
+    createSquirtFacet({ client, tasks, wiki, outlines, advisor })
   ]
 }
 

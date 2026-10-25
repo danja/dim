@@ -18,7 +18,8 @@ describe('classify', () => {
     expect(classify({ text: 'https://e.org/a, great read' })).toEqual({ kind: 'bookmark', url: 'https://e.org/a', title: 'great read', note: null })
     expect(classify({ text: 'Look at this', url: 'https://e.org/b', title: 'Shared page' })).toEqual({ kind: 'bookmark', url: 'https://e.org/b', title: 'Shared page', note: 'Look at this' })
     expect(classify({ text: 'Android puts it in text https://e.org/c.' })).toMatchObject({ kind: 'bookmark', url: 'https://e.org/c', title: 'Android puts it in text' })
-    expect(classify({ text: 'An idea about oscillators\nmore detail' })).toEqual({ kind: 'note', url: null, title: 'An idea about oscillators', note: 'more detail' })
+    expect(classify({ text: 'An idea about oscillators\nmore detail' })).toEqual({ kind: 'note', url: null, title: null, note: 'An idea about oscillators\nmore detail' })
+    expect(classify({ text: 'more detail', title: 'Oscillators' })).toEqual({ kind: 'note', url: null, title: 'Oscillators', note: 'more detail' })
   })
 
   it('lets the chosen kind win, and refuses nothing', () => {
@@ -30,15 +31,36 @@ describe('classify', () => {
 })
 
 describe('capture', () => {
-  it('adds notes to the top of the wiki Inbox', async () => {
+  it('makes each note a wiki page and an Inbox outline entry with the same id', async () => {
     const { store: wiki } = memoryWiki()
-    const now = () => new Date('2026-09-26T09:30:00Z')
-    const first = await capture(classify({ text: 'First thought' }), { wiki, actor: 'owner', now })
-    expect(first).toMatchObject({ kind: 'note', href: '/wiki/page/inbox' })
-    await capture(classify({ text: 'Second thought\nwith [[Links]]' }), { wiki, actor: 'owner', now })
-    const inbox = await wiki.byTitle('Inbox')
-    expect(inbox.revision).toBe(2)
-    expect(inbox.content).toBe('## 2026-09-26 09:30\n\nSecond thought\n\nwith [[Links]]\n\n## 2026-09-26 09:30\n\nFirst thought')
+    const made = []
+    const inbox = { slug: 'inbox', iri: 'urn:inbox', nodes: new Map() }
+    const outlines = {
+      async outline (slug) { return slug === 'inbox' ? inbox : null },
+      async createOutline () { throw new Error('exists') },
+      async find () { return null },
+      async createNode (outline, n) { made.push(n); return n }
+    }
+    const plain = await capture(classify({ text: 'First thought\nwith [[Links]]' }), { wiki, outlines, actor: 'owner' })
+    expect(plain.label).toMatch(/^\d{10}$/)
+    expect(plain.href).toBe(`/wiki/page/${plain.label}`)
+    const page = await wiki.get(plain.label)
+    expect(page).toMatchObject({ title: plain.label, content: 'First thought\nwith [[Links]]' })
+    expect(made[0]).toMatchObject({ id: plain.label, title: `[${plain.label}](/wiki/page/${plain.label})` })
+
+    const titled = await capture(classify({ text: 'body', title: 'My [idea]' }), { wiki, outlines, actor: 'owner' })
+    expect(titled.label).toBe('My [idea]')
+    expect(made[1].id).toBe(titled.href.split('/').pop())
+    expect(made[1].title).toBe(`[My idea](${titled.href})`)
+    expect((await wiki.get(made[1].id)).title).toBe('My [idea]')
+  })
+
+  it('creates the Inbox outline when there is none', async () => {
+    const { store: wiki } = memoryWiki()
+    const created = []
+    const outlines = { async outline () { return null }, async createOutline (o) { created.push(o.title); return { nodes: new Map() } }, async find () { return null }, async createNode () {} }
+    await capture(classify({ text: 'x' }), { wiki, outlines, actor: 'owner' })
+    expect(created).toEqual(['Inbox'])
   })
 
   it('makes tasks and bookmarks', async () => {
@@ -106,7 +128,7 @@ describe('squirt routes', () => {
     expect(await (await fetch(`${base}/squirt/`, { headers: { Authorization: `Bearer ${TOKEN}` } })).text()).toContain('<button type="button" id="sync-now" hidden>Sync now</button>')
 
     const saved = await fetch(`${base}/squirt/capture`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ text: 'Remember the [[Dice]] page' }) })
-    expect(await saved.json()).toMatchObject({ ok: true, kind: 'note', href: '/wiki/page/inbox' })
+    expect(await saved.json()).toMatchObject({ ok: true, kind: 'note', href: expect.stringMatching(/^\/wiki\/page\/\d{10}$/) })
   })
 
   it('shows the owner what is due in the next two days, and nobody else', async () => {

@@ -63,8 +63,8 @@ export async function attempt (storage, item, send, now = () => new Date()) {
 
 /** The capture for a note written offline on a news item. Always a note, never a bookmark. */
 export function noteOnItem (item, note) {
-  const text = [`Re: ${item.title}`, String(note).trim(), item.link].filter(Boolean).join('\n\n')
-  return { text, kind: 'note' }
+  const text = [String(note).trim(), item.link].filter(Boolean).join('\n\n')
+  return { title: `Re: ${item.title}`, text, kind: 'note' }
 }
 
 /**

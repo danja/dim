@@ -28,9 +28,10 @@ export function captureForm ({ session, values = {}, guess = null }) {
   const radios = KIND_LABELS.map(([v, label]) => `<label><input type="radio" name="kind" value="${v}"${kind === v ? ' checked' : ''}> ${label}</label>`).join('')
   return `<form id="capture" class="edit capture" method="post" action="/squirt/capture">${formFields(session, '')}
 <label for="capture-text">Capture</label>
-<textarea id="capture-text" name="text" rows="4" placeholder="A URL → bookmark · “todo …” → task · anything else → a note in the wiki Inbox">${esc(values.text ?? '')}</textarea>
+<textarea id="capture-text" name="text" rows="4" placeholder="A URL → bookmark · “todo …” → task · anything else → a note: a new wiki page, listed in the Inbox outline">${esc(values.text ?? '')}</textarea>
 ${values.url ? `<input type="hidden" name="url" value="${esc(values.url)}"><p class="meta">Link: <a href="${esc(values.url)}" rel="noopener noreferrer">${esc(values.url)}</a></p>` : ''}
-${values.title ? `<input type="hidden" name="title" value="${esc(values.title)}">` : ''}
+<label for="capture-title">Title <span class="meta">(optional)</span></label>
+<input id="capture-title" name="title" value="${esc(values.title ?? '')}" maxlength="200" autocomplete="off">
 <fieldset class="kinds"><legend>Save as</legend>${radios}</fieldset>
 ${guess ? `<p class="meta">Guess: <strong>${esc(guess)}</strong></p>` : ''}
 <button>Save</button>
