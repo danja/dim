@@ -7,14 +7,25 @@ import { summariseCommunity } from './summarise.js'
  * Cluster the links graph (links, plus each small topic as a hub joining its
  * members), summarise each cluster and embed the summary. A cluster whose
  * member set is unchanged keeps its earlier LLM summary, so a rerun only
- * pays for what changed. → { communities, reused, summarised, fallback }
+ * pays for what changed. With `similar(iri)` → [{ iri, score }] (see
+ * neighbours.js), each node of the graph also gets edges to its nearest
+ * embedding neighbours, so clusters form where links are sparse; that costs
+ * one embedding per node. → { communities, reused, summarised, fallback }
  */
-export async function buildCommunities ({ links, topics = null, registry, embeddings, previous = [], baseUrl, config = RAG_CONFIG, onProgress = () => {} }) {
+export async function buildCommunities ({ links, topics = null, registry, embeddings, previous = [], similar = null, baseUrl, config = RAG_CONFIG, onProgress = () => {} }) {
   const c = config.communities
   const edges = (await links.allLinks()).map(l => ({ a: l.from, b: l.to, weight: config.kindWeights[l.kind] ?? 0.5 }))
   for (const topic of (await topics?.list()) ?? []) {
     if (topic.members.length < 2 || topic.members.length > config.topicMembers) continue
     for (const m of topic.members) edges.push({ a: `topic:${topic.iri}`, b: m, weight: config.topicWeight })
+  }
+  if (similar) {
+    const nodes = [...new Set(edges.flatMap(e => [e.a, e.b]))].filter(n => !n.startsWith('topic:'))
+    let asked = 0
+    for (const iri of nodes) {
+      for (const near of await similar(iri)) edges.push({ a: iri, b: near.iri, weight: config.similarity.weight * near.score })
+      onProgress({ phase: 'similarity', done: ++asked, total: nodes.length })
+    }
   }
   const degree = new Map()
   for (const e of edges) for (const n of [e.a, e.b]) degree.set(n, (degree.get(n) ?? 0) + e.weight)
@@ -45,7 +56,7 @@ export async function buildCommunities ({ links, topics = null, registry, embedd
     let vector = null
     try { vector = await embeddings.embed(`${summary}\n${titles}`.slice(0, 2000)) } catch { /* no vector: kept, but not searchable until rebuilt */ }
     out.push({ id, size: members.length, summary, llm: Boolean(llm), members, vector })
-    onProgress({ done, total: groups.size, ...tally })
+    onProgress({ phase: 'summaries', done, total: groups.size, ...tally })
   }
   return { communities: out, ...tally }
 }

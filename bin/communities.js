@@ -4,6 +4,8 @@ import Config from '../src/common/Config.js'
 import { buildApp } from '../src/app.js'
 import { FacetRegistry } from '../src/common/facets/FacetRegistry.js'
 import { buildCommunities } from '../src/common/rag/buildCommunities.js'
+import { neighbours } from '../src/common/rag/neighbours.js'
+import { RAG_CONFIG } from '../config/preferences.js'
 
 /**
  * Optional graph RAG input: cluster the links/topics graph into communities,
@@ -14,11 +16,14 @@ import { buildCommunities } from '../src/common/rag/buildCommunities.js'
  * cheap. Without a reachable LLM a plain list of titles stands in.
  *
  *   node bin/communities.js            build
+ *   node bin/communities.js --similar  also join each item to its nearest embedding neighbours
+ *                                      (one embedding per item, about a second each on a CPU)
  *   node bin/communities.js --list     show what was built
  */
 
 logger.setLevel('warn')
 const list = process.argv.includes('--list')
+const similar = process.argv.includes('--similar')
 let app
 try {
   app = await buildApp({ config: Config.load(), projectRoot: Config.projectRoot })
@@ -42,8 +47,9 @@ const result = await buildCommunities({
   registry,
   embeddings,
   previous: communities.communities,
+  similar: similar ? neighbours(app.related, registry, RAG_CONFIG.similarity) : null,
   baseUrl,
-  onProgress: t => console.log(`${t.done}/${t.total}  reused ${t.reused}, summarised ${t.summarised}, titles only ${t.fallback}`)
+  onProgress: t => (t.phase !== 'similarity' || t.done % 25 === 0 || t.done === t.total) && console.log(t.phase === 'similarity' ? `neighbours ${t.done}/${t.total}` : `${t.done}/${t.total}  reused ${t.reused}, summarised ${t.summarised}, titles only ${t.fallback}`)
 })
 await communities.save(result.communities)
 console.log(`${result.communities.length} communities saved (reused ${result.reused}, summarised ${result.summarised}, titles only ${result.fallback}).`)

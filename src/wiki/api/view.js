@@ -19,19 +19,48 @@ function newPageForm (session) {
 </form>`
 }
 
-export function renderIndex ({ pages, tag, tabs, session }) {
-  const shown = (tag ? pages.filter(p => p.tags.includes(tag)) : pages)
-    .slice().sort((a, b) => a.title.localeCompare(b.title))
+/** A one-line plain-text taste of a page: its first prose line, markdown marks dropped. */
+function excerpt (content, max = 140) {
+  const line = String(content ?? '').split('\n').map(l => l.trim()).find(l => l && !/^(#|---|```|[-*] \[)/.test(l)) ?? ''
+  const text = line.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, t, label) => label ?? t).replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`>#]/g, '').trim()
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
+}
+
+function recentCards (pages) {
   const recent = pages.slice().sort((a, b) => (b.modified ?? b.created ?? '').localeCompare(a.modified ?? a.created ?? '')).slice(0, 8)
-  const allTags = [...new Set(pages.flatMap(p => p.tags))].sort()
-  const items = shown.map(p => `<li><a href="${pagePath(p)}">${esc(p.title)}</a>${p.tags.length ? ` <small class="meta">${esc(p.tags.join(', '))}</small>` : ''}</li>`).join('')
-  const body = `<h1>${tag ? `Wiki pages tagged “${esc(tag)}”` : 'Wiki'}</h1>
-${newPageForm(session)}
-${tag ? `<p><a href="/wiki/">All pages</a> · <a href="/tags/${encodeURIComponent(tag)}">everything tagged “${esc(tag)}”</a></p>` : ''}
-${items ? `<ul class="wiki-index">${items}</ul>` : '<p class="muted">No pages yet. Create one above, follow a <code>[[Title]]</code> link, or import with <code>node bin/wiki-import.js</code>.</p>'}
-${!tag && recent.length ? `<h2>Recently changed</h2><ul>${recent.map(p => `<li><a href="${pagePath(p)}">${esc(p.title)}</a> <small class="meta">r${p.revision} · ${when(p.modified ?? p.created)}</small></li>`).join('')}</ul>` : ''}
-${allTags.length ? `<h2>Tags</h2><p>${tagLinks(allTags)}</p>` : ''}`
-  return wikiPage({ title: 'Wiki', body, tabs, session })
+  if (!recent.length) return ''
+  return `<h2>Recently changed</h2>
+<ul class="wiki-recent">${recent.map(p => `<li><a href="${pagePath(p)}">${esc(p.title)}</a> <small class="meta">r${p.revision} · ${when(p.modified ?? p.created)}</small>${excerpt(p.content) ? `<p>${esc(excerpt(p.content))}</p>` : ''}</li>`).join('')}</ul>`
+}
+
+function tagCloud (pages) {
+  const counts = new Map()
+  for (const t of pages.flatMap(p => p.tags)) counts.set(t, (counts.get(t) ?? 0) + 1)
+  if (!counts.size) return ''
+  const tags = [...counts].sort((a, b) => a[0].localeCompare(b[0]))
+  return `<h2>Tags</h2><p>${tags.map(([t, n]) => `<a class="tag" href="/wiki/?tag=${encodeURIComponent(t)}">${esc(t)} <small>${n}</small></a>`).join(' ')}</p>`
+}
+
+function pageList (pages) {
+  return `<ul class="wiki-index">${pages.map(p => `<li><a href="${pagePath(p)}">${esc(p.title)}</a>${p.tags.length ? ` <small class="meta">${esc(p.tags.join(', '))}</small>` : ''}</li>`).join('')}</ul>`
+}
+
+export function renderIndex ({ pages, tag, tabs, session }) {
+  const sorted = pages.slice().sort((a, b) => a.title.localeCompare(b.title))
+  const header = `<h1>${tag ? `Wiki pages tagged “${esc(tag)}”` : 'Wiki'}</h1>\n${newPageForm(session)}`
+  let main
+  if (tag) {
+    const shown = sorted.filter(p => p.tags.includes(tag))
+    main = `<p><a href="/wiki/">All pages</a> · <a href="/tags/${encodeURIComponent(tag)}">everything tagged “${esc(tag)}”</a></p>
+${shown.length ? pageList(shown) : '<p class="muted">No pages carry this tag.</p>'}`
+  } else if (!pages.length) {
+    main = '<p class="muted">No pages yet. Create one above, follow a <code>[[Title]]</code> link, or import with <code>node bin/wiki-import.js</code>.</p>'
+  } else {
+    main = `${recentCards(pages)}
+${tagCloud(pages)}
+<details class="wiki-all"><summary>All pages (${pages.length})</summary>${pageList(sorted)}</details>`
+  }
+  return wikiPage({ title: 'Wiki', body: `${header}\n${main}`, tabs, session })
 }
 
 function pageActions ({ page, session }) {

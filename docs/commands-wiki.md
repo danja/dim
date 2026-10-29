@@ -30,7 +30,7 @@ node bin/wiki-import.js --dir ~/notes                         # every *.md file 
 
 ## In the browser
 
-`/wiki/` lists pages, recent changes and tags. Reading needs no login;
+`/wiki/` opens on the eight most recently changed pages (each with its first line), the tags with page counts, and the full A–Z list folded under “All pages”; `?tag=` lists one tag's pages. Reading needs no login;
 editing needs `DIM_WRITE_TOKEN` (see `docs/commands-gnamgnam.md`) and **log in**.
 
 | In a page's text | Links to |

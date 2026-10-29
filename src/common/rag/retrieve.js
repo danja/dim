@@ -1,13 +1,7 @@
 import { RAG_CONFIG } from '../../../config/preferences.js'
 import { searchEverything } from '../search/everything.js'
 import { expand } from './expand.js'
-
-/** A node's nearest embedding neighbours: embeds its passage (cached) and asks the related index. */
-const neighbours = (related, registry, { k, minScore }) => async iri => {
-  const passage = await registry.passage(iri)
-  if (!passage) return []
-  try { return await related.related(iri, passage.text, { k, minScore }) } catch { return [] }
-}
+import { neighbours } from './neighbours.js'
 
 /** The clusters whose summaries are nearest the question, when that option is on and built. */
 async function communityHits (q, { communities, related, config }) {

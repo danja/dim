@@ -20,6 +20,10 @@
 }
 
 .wiki-index { columns: 16rem; padding-left: 1.2rem; }
+.wiki-recent { list-style: none; padding: 0; display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.wiki-recent li { border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; background: var(--surface); }
+.wiki-recent p { margin: 0.25rem 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.wiki-all summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
 .wiki-edit textarea { min-height: 18rem; font-family: var(--mono); }
 
 .preview {

@@ -35,6 +35,20 @@ describe('wiki routes', () => {
     expect(hashtags.at(-1)).toMatchObject({ from: 'http://purl.org/stuff/dim/page/home', tags: ['synth/diy'] })
   })
 
+  it('lands on recent pages with a taste of each, tag counts and the full list', async () => {
+    const { base } = await listen()
+    await save(base, 'home', { title: 'Home', content: '# Home\n\nWelcome to [[New Idea|the idea]] and **more**.', tags: ['start'], base: 0 })
+    await save(base, 'other', { title: 'Other', content: 'Second page.', tags: ['start'], base: 0 })
+    const html = await (await fetch(`${base}/wiki/`, { headers: { Accept: 'text/html' } })).text()
+    expect(html).toContain('class="wiki-recent"')
+    expect(html).toContain('Welcome to the idea and more.')
+    expect(html).toMatch(/href="\/wiki\/\?tag=start">start <small>2<\/small>/)
+    expect(html).toContain('All pages (2)')
+    const tagged = await (await fetch(`${base}/wiki/?tag=start`, { headers: { Accept: 'text/html' } })).text()
+    expect(tagged).not.toContain('wiki-recent')
+    expect(tagged).toContain('class="wiki-index"')
+  })
+
   it('offers to create a missing page, then shows it once saved', async () => {
     const { base, synced } = await listen()
     const missing = await fetch(`${base}/wiki/page/new-idea?title=New%20Idea`)

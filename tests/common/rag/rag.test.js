@@ -3,6 +3,7 @@ import { expand } from '../../../src/common/rag/expand.js'
 import { retrieve } from '../../../src/common/rag/retrieve.js'
 import { tune } from '../../../src/common/rag/options.js'
 import { detectCommunities } from '../../../src/common/rag/detect.js'
+import { buildCommunities } from '../../../src/common/rag/buildCommunities.js'
 import { RAG_CONFIG } from '../../../config/preferences.js'
 
 const D = 'http://purl.org/stuff/dim/'
@@ -130,6 +131,28 @@ describe('detectCommunities', () => {
     const groups = [...detectCommunities(edges, { minSize: 3 }).values()].map(m => [...m].sort())
     expect(groups).toEqual([['a', 'b', 'c', 'd'], ['w', 'x', 'y', 'z']])
     expect([...detectCommunities(edges).values()]).toEqual([...detectCommunities(edges).values()])
+  })
+})
+
+describe('buildCommunities with similarity edges', () => {
+  const iris = ['x1', 'x2', 'x3', 'y1', 'y2', 'y3'].map(n => `http://purl.org/stuff/dim/page/${n}`)
+  const registry = {
+    async lookup (iri) { return { iri, label: iri.slice(-2), href: `/p/${iri.slice(-2)}` } },
+    async passage (iri) { return { text: `Text ${iri.slice(-2)}` } }
+  }
+  // One link each side of the bridge, so on links alone nothing reaches the minimum size.
+  const links = { async allLinks () { return [{ from: iris[0], to: iris[1], kind: 'related' }, { from: iris[3], to: iris[4], kind: 'related' }] } }
+  const embeddings = { async embed () { return [1, 0] } }
+  const near = group => async iri => group.includes(iri) ? group.filter(i => i !== iri).map(i => ({ iri: i, score: 0.9 })) : []
+  const similar = async iri => [...await near(iris.slice(0, 3))(iri), ...await near(iris.slice(3))(iri)]
+
+  it('forms clusters from neighbours where links alone are too sparse', async () => {
+    const plain = await buildCommunities({ links, registry, embeddings, baseUrl: 'http://127.0.0.1:1' })
+    expect(plain.communities).toEqual([])
+    const steps = []
+    const result = await buildCommunities({ links, registry, embeddings, similar, baseUrl: 'http://127.0.0.1:1', onProgress: t => steps.push(t.phase) })
+    expect(result.communities.map(c => [...c.members].sort())).toEqual([iris.slice(0, 3).sort(), iris.slice(3).sort()])
+    expect(steps).toContain('similarity')
   })
 })
 

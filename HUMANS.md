@@ -38,3 +38,25 @@ systemctl status dim
 
 Stop anything already on :4110 first (a `node bin/serve.js` in a terminal, or
 the `dim-app` container).
+
+## Check and judge (Claude can't do these)
+
+Open items from `TODO.md` that need your eyes, your data or your decision:
+
+1. **Restart the server** so the new Wiki landing page shows (`/wiki/`), then
+   look at it at 375px in light and dark. Tell Claude if the cards or the
+   folded "All pages" list look wrong; the axe run waits on the install above.
+2. **Try the Graph RAG options on live data.** Run `node bin/communities.js`,
+   then `node bin/ask.js --similar --communities "…"` on a few real questions,
+   and settle the defaults in `RAG_CONFIG` (`config/preferences.js`).
+3. **Judge `bin/ask.js` on 10–20 real questions** and note which settings
+   (`hops`, `fanout`, link weights) give better sources; tell Claude what to
+   tune.
+4. **Try `node bin/communities.js --similar`** (slow the first time: one
+   embedding per item in the links graph; it needs Ollama) and compare
+   `--list` with and without it. Keep it only if the clusters read better.
+5. **Decide the design of "notes become Todo items and vice versa".** The
+   Farelo "make a wiki page or outline item" button already goes task → note.
+   What's missing is note → task: from a wiki page, an outline node, or both?
+   And "vice versa" as a second link, or converting (moving) the item?
+6. **Commit** the work so far (Claude doesn't commit unless asked).

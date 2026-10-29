@@ -33,7 +33,12 @@ reruns only pay for what changed; with no LLM a list of titles stands in
 (marked in `--list`). The server picks up a rebuild without a restart.
 
 Clusters only reflect explicit links and topics, so they are as good as the
-graph is dense; try `similar` and the link weights first.
+graph is dense. `node bin/communities.js --similar` also joins each item of
+that graph to its nearest embedding neighbours (`RAG_CONFIG.similarity`:
+`k`, `minScore`, weight `weight` × score), so clusters can form where links
+are sparse, and neighbours outside the links graph are pulled in. It costs one
+embedding per item (about a second each on a CPU; cached after), so expect a
+long first run; summaries of unchanged clusters are still reused.
 
 ## The Ask tab
 
