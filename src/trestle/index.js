@@ -2,7 +2,7 @@ import { registerRoutes } from './api/routes.js'
 import { nodePath } from './api/treeView.js'
 import { outlinePath } from './api/pages.js'
 import { plainText } from '../common/outline/OutlineParser.js'
-import { ancestors } from './tree.js'
+import { ancestors, toMarkdown } from './tree.js'
 import { tokenise } from '../common/search/LexicalIndex.js'
 
 /**
@@ -66,6 +66,20 @@ export function createTrestleFacet ({ store }) {
       const node = await store.createNode(outline, { title, actor })
       if (note) await store.updateNode(outline, node, { note }, actor)
       return { iri: node.iri, label: label(node), href: nodePath(node), created: true }
+    },
+
+    /** An outline item as a task: its title; its note, then everything under it as a Markdown list. A whole outline is not one. */
+    async asTask (resourceIri) {
+      const found = await store.byIri(resourceIri)
+      if (!found?.node) return null
+      const note = [found.node.note, toMarkdown(found.outline, found.node.iri)].filter(s => s?.trim()).join('\n\n')
+      return { title: plainText(found.node.title) || 'Untitled', note, tags: [] }
+    },
+
+    /** Delete the item with everything under it. */
+    async discard ({ iri, actor }) {
+      const found = await store.byIri(iri)
+      if (found?.node) await store.deleteNode(found.outline, found.node, actor)
     },
 
     async lookupTitle (title) {

@@ -51,6 +51,7 @@ export const CATALOG = Object.freeze([
   r('/farelo/dice', '/farelo/dice', 'The dice list'),
   r('/farelo/next', '/farelo/next', 'What next? — the advisor\'s ranking'),
   w('/farelo/tasks', '/farelo/tasks', 'New task', '{ title, note?, priority?, due?, estimate?, tags?, project?, isProject?, dependsOn? }'),
+  w('/farelo/tasks/from', '/farelo/tasks/from', 'Move a wiki page or outline item into a task (title, text, tags and links carry over; the note is deleted)', '{ from } (IRI, DIM URL or [[Title]])'),
   w('/farelo/task/{id}', '/farelo/task/ta1b2c', 'Edit a task', 'any of { title, note, priority, due, estimate, tags, project, isProject, dependsOn }'),
   w('/farelo/task/{id}/move', '/farelo/task/ta1b2c/move', 'Change status / position', '{ status?, before?, after? } (before/after: task id)'),
   w('/farelo/task/{id}/make', '/farelo/task/ta1b2c/make', 'Make a wiki page or outline item from a task, linked both ways', '{ facet } (wiki | trestle)'),

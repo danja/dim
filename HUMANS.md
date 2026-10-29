@@ -55,8 +55,8 @@ Open items from `TODO.md` that need your eyes, your data or your decision:
 4. **Try `node bin/communities.js --similar`** (slow the first time: one
    embedding per item in the links graph; it needs Ollama) and compare
    `--list` with and without it. Keep it only if the clusters read better.
-5. **Decide the design of "notes become Todo items and vice versa".** The
-   Farelo "make a wiki page or outline item" button already goes task → note.
-   What's missing is note → task: from a wiki page, an outline node, or both?
-   And "vice versa" as a second link, or converting (moving) the item?
+5. **Try Move to a task** on a throwaway wiki page and outline item (the
+   button asks first; the note is deleted, a page with its history). Check the
+   new buttons at 375px. Say if task → note should move too, rather than
+   only link as the Make buttons do.
 6. **Commit** the work so far (Claude doesn't commit unless asked).

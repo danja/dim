@@ -117,3 +117,54 @@ describe('make a page or outline item from a task', () => {
     expect((await post('news')).status).toBe(400)
   })
 })
+
+describe('move a note into a task', () => {
+  const PAGE = 'http://purl.org/stuff/dim/page/groceries'
+  const NODE = 'http://purl.org/stuff/dim/node/n1'
+  async function setup ({ failCreate = false } = {}) {
+    const made = []
+    const discarded = []
+    const added = []
+    const store = { ...stubStore([]), async create (fields, actor) { if (failCreate) throw new Error('nope'); made.push({ fields, actor }); return task('tnew1', { ...fields, iri: 'http://purl.org/stuff/dim/task/tnew1' }) } }
+    const note = (id, iri, found) => ({ id, label: id, routes () {}, async asTask (i) { return i === iri ? found : null }, async discard (a) { discarded.push([id, a.iri]) } })
+    const wiki = note('wiki', PAGE, { title: 'Groceries', note: 'Milk', tags: ['home'] })
+    const trestle = note('trestle', NODE, { title: 'Call Sam', note: 'Re: invoice\n\n- ask for terms', tags: [] })
+    const search = { documents: new Map(), index: { size: 0 }, async facets () { return {} } }
+    const links = { add: async a => { if (a.kind === 'mentions') throw new Error('derived'); added.push(a) }, linksOf: async () => [{ kind: 'related', direction: 'out', iri: 'http://purl.org/stuff/dim/bookmark/b' }, { kind: 'resource', direction: 'in', iri: 'http://purl.org/stuff/dim/task/tz' }, { kind: 'mentions', direction: 'in', iri: 'http://purl.org/stuff/dim/page/other' }], syncMentions: async () => {}, syncHashtags: async () => {} }
+    const server = createServer({ facets: [createGnamgnamFacet({ search }), createFareloFacet({ store, rng: seeded(3) }), wiki, trestle], defaultFacet: 'farelo', services: { auth: new Auth({ token: TOKEN }), links } })
+    servers.push(server)
+    await new Promise(resolve => server.listen(0, resolve))
+    const base = `http://localhost:${server.address().port}`
+    const move = from => fetch(`${base}/farelo/tasks/from`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from }) })
+    return { move, made, discarded, added }
+  }
+
+  it('turns a wiki page into a task, re-makes its links and deletes the page', async () => {
+    const { move, made, discarded, added } = await setup()
+    const res = await move(PAGE)
+    expect(res.status).toBe(200)
+    expect(made).toEqual([{ fields: { title: 'Groceries', note: 'Milk', tags: ['home'] }, actor: 'owner' }])
+    expect(added.map(a => [a.from, a.kind, a.to])).toEqual([
+      ['http://purl.org/stuff/dim/task/tnew1', 'related', 'http://purl.org/stuff/dim/bookmark/b'],
+      ['http://purl.org/stuff/dim/task/tz', 'resource', 'http://purl.org/stuff/dim/task/tnew1']
+    ])
+    expect(discarded).toEqual([['wiki', PAGE]])
+  })
+
+  it('does the same from an outline item', async () => {
+    const { move, made, discarded } = await setup()
+    expect((await move(NODE)).status).toBe(200)
+    expect(made[0].fields).toMatchObject({ title: 'Call Sam', note: 'Re: invoice\n\n- ask for terms' })
+    expect(discarded).toEqual([['trestle', NODE]])
+  })
+
+  it('refuses what is not a note, and keeps the note when the task cannot be made', async () => {
+    const plain = await setup()
+    expect((await plain.move('http://purl.org/stuff/dim/bookmark/b')).status).toBe(422)
+    expect((await plain.move('')).status).toBe(400)
+    expect(plain.discarded).toEqual([])
+    const failing = await setup({ failCreate: true })
+    expect((await failing.move(PAGE)).status).toBeGreaterThanOrEqual(400)
+    expect(failing.discarded).toEqual([])
+  })
+})

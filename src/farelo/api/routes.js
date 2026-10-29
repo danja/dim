@@ -8,6 +8,7 @@ import { renderTaskPage } from './taskPage.js'
 import { renderArchived } from './archivedPage.js'
 import { renderDicePage } from './dicePage.js'
 import { taskPath } from './common.js'
+import { taskFromNote } from './fromNote.js'
 import { rankForDice } from '../tasks.js'
 import { diceList, pick, nextState, POLICIES } from '../dice.js'
 import { resolvedLinks } from '../../common/links/resolvedLinks.js'
@@ -66,6 +67,13 @@ export function registerRoutes (router, { store, rolls, rng = Math.random, tabs,
     const task = await store.create(body, identity.user)
     if (task.note || parseHashtags(task.title).length) await syncMentions(task, identity.user)
     return { redirect: '/farelo/', json: { ok: true, task } }
+  }))
+
+  // Move a wiki page or outline item into a task: the note goes, the task keeps its text, tags and links.
+  router.add(['POST'], '/farelo/tasks/from', writeRoute(async ({ body, identity }) => {
+    const task = await taskFromNote(body.from, { store, registry, services, origin, actor: identity.user })
+    await syncMentions(task, identity.user)
+    return { redirect: taskPath(task), json: { ok: true, task } }
   }))
 
   router.add(['POST'], new RegExp(`^/farelo/task/${ID}$`), writeRoute(async ({ match, body, identity }) => {

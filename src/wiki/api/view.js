@@ -68,6 +68,7 @@ function pageActions ({ page, session }) {
   return `<div class="node-actions">
 <a class="button" href="${pagePath(page)}/edit">Edit</a>
 <form class="inline-buttons" method="post" action="/blog/posts">${formFields(session, '')}<input type="hidden" name="from" value="${esc(page.iri)}"><button>Draft a blog post</button></form>
+<form class="inline-buttons" method="post" action="/farelo/tasks/from" data-confirm="Move this page into a task? The page is deleted with its history.">${formFields(session, '')}<input type="hidden" name="from" value="${esc(page.iri)}"><button>Move to a task</button></form>
 <form class="inline-buttons" method="post" action="${pagePath(page)}/delete" data-confirm="Delete this page and its history?">${formFields(session, '/wiki/')}<button class="danger">Delete</button></form>
 </div>`
 }

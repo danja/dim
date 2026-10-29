@@ -64,6 +64,17 @@ export function createWikiFacet ({ store }) {
       return { iri: page.iri, label: page.title, href: pagePath(page), created: !existing }
     },
 
+    /** A page as a task: its title, its text as the note, its tags. */
+    async asTask (resourceIri) {
+      const page = await store.byIri(resourceIri)
+      return page ? { title: page.title, note: page.content, tags: page.tags } : null
+    },
+
+    async discard ({ iri, actor }) {
+      const page = await store.byIri(iri)
+      if (page) await store.delete(page, actor)
+    },
+
     async lookupTitle (title) {
       const wanted = String(title).trim().toLowerCase()
       return (await store.list()).find(p => p.title.toLowerCase() === wanted)?.iri ?? null

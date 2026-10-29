@@ -26,6 +26,8 @@
  *     find (q, { limit })    // optional: → [{ iri, label, href, snippet }]
  *     create ({ title, note, actor }) // optional: make a page/item from another facet's resource
  *                            //   → { iri, label, href }; an existing page of that title is reused
+ *     asTask (iri)           // optional: → { title, note, tags } what a note it owns becomes as a task | null
+ *     discard ({ iri, actor }) // optional: delete that note (after a task was made from it: a move)
  *     upcoming ({ days })    // optional: → [{ date, dayLabel, time, title, location, href, past }]
  *                            //   due soon, for Squirt's "Coming up"; private: show to the owner only
  *   }
@@ -194,6 +196,23 @@ export class FacetRegistry {
     const facet = this.get(id)
     if (typeof facet?.create !== 'function') throw new FacetError(`Facet ${id} cannot create items`)
     return facet.create(args)
+  }
+
+  /** What a note (wiki page, outline item) becomes as a task, and who owns it. → { facet, title, note, tags } | null */
+  async taskSource (resourceIri) {
+    for (const facet of this.facets) {
+      if (typeof facet.asTask !== 'function') continue
+      const found = await facet.asTask(resourceIri)
+      if (found) return { facet: facet.id, ...found }
+    }
+    return null
+  }
+
+  /** Delete a note in the facet that owns it (once its task exists). */
+  async discard (id, args) {
+    const facet = this.get(id)
+    if (typeof facet?.discard !== 'function') throw new FacetError(`Facet ${id} cannot discard items`)
+    return facet.discard(args)
   }
 
   /** Tell every facet that caches resources that this one changed. */

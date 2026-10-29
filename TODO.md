@@ -11,7 +11,7 @@
 - [x] Allow editing of tasks (inline Edit on each board card; the task page keeps the full form)
 - [x] Import bookmarks from browsers (marked "doing" in Farelo)
 - [x] Make a neater Wiki landing page with recent items
-- [ ] Allow notes to become Todo items and vice versa
+- [x] Allow notes to become Todo items and vice versa (note → task: **Move to a task** on a wiki page or outline item; task → note was already the Make buttons)
 
 Not added: three "make it easy to remove tasks" tasks, now done by the Archive button
 (they can be archived in DIM).
